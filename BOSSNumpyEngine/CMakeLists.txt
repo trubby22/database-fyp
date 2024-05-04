@@ -42,6 +42,10 @@ endif(MSVC)
 
 include(ExternalProject)
 
+set(GITHUB_TOKEN $ENV{GITHUB_TOKEN})
+
+# message(GITHUB_TOKEN="$ENV{GITHUB_TOKEN}")
+
 # Core BOSS
   if(NOT DEFINED BOSS_SOURCE_REPOSITORY)
     if(NOT GITHUB_TOKEN)
