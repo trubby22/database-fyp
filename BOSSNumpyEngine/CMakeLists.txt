@@ -101,11 +101,25 @@ add_dependencies(NPTests catch2)
 set_property(TARGET BOSSNumPyEngine PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 set_property(TARGET NPTests PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 
-target_include_directories(BOSSNumPyEngine SYSTEM PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include)
-target_include_directories(NPTests SYSTEM PUBLIC ${BOSSDictionaryEncoderEngine_BINARY_DIR}/deps/include)
+target_include_directories(BOSSNumPyEngine SYSTEM
+  PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include
+  # PUBLIC /usr/include/python3.10
+  # PUBLIC /usr/local/lib/python3.10/dist-packages/numpy/core/include
+ )
+target_include_directories(NPTests SYSTEM
+  PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include
+  # PUBLIC /usr/include/python3.10
+  # PUBLIC /usr/local/lib/python3.10/dist-packages/numpy/core/include
+ )
 
-target_link_directories(BOSSNumPyEngine PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib)
-target_link_directories(NPTests PUBLIC ${BOSSDictionaryEncoderEngine_BINARY_DIR}/deps/lib)
+target_link_directories(BOSSNumPyEngine 
+  PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
+  # PUBLIC /usr/lib/python3.10/config-3.10-x86_64-linux-gnu
+)
+target_link_directories(NPTests 
+  PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
+  # PUBLIC /usr/lib/python3.10/config-3.10-x86_64-linux-gnu
+)
 
 add_dependencies(BOSSNumPyEngine BOSS)
 add_dependencies(NPTests BOSS)

@@ -7,6 +7,7 @@ using boss::utilities::operator""_;
 using boss::ComplexExpression;
 using boss::Span;
 using boss::Symbol;
+using boss::expressions::ExpressionSpanArguments;
 
 using boss::Expression;
 
@@ -106,6 +107,11 @@ Expression Engine::evaluate(Expression &&e) {
             // {
             //   return std::move(expression);
             // }
+
+            // if (head == "List"_) {
+            //   forward<decltype(spans)>(move(spans));
+            // }
+
             std::transform(std::make_move_iterator(dynamics.begin()),
                            std::make_move_iterator(dynamics.end()),
                            dynamics.begin(), [this](auto &&arg) {
@@ -126,6 +132,10 @@ Expression Engine::evaluate(Expression &&e) {
           }),
       std::move(e));
 };
+
+// Py_ArrayObject Engine::convertSpansToNumPy(ExpressionSpanArguments &&spans) {
+//   // PyArray_SimpleNewFromData(nd, dims, typenum, data)
+// }
 
 } // namespace boss::engines::numpy
 
