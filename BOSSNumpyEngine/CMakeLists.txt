@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(BOSSNoopEngine)
+project(BOSSNumPyEngine)
 
 ############################## Custom build modes ###############################
 
@@ -61,10 +61,22 @@ set(GITHUB_TOKEN $ENV{GITHUB_TOKEN})
       GIT_REPOSITORY ${BOSS_SOURCE_REPOSITORY}
       GIT_TAG ${BOSS_SOURCE_BRANCH}
       GIT_SHALLOW ON
-		  CMAKE_ARGS -DCMAKE_VERBOSE_MAKEFILE=${CMAKE_VERBOSE_MAKEFILE} -DCMAKE_INSTALL_PREFIX=${BOSSNoopEngine_BINARY_DIR}/deps $<IF:$<CONFIG:>,,-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}>
+		  CMAKE_ARGS -DCMAKE_VERBOSE_MAKEFILE=${CMAKE_VERBOSE_MAKEFILE} -DCMAKE_INSTALL_PREFIX=${BOSSNumPyEngine_BINARY_DIR}/deps $<IF:$<CONFIG:>,,-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}>
                  -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}  -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-      BUILD_BYPRODUCTS ${BOSSNoopEngine_BINARY_DIR}/deps/lib/${BOSS_LINK_LIBRARY_PREFIX}BOSS${BOSS_LINK_LIBRARY_SUFFIX}
+      BUILD_BYPRODUCTS ${BOSSNumPyEngine_BINARY_DIR}/deps/lib/${BOSS_LINK_LIBRARY_PREFIX}BOSS${BOSS_LINK_LIBRARY_SUFFIX}
     )
+
+  ########################## Other Options and Library Dependencies ############################
+
+  find_package(CURL REQUIRED)
+  ExternalProject_Add(catch2
+    URL https://github.com/catchorg/Catch2/archive/v2.13.6.tar.gz
+    DOWNLOAD_DIR $ENV{HOME}/.cmake-downloads/${CMAKE_PROJECT_NAME}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${BOSSDictionaryEncoderEngine_BINARY_DIR}/deps -DCATCH_BUILD_TESTING=NO -DBUILD_TESTING=NO -DCATCH_ENABLE_WERROR=NO -DCATCH_INSTALL_DOCS=NO -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}  -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+    )
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+  
 
 #################################### Targets ####################################
 
@@ -82,17 +94,28 @@ else()
   set(pluginInstallDir lib)
 endif(MSVC)
 
-set(ImplementationFiles Source/BOSSNoopEngine.cpp)
+set(ImplementationFiles Source/BOSSNumPyEngine.cpp)
 
-add_library(BOSSNoopEngine MODULE ${ImplementationFiles})
-set_property(TARGET BOSSNoopEngine PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
-target_include_directories(BOSSNoopEngine SYSTEM PUBLIC ${BOSSNoopEngine_BINARY_DIR}/deps/include)
-target_link_directories(BOSSNoopEngine PUBLIC ${BOSSNoopEngine_BINARY_DIR}/deps/lib)
-add_dependencies(BOSSNoopEngine BOSS)
+add_library(BOSSNumPyEngine MODULE ${ImplementationFiles})
+
+add_executable(NPTests ${ImplementationFiles} ${TestFiles})
+add_dependencies(NPTests catch2)
+
+set_property(TARGET BOSSNumPyEngine PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
+set_property(TARGET NPTests PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
+
+target_include_directories(BOSSNumPyEngine SYSTEM PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include)
+target_include_directories(NPTests SYSTEM PUBLIC ${BOSSDictionaryEncoderEngine_BINARY_DIR}/deps/include)
+
+target_link_directories(BOSSNumPyEngine PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib)
+target_link_directories(NPTests PUBLIC ${BOSSDictionaryEncoderEngine_BINARY_DIR}/deps/lib)
+
+add_dependencies(BOSSNumPyEngine BOSS)
+add_dependencies(NPTests BOSS)
 
 
-set_target_properties(BOSSNoopEngine PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
-install(TARGETS BOSSNoopEngine LIBRARY DESTINATION lib)
+set_target_properties(BOSSNumPyEngine PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+install(TARGETS BOSSNumPyEngine LIBRARY DESTINATION lib)
 
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
