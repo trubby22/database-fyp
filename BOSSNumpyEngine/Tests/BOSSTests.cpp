@@ -1,6 +1,9 @@
 #define CATCH_CONFIG_RUNNER
 
-#include "/mnt/ubuntu-image-repos/BOSSNumPyEngine/Source/BOSSNumPyEngine.hpp"
+#include "../Source/BOSSNumPyEngine.hpp"
+#include <BOSS.hpp>
+#include <ExpressionUtilities.hpp>
+
 #include <catch2/catch.hpp>
 #include <numeric>
 #include <variant>
@@ -49,11 +52,9 @@ auto createSpansFloat = [](auto... values) {
 };
 
 TEST_CASE("TPCH", "[basics]") { // NOLINT
-  auto engine = boss::engines::BootstrapEngine();
-  REQUIRE(!librariesToTest.empty());
+  boss::engines::numpy::Engine engine;
   auto eval = [&engine](boss::Expression&& expression) mutable {
-    return engine.evaluate("EvaluateInEngines"_("List"_(GENERATE(from_range(librariesToTest))),
-                                                std::move(expression)));
+    return engine.evaluate(std::move(expression));
   };
 
 #ifdef USE_NEW_TABLE_FORMAT
@@ -100,11 +101,9 @@ TEST_CASE("TPCH", "[basics]") { // NOLINT
 }
 
 TEST_CASE("SELECT", "[basics]") { // NOLINT
-  auto engine = boss::engines::BootstrapEngine();
-  REQUIRE(!librariesToTest.empty());
+  boss::engines::numpy::Engine engine;
   auto eval = [&engine](boss::Expression&& expression) mutable {
-    return engine.evaluate("EvaluateInEngines"_("List"_(GENERATE(from_range(librariesToTest))),
-                                                std::move(expression)));
+    return engine.evaluate(std::move(expression));
   };
 
 #ifdef USE_NEW_TABLE_FORMAT
@@ -145,11 +144,9 @@ TEST_CASE("SELECT", "[basics]") { // NOLINT
 }
 
 TEST_CASE("Gather", "[basics]") { // NOLINT
-  auto engine = boss::engines::BootstrapEngine();
-  REQUIRE(!librariesToTest.empty());
+  boss::engines::numpy::Engine engine;
   auto eval = [&engine](boss::Expression&& expression) mutable {
-    return engine.evaluate("EvaluateInEngines"_("List"_(GENERATE(from_range(librariesToTest))),
-                                                std::move(expression)));
+    return engine.evaluate(std::move(expression));
   };
 
 #ifdef USE_NEW_TABLE_FORMAT

@@ -42,10 +42,6 @@ endif(MSVC)
 
 include(ExternalProject)
 
-set(GITHUB_TOKEN $ENV{GITHUB_TOKEN})
-
-# message(GITHUB_TOKEN="$ENV{GITHUB_TOKEN}")
-
 # Core BOSS
   if(NOT DEFINED BOSS_SOURCE_REPOSITORY)
     if(NOT GITHUB_TOKEN)
@@ -54,7 +50,7 @@ set(GITHUB_TOKEN $ENV{GITHUB_TOKEN})
     set(BOSS_SOURCE_REPOSITORY https://little-big-h:${GITHUB_TOKEN}@github.com/symbol-store/BOSS.git)
   endif()
   if(NOT DEFINED BOSS_SOURCE_BRANCH)
-    set(BOSS_SOURCE_BRANCH main)
+    set(BOSS_SOURCE_BRANCH temp_lazy_loading)
   endif()
   message("getting boss sources from ${BOSS_SOURCE_REPOSITORY}, branch ${BOSS_SOURCE_BRANCH}")
   ExternalProject_Add(BOSS
@@ -95,6 +91,7 @@ else()
 endif(MSVC)
 
 set(ImplementationFiles Source/BOSSNumPyEngine.cpp)
+set(TestFiles Tests/BOSSTests.cpp)
 
 add_library(BOSSNumPyEngine MODULE ${ImplementationFiles})
 
@@ -113,9 +110,38 @@ target_link_directories(NPTests PUBLIC ${BOSSDictionaryEncoderEngine_BINARY_DIR}
 add_dependencies(BOSSNumPyEngine BOSS)
 add_dependencies(NPTests BOSS)
 
+set(PUBLIC_HEADER_LIST
+  ${CMAKE_CURRENT_SOURCE_DIR}/Source/BOSSNumPyEngine.hpp;
+  )
+
+list(APPEND AllTargets BOSSNumPyEngine)
+
+foreach(Target IN LISTS AllTargets)
+  if(NOT WIN32)
+    target_link_libraries(${Target} dl)
+  endif(NOT WIN32)
+    target_link_libraries(${Target} Threads::Threads)
+    set_target_properties(${Target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    if(MSVC)
+        target_compile_options(${Target} PUBLIC "/Zc:__cplusplus")
+        target_compile_options(${Target} PUBLIC "/EHsc")
+    endif()
+    set_target_properties(${Target} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+    add_dependencies(${Target} BOSS)
+    target_include_directories(${Target} SYSTEM PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include)
+    target_include_directories(${Target} SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/deps/include)
+    target_link_libraries(${Target} ${CMAKE_BINARY_DIR}/deps/lib/${BOSS_LINK_LIBRARY_PREFIX}BOSS${BOSS_LINK_LIBRARY_SUFFIX})
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(${Target} rt)
+    endif()
+endforeach()
 
 set_target_properties(BOSSNumPyEngine PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+set_target_properties(BOSSNumPyEngine PROPERTIES PUBLIC_HEADER ${PUBLIC_HEADER_LIST})
 install(TARGETS BOSSNumPyEngine LIBRARY DESTINATION lib)
+
+set_target_properties(NPTests PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+install(TARGETS NPTests RUNTIME DESTINATION bin)
 
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

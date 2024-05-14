@@ -6,6 +6,7 @@
 #include <Utilities.hpp>
 
 #include <iostream>
+#include <mutex>
 
 namespace boss::engines::numpy {
 
@@ -20,9 +21,9 @@ public:
 
   Engine& operator=(Engine&&) = delete;
 
-  Engine();
+  Engine() = default;
 
-  ~Engine();
+  ~Engine() = default;
 
   boss::Expression evaluate(boss::Expression&& e);
 
