@@ -137,7 +137,25 @@ Expression Engine::evaluate(Expression &&e) {
 //   // PyArray_SimpleNewFromData(nd, dims, typenum, data)
 // }
 
+
+void init_numpy() {
+  Py_Initialize();
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wreturn-type"
+  import_array();
+  #pragma clang diagnostic pop
+  if (PyErr_Occurred()) {
+    throw std::runtime_error("Failed to import numpy Python module(s).");
+  }
+  assert(PyArray_API);
+}
+
+Engine::Engine() {
+  init_numpy();
+}
+
 } // namespace boss::engines::numpy
+
 
 static auto &enginePtr(bool initialise = true) {
   static auto engine = std::unique_ptr<boss::engines::numpy::Engine>();

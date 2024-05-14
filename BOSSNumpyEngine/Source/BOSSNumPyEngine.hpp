@@ -1,15 +1,16 @@
 #pragma once
 
-// #define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
+#define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
 
-// #include <Python.h>
-// #include "numpy/arrayobject.h"
+#include <Python.h>
+#include "numpy/arrayobject.h"
 
 #include <BOSS.hpp>
 #include <Expression.hpp>
 #include <ExpressionUtilities.hpp>
 #include <Utilities.hpp>
 
+#include <stdexcept>
 #include <iostream>
 #include <mutex>
 
@@ -26,7 +27,7 @@ public:
 
   Engine& operator=(Engine&&) = delete;
 
-  Engine() = default;
+  Engine();
 
   ~Engine() = default;
 

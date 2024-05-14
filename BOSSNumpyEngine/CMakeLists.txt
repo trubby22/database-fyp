@@ -68,7 +68,7 @@ include(ExternalProject)
   ExternalProject_Add(catch2
     URL https://github.com/catchorg/Catch2/archive/v2.13.6.tar.gz
     DOWNLOAD_DIR $ENV{HOME}/.cmake-downloads/${CMAKE_PROJECT_NAME}
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${BOSSDictionaryEncoderEngine_BINARY_DIR}/deps -DCATCH_BUILD_TESTING=NO -DBUILD_TESTING=NO -DCATCH_ENABLE_WERROR=NO -DCATCH_INSTALL_DOCS=NO -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}  -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${BOSSNumPyEngine_BINARY_DIR}/deps -DCATCH_BUILD_TESTING=NO -DBUILD_TESTING=NO -DCATCH_ENABLE_WERROR=NO -DCATCH_INSTALL_DOCS=NO -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}  -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
     )
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -103,22 +103,22 @@ set_property(TARGET NPTests PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but 
 
 target_include_directories(BOSSNumPyEngine SYSTEM
   PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include
-  # PUBLIC /usr/include/python3.10
-  # PUBLIC /usr/local/lib/python3.10/dist-packages/numpy/core/include
+  PUBLIC /usr/include/python3.10
+  PUBLIC /usr/local/lib/python3.10/dist-packages/numpy/core/include
  )
 target_include_directories(NPTests SYSTEM
   PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include
-  # PUBLIC /usr/include/python3.10
-  # PUBLIC /usr/local/lib/python3.10/dist-packages/numpy/core/include
+  PUBLIC /usr/include/python3.10
+  PUBLIC /usr/local/lib/python3.10/dist-packages/numpy/core/include
  )
 
 target_link_directories(BOSSNumPyEngine 
   PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
-  # PUBLIC /usr/lib/python3.10/config-3.10-x86_64-linux-gnu
+  PUBLIC /usr/lib/python3.10/config-3.10-x86_64-linux-gnu
 )
 target_link_directories(NPTests 
   PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
-  # PUBLIC /usr/lib/python3.10/config-3.10-x86_64-linux-gnu
+  PUBLIC /usr/lib/python3.10/config-3.10-x86_64-linux-gnu
 )
 
 add_dependencies(BOSSNumPyEngine BOSS)
