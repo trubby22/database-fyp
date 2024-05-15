@@ -114,11 +114,17 @@ target_include_directories(NPTests SYSTEM
 
 target_link_directories(BOSSNumPyEngine 
   PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
-  PUBLIC /usr/lib/python3.10/config-3.10-x86_64-linux-gnu
 )
 target_link_directories(NPTests 
   PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
-  PUBLIC /usr/lib/python3.10/config-3.10-x86_64-linux-gnu
+)
+
+target_link_libraries(BOSSNumPyEngine
+  /usr/lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so
+)
+
+target_link_libraries(NPTests
+  /usr/lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so
 )
 
 add_dependencies(BOSSNumPyEngine BOSS)

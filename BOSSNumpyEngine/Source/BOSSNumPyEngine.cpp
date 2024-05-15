@@ -7,158 +7,259 @@ using boss::utilities::operator""_;
 using boss::ComplexExpression;
 using boss::Span;
 using boss::Symbol;
+using boss::expressions::ExpressionSpanArgument;
 using boss::expressions::ExpressionSpanArguments;
 
 using boss::Expression;
 
 namespace boss::engines::numpy {
 
-Expression Engine::evaluate(Expression &&e) {
-  cout << "expression is " << e << endl;
+void print_1d_numpy_array(PyObject *array) {
+  auto column = array;
+  int dtype = PyArray_TYPE(column);
+  auto size = PyArray_DIM(column, 0);
+  switch (dtype) {
+  case NPY_INT32: {
+    cout << "[";
+    for (npy_intp i = 0; i < size; ++i) {
+      auto val = *(npy_int32 *)PyArray_GETPTR1(column, i);
+      cout << val;
+      if (i < size - 1)
+        cout << ", ";
+    }
+    cout << "]" << endl;
+    break;
+  }
+  case NPY_INT64: {
+    cout << "[";
+    for (npy_intp i = 0; i < size; ++i) {
+      auto val = *(npy_int64 *)PyArray_GETPTR1(column, i);
+      cout << val;
+      if (i < size - 1)
+        cout << ", ";
+    }
+    cout << "]" << endl;
+    break;
+  }
+  case NPY_FLOAT: {
+    cout << "[";
+    for (npy_intp i = 0; i < size; ++i) {
+      auto val = *(float_t *)PyArray_GETPTR1(column, i);
+      cout << val;
+      if (i < size - 1)
+        cout << ", ";
+    }
+    cout << "]" << endl;
+    break;
+  }
+  case NPY_DOUBLE: {
+    cout << "[";
+    for (npy_intp i = 0; i < size; ++i) {
+      auto val = *(double_t *)PyArray_GETPTR1(column, i);
+      cout << val;
+      if (i < size - 1)
+        cout << ", ";
+    }
+    cout << "]" << endl;
+    break;
+  }
+  default: {
+    throw logic_error("dtype is not as expected");
+    break;
+  }
+  }
+}
 
-  return std::visit(
+template <typename T> NPY_TYPES bossTypeToNumPy() {
+  if constexpr (is_same_v<T, int32_t>) {
+    return NPY_INT32;
+  } else if constexpr (is_same_v<T, int64_t>) {
+    return NPY_INT64;
+  } else if constexpr (is_same_v<T, float_t>) {
+    return NPY_FLOAT;
+  } else if constexpr (is_same_v<T, double_t>) {
+    return NPY_DOUBLE;
+  } else {
+    throw runtime_error("unsupported type: " + string(typeid(T).name()));
+  }
+}
+
+PyObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
+  PyObject *result;
+  visit(
+      [&result]<typename T>(boss::Span<T> &&typedSpan) {
+        if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
+                      is_same_v<T, float_t> || is_same_v<T, double_t>) {
+
+          auto typenum = bossTypeToNumPy<T>();
+          auto begin = typedSpan.begin();
+          auto end = typedSpan.end();
+          auto size = typedSpan.size();
+          npy_intp dims[] = {static_cast<npy_intp>(size)};
+
+          result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
+        } else {
+          throw runtime_error("unsupported span type: " +
+                              string(typeid(decltype(typedSpan)).name()));
+        }
+      },
+      move(arg));
+  return result;
+}
+
+vector<PyObject *> convertSpanArgsToNumPy(ExpressionSpanArguments &&args) {
+  vector<PyObject *> numpyArrs;
+  for_each(make_move_iterator(args.begin()), make_move_iterator(args.end()),
+           [&](auto &&arg) {
+             auto numpyArr =
+                 convertSpanArgToNumPy(forward<decltype(arg)>(move(arg)));
+             numpyArrs.push_back(numpyArr);
+           });
+  return numpyArrs;
+}
+
+Expression Engine::evaluate(Expression &&e) {
+  // cout << "expression is " << e << endl;
+
+  return visit(
       boss::utilities::overload(
           [this](ComplexExpression &&expression) -> boss::Expression {
             auto [head, statics, dynamics, spans] =
-                std::move(expression).decompose();
+                move(expression).decompose();
 
-            cout << "complex expression" << endl;
-            cout << "head is " << head.getName() << endl;
+            // cout << "complex expression" << endl;
+            // cout << "head is " << head.getName() << endl;
 
-            for (auto &&arg : dynamics) {
-              cout << "dynamic is " << arg << endl;
-            }
+            // for (auto &&arg : dynamics) {
+            //   cout << "dynamic is " << arg << endl;
+            // }
 
-            std::for_each(
-                std::make_move_iterator(spans.begin()),
-                std::make_move_iterator(spans.end()), [&](auto &&span) {
-                  std::visit(
-                      []<typename T>(boss::Span<T> &&typedSpan) -> void {
-                        if constexpr (std::is_same_v<T, int32_t> ||
-                                      std::is_same_v<T, int64_t> ||
-                                      std::is_same_v<T, float_t> ||
-                                      std::is_same_v<T, double_t> ||
-                                      std::is_same_v<T, int32_t const> ||
-                                      std::is_same_v<T, int64_t const> ||
-                                      std::is_same_v<T, float_t const> ||
-                                      std::is_same_v<T, double_t const>) {
-                          std::for_each(
-                              std::make_move_iterator(typedSpan.begin()),
-                              std::make_move_iterator(typedSpan.end()),
-                              [&](auto &&spanElement) {
-                                cout << "span element " << spanElement << endl;
-                              });
-                        } else {
-                          throw std::runtime_error(
-                              "unsupported span type: " +
-                              std::string(typeid(decltype(typedSpan)).name()));
-                        }
-                      },
-                      std::move(span));
-                });
-
-            cout << endl;
+            for_each(make_move_iterator(spans.begin()),
+                     make_move_iterator(spans.end()), [&](auto &&span) {
+                       visit(
+                           []<typename T>(boss::Span<T> &&typedSpan) -> void {
+                             if constexpr (is_same_v<T, int32_t> ||
+                                           is_same_v<T, int64_t> ||
+                                           is_same_v<T, float_t> ||
+                                           is_same_v<T, double_t> ||
+                                           is_same_v<T, int32_t const> ||
+                                           is_same_v<T, int64_t const> ||
+                                           is_same_v<T, float_t const> ||
+                                           is_same_v<T, double_t const>) {
+                               for_each(make_move_iterator(typedSpan.begin()),
+                                        make_move_iterator(typedSpan.end()),
+                                        [&](auto &&spanElement) {
+                                          cout << "span element " << spanElement
+                                               << endl;
+                                        });
+                             } else {
+                               throw runtime_error(
+                                   "unsupported span type: " +
+                                   string(typeid(decltype(typedSpan)).name()));
+                             }
+                           },
+                           move(span));
+                     });
 
             // if (head == "Project"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "Select"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "Join"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "Group"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "As"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "Where"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "And"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "Sum"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "Times"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "Greater"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "Table"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
             // else if (head == "List"_)
             // {
-            //   return std::move(expression);
+            //   return move(expression);
             // }
 
-            // if (head == "List"_) {
-            //   forward<decltype(spans)>(move(spans));
-            // }
+            if (head == "List"_) {
+              cout << "we have a list!" << endl;
+              auto numpyArrs =
+                  convertSpanArgsToNumPy(forward<decltype(spans)>(move(spans)));
+              for_each(
+                  make_move_iterator(numpyArrs.begin()),
+                  make_move_iterator(numpyArrs.end()),
+                  [&](auto &&numpyArr) { print_1d_numpy_array(numpyArr); });
+              cout << endl;
+            }
 
-            std::transform(std::make_move_iterator(dynamics.begin()),
-                           std::make_move_iterator(dynamics.end()),
-                           dynamics.begin(), [this](auto &&arg) {
-                             return evaluate(std::forward<decltype(arg)>(arg));
-                           });
-            return boss::ComplexExpression(
-                std::move(head), {}, std::move(dynamics), std::move(spans));
+            transform(make_move_iterator(dynamics.begin()),
+                      make_move_iterator(dynamics.end()), dynamics.begin(),
+                      [this](auto &&arg) {
+                        return evaluate(forward<decltype(arg)>(move(arg)));
+                      });
+            return boss::ComplexExpression(move(head), {}, move(dynamics),
+                                           move(spans));
           },
           [this](Symbol &&symbol) -> boss::Expression {
-            cout << "symbol" << endl;
-            cout << endl;
-            return std::move(symbol);
+            // cout << "symbol" << endl;
+            // cout << endl;
+            return move(symbol);
           },
           [](auto &&arg) -> boss::Expression {
-            cout << typeid(arg).name() << endl;
-            cout << endl;
-            return std::forward<decltype(arg)>(arg);
+            // cout << typeid(arg).name() << endl;
+            // cout << endl;
+            return forward<decltype(arg)>(move(arg));
           }),
-      std::move(e));
+      move(e));
 };
-
-// Py_ArrayObject Engine::convertSpansToNumPy(ExpressionSpanArguments &&spans) {
-//   // PyArray_SimpleNewFromData(nd, dims, typenum, data)
-// }
-
 
 void init_numpy() {
   Py_Initialize();
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wreturn-type"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type"
   import_array();
-  #pragma clang diagnostic pop
+#pragma clang diagnostic pop
   if (PyErr_Occurred()) {
-    throw std::runtime_error("Failed to import numpy Python module(s).");
+    throw runtime_error("Failed to import numpy Python module(s).");
   }
   assert(PyArray_API);
 }
 
-Engine::Engine() {
-  init_numpy();
-}
+Engine::Engine() { init_numpy(); }
 
 } // namespace boss::engines::numpy
 
-
 static auto &enginePtr(bool initialise = true) {
-  static auto engine = std::unique_ptr<boss::engines::numpy::Engine>();
+  static auto engine = unique_ptr<boss::engines::numpy::Engine>();
   if (!engine && initialise) {
     engine.reset(new boss::engines::numpy::Engine());
   }
@@ -166,9 +267,9 @@ static auto &enginePtr(bool initialise = true) {
 }
 
 extern "C" BOSSExpression *evaluate(BOSSExpression *e) {
-  static std::mutex m;
-  std::lock_guard lock(m);
-  auto *r = new BOSSExpression{enginePtr()->evaluate(std::move(e->delegate))};
+  static mutex m;
+  lock_guard lock(m);
+  auto *r = new BOSSExpression{enginePtr()->evaluate(move(e->delegate))};
   return r;
 };
 
