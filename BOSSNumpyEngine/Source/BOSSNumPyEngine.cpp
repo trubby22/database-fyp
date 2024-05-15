@@ -14,12 +14,11 @@ using boss::Expression;
 
 namespace boss::engines::numpy {
 
-template <typename T> void print_1d_numpy_array_helper(PyObject &&array) {
-  PyObject *array_ptr = &array;
-  auto size = PyArray_DIM(array_ptr, 0);
+template <typename T> void print_1d_numpy_array_helper(PyObject *array) {
+  auto size = PyArray_DIM(array, 0);
   cout << "[";
   for (npy_intp i = 0; i < size; ++i) {
-    auto val = *static_cast<T *>(PyArray_GETPTR1(array_ptr, i));
+    auto val = *static_cast<T *>(PyArray_GETPTR1(array, i));
     cout << val;
     if (i < size - 1) {
       cout << ", ";
@@ -28,24 +27,23 @@ template <typename T> void print_1d_numpy_array_helper(PyObject &&array) {
   cout << "]" << endl;
 }
 
-void print_1d_numpy_array(PyObject &&array) {
-  PyObject *array_ptr = &array;
-  int dtype = PyArray_TYPE(array_ptr);
+void print_1d_numpy_array(PyObject *array) {
+  int dtype = PyArray_TYPE(array);
   switch (dtype) {
   case NPY_INT32: {
-    print_1d_numpy_array_helper<int32_t>(move(array));
+    print_1d_numpy_array_helper<int32_t>(array);
     break;
   }
   case NPY_INT64: {
-    print_1d_numpy_array_helper<int64_t>(move(array));
+    print_1d_numpy_array_helper<int64_t>(array);
     break;
   }
   case NPY_FLOAT: {
-    print_1d_numpy_array_helper<float_t>(move(array));
+    print_1d_numpy_array_helper<float_t>(array);
     break;
   }
   case NPY_DOUBLE: {
-    print_1d_numpy_array_helper<double_t>(move(array));
+    print_1d_numpy_array_helper<double_t>(array);
     break;
   }
   default: {
@@ -69,10 +67,10 @@ template <typename T> NPY_TYPES bossTypeToNumPy() {
   }
 }
 
-PyObject &convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
-  PyObject *result_ptr;
+PyObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
+  PyObject *result;
   visit(
-      [&result_ptr]<typename T>(boss::Span<T> &&typedSpan) {
+      [&result]<typename T>(boss::Span<T> &&typedSpan) {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
                       is_same_v<T, float_t> || is_same_v<T, double_t>) {
 
@@ -82,27 +80,25 @@ PyObject &convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
           auto size = typedSpan.size();
           npy_intp dims[] = {static_cast<npy_intp>(size)};
 
-          result_ptr = PyArray_SimpleNewFromData(1, dims, typenum, begin);
+          result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
         } else {
           throw runtime_error("unsupported span type: " +
                               string(typeid(decltype(typedSpan)).name()));
         }
       },
       move(arg));
-  PyObject &result = *result_ptr;
   return result;
 }
 
-vector<PyObject> &convertSpanArgsToNumPy(ExpressionSpanArguments &&args) {
-  vector<PyObject> numpyArrs;
+vector<PyObject *> convertSpanArgsToNumPy(ExpressionSpanArguments &&args) {
+  vector<PyObject *> numpyArrs;
   for_each(make_move_iterator(args.begin()), make_move_iterator(args.end()),
            [&](auto &&arg) {
              auto numpyArr =
                  convertSpanArgToNumPy(forward<decltype(arg)>(move(arg)));
-             numpyArrs.push_back(move(numpyArr));
+             numpyArrs.push_back(numpyArr);
            });
-  vector<PyObject> &result = numpyArrs;
-  return result;
+  return numpyArrs;
 }
 
 Expression Engine::evaluate(Expression &&e) {
@@ -201,12 +197,10 @@ Expression Engine::evaluate(Expression &&e) {
               cout << "we have a list!" << endl;
               auto numpyArrs =
                   convertSpanArgsToNumPy(forward<decltype(spans)>(move(spans)));
-              for_each(make_move_iterator(numpyArrs.begin()),
-                       make_move_iterator(numpyArrs.end()),
-                       [&](auto &&numpyArr) {
-                         print_1d_numpy_array(
-                             forward<decltype(numpyArr)>(move(numpyArr)));
-                       });
+              for_each(
+                  make_move_iterator(numpyArrs.begin()),
+                  make_move_iterator(numpyArrs.end()),
+                  [&](auto &&numpyArr) { print_1d_numpy_array(numpyArr); });
               cout << endl;
             }
 
