@@ -14,53 +14,38 @@ using boss::Expression;
 
 namespace boss::engines::numpy {
 
-void print_1d_numpy_array(PyObject *array) {
-  auto column = array;
-  int dtype = PyArray_TYPE(column);
-  auto size = PyArray_DIM(column, 0);
+template <typename T> void print_1d_numpy_array_helper(PyObject &&array) {
+  PyObject *array_ptr = &array;
+  auto size = PyArray_DIM(array_ptr, 0);
+  cout << "[";
+  for (npy_intp i = 0; i < size; ++i) {
+    auto val = *static_cast<T *>(PyArray_GETPTR1(array_ptr, i));
+    cout << val;
+    if (i < size - 1) {
+      cout << ", ";
+    }
+  }
+  cout << "]" << endl;
+}
+
+void print_1d_numpy_array(PyObject &&array) {
+  PyObject *array_ptr = &array;
+  int dtype = PyArray_TYPE(array_ptr);
   switch (dtype) {
   case NPY_INT32: {
-    cout << "[";
-    for (npy_intp i = 0; i < size; ++i) {
-      auto val = *(npy_int32 *)PyArray_GETPTR1(column, i);
-      cout << val;
-      if (i < size - 1)
-        cout << ", ";
-    }
-    cout << "]" << endl;
+    print_1d_numpy_array_helper<int32_t>(move(array));
     break;
   }
   case NPY_INT64: {
-    cout << "[";
-    for (npy_intp i = 0; i < size; ++i) {
-      auto val = *(npy_int64 *)PyArray_GETPTR1(column, i);
-      cout << val;
-      if (i < size - 1)
-        cout << ", ";
-    }
-    cout << "]" << endl;
+    print_1d_numpy_array_helper<int64_t>(move(array));
     break;
   }
   case NPY_FLOAT: {
-    cout << "[";
-    for (npy_intp i = 0; i < size; ++i) {
-      auto val = *(float_t *)PyArray_GETPTR1(column, i);
-      cout << val;
-      if (i < size - 1)
-        cout << ", ";
-    }
-    cout << "]" << endl;
+    print_1d_numpy_array_helper<float_t>(move(array));
     break;
   }
   case NPY_DOUBLE: {
-    cout << "[";
-    for (npy_intp i = 0; i < size; ++i) {
-      auto val = *(double_t *)PyArray_GETPTR1(column, i);
-      cout << val;
-      if (i < size - 1)
-        cout << ", ";
-    }
-    cout << "]" << endl;
+    print_1d_numpy_array_helper<double_t>(move(array));
     break;
   }
   default: {
@@ -84,10 +69,10 @@ template <typename T> NPY_TYPES bossTypeToNumPy() {
   }
 }
 
-PyObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
-  PyObject *result;
+PyObject &convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
+  PyObject *result_ptr;
   visit(
-      [&result]<typename T>(boss::Span<T> &&typedSpan) {
+      [&result_ptr]<typename T>(boss::Span<T> &&typedSpan) {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
                       is_same_v<T, float_t> || is_same_v<T, double_t>) {
 
@@ -97,25 +82,27 @@ PyObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
           auto size = typedSpan.size();
           npy_intp dims[] = {static_cast<npy_intp>(size)};
 
-          result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
+          result_ptr = PyArray_SimpleNewFromData(1, dims, typenum, begin);
         } else {
           throw runtime_error("unsupported span type: " +
                               string(typeid(decltype(typedSpan)).name()));
         }
       },
       move(arg));
+  PyObject &result = *result_ptr;
   return result;
 }
 
-vector<PyObject *> convertSpanArgsToNumPy(ExpressionSpanArguments &&args) {
-  vector<PyObject *> numpyArrs;
+vector<PyObject> &convertSpanArgsToNumPy(ExpressionSpanArguments &&args) {
+  vector<PyObject> numpyArrs;
   for_each(make_move_iterator(args.begin()), make_move_iterator(args.end()),
            [&](auto &&arg) {
              auto numpyArr =
                  convertSpanArgToNumPy(forward<decltype(arg)>(move(arg)));
-             numpyArrs.push_back(numpyArr);
+             numpyArrs.push_back(move(numpyArr));
            });
-  return numpyArrs;
+  vector<PyObject> &result = numpyArrs;
+  return result;
 }
 
 Expression Engine::evaluate(Expression &&e) {
@@ -214,10 +201,12 @@ Expression Engine::evaluate(Expression &&e) {
               cout << "we have a list!" << endl;
               auto numpyArrs =
                   convertSpanArgsToNumPy(forward<decltype(spans)>(move(spans)));
-              for_each(
-                  make_move_iterator(numpyArrs.begin()),
-                  make_move_iterator(numpyArrs.end()),
-                  [&](auto &&numpyArr) { print_1d_numpy_array(numpyArr); });
+              for_each(make_move_iterator(numpyArrs.begin()),
+                       make_move_iterator(numpyArrs.end()),
+                       [&](auto &&numpyArr) {
+                         print_1d_numpy_array(
+                             forward<decltype(numpyArr)>(move(numpyArr)));
+                       });
               cout << endl;
             }
 
