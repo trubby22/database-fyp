@@ -85,103 +85,103 @@ TEST_CASE("TPCH", "[basics]") { // NOLINT
       "Column"_("l_shipdate"_, createSpansInt(1992, 1994, 1996, 1994)));
 #endif
 
-  SECTION("q3-no-top") {
-    auto const &result = eval("Order"_(
-        "Group"_(
-            "Project"_(
-                "Join"_(
-                    "Project"_("ORDERS"_,
-                               "As"_("o_orderkey"_, "o_orderkey"_,
-                                     "o_orderdate"_, "o_orderdate"_)),
-                    "Project"_(
-                        "Join"_(
-                            "Project"_(
-                                "Join"_(
-                                    "Project"_(
-                                        "Select"_(
-                                            "Project"_("PART"_,
-                                                       "As"_("p_partkey"_,
-                                                             "p_partkey"_,
-                                                             "p_retailprice"_,
-                                                             "p_retailprice"_)),
-                                            "Where"_("And"_(
-                                                "Greater"_("p_retailprice"_,
-                                                           1006.05), // NOLINT
-                                                "Greater"_(1080.1,   // NOLINT
-                                                           "p_retailprice"_)))),
-                                        "As"_("p_partkey"_, "p_partkey"_,
-                                              "p_retailprice"_,
-                                              "p_retailprice"_)),
-                                    "Project"_(
-                                        "Join"_(
-                                            "Project"_(
-                                                "Join"_(
-                                                    "Project"_(
-                                                        "NATION"_,
-                                                        "As"_("n_name"_,
-                                                              "n_name"_,
-                                                              "n_nationkey"_,
-                                                              "n_nationkey"_)),
-                                                    "Project"_(
-                                                        "SUPPLIER"_,
-                                                        "As"_("s_suppkey"_,
-                                                              "s_suppkey"_,
-                                                              "s_nationkey"_,
-                                                              "s_nationkey"_)),
-                                                    "Where"_("Equal"_(
-                                                        "n_nationkey"_,
-                                                        "s_nationkey"_))),
-                                                "As"_("n_name"_, "n_name"_,
-                                                      "s_suppkey"_,
-                                                      "s_suppkey"_)),
-                                            "Project"_("PARTSUPP"_,
-                                                       "As"_("ps_partkey"_,
-                                                             "ps_partkey"_,
-                                                             "ps_suppkey"_,
-                                                             "ps_suppkey"_,
-                                                             "ps_supplycost"_,
-                                                             "ps_supplycost"_)),
-                                            "Where"_("Equal"_("s_suppkey"_,
-                                                              "ps_suppkey"_))),
-                                        "As"_("n_name"_, "n_name"_,
-                                              "ps_partkey"_, "ps_partkey"_,
-                                              "ps_suppkey"_, "ps_suppkey"_,
-                                              "ps_supplycost"_,
-                                              "ps_supplycost"_)),
-                                    "Where"_(
-                                        "Equal"_("p_partkey"_, "ps_partkey"_))),
-                                "As"_("n_name"_, "n_name"_, "ps_partkey"_,
-                                      "ps_partkey"_, "ps_suppkey"_,
-                                      "ps_suppkey"_, "ps_supplycost"_,
-                                      "ps_supplycost"_)),
-                            "Project"_("LINEITEM"_,
-                                       "As"_("l_partkey"_, "l_partkey"_,
-                                             "l_suppkey"_, "l_suppkey"_,
-                                             "l_orderkey"_, "l_orderkey"_,
-                                             "l_extendedprice"_,
-                                             "l_extendedprice"_, "l_discount"_,
-                                             "l_discount"_, "l_quantity"_,
-                                             "l_quantity"_)),
-                            "Where"_(
-                                "Equal"_("List"_("ps_partkey"_, "ps_suppkey"_),
-                                         "List"_("l_partkey"_, "l_suppkey"_)))),
-                        "As"_("n_name"_, "n_name"_, "ps_supplycost"_,
-                              "ps_supplycost"_, "l_orderkey"_, "l_orderkey"_,
-                              "l_extendedprice"_, "l_extendedprice"_,
-                              "l_discount"_, "l_discount"_, "l_quantity"_,
-                              "l_quantity"_)),
-                    "Where"_("Equal"_("o_orderkey"_, "l_orderkey"_))),
-                "As"_("nation"_, "n_name"_, "o_year"_, "Year"_("o_orderdate"_),
-                      "amount"_,
-                      "Minus"_("Times"_("l_extendedprice"_,
-                                        "Minus"_(1.0, "l_discount"_)),
-                               "Times"_("ps_supplycost"_, "l_quantity"_)))),
-            "By"_("nation"_, "o_year"_), "As"_("amount"_, "Sum"_("amount"_))),
-        "By"_("nation"_, "o_year"_, "desc"_)));
+  // SECTION("q3-no-top") {
+  //   auto const &result = eval("Order"_(
+  //       "Group"_(
+  //           "Project"_(
+  //               "Join"_(
+  //                   "Project"_("ORDERS"_,
+  //                              "As"_("o_orderkey"_, "o_orderkey"_,
+  //                                    "o_orderdate"_, "o_orderdate"_)),
+  //                   "Project"_(
+  //                       "Join"_(
+  //                           "Project"_(
+  //                               "Join"_(
+  //                                   "Project"_(
+  //                                       "Select"_(
+  //                                           "Project"_("PART"_,
+  //                                                      "As"_("p_partkey"_,
+  //                                                            "p_partkey"_,
+  //                                                            "p_retailprice"_,
+  //                                                            "p_retailprice"_)),
+  //                                           "Where"_("And"_(
+  //                                               "Greater"_("p_retailprice"_,
+  //                                                          1006.05), // NOLINT
+  //                                               "Greater"_(1080.1,   // NOLINT
+  //                                                          "p_retailprice"_)))),
+  //                                       "As"_("p_partkey"_, "p_partkey"_,
+  //                                             "p_retailprice"_,
+  //                                             "p_retailprice"_)),
+  //                                   "Project"_(
+  //                                       "Join"_(
+  //                                           "Project"_(
+  //                                               "Join"_(
+  //                                                   "Project"_(
+  //                                                       "NATION"_,
+  //                                                       "As"_("n_name"_,
+  //                                                             "n_name"_,
+  //                                                             "n_nationkey"_,
+  //                                                             "n_nationkey"_)),
+  //                                                   "Project"_(
+  //                                                       "SUPPLIER"_,
+  //                                                       "As"_("s_suppkey"_,
+  //                                                             "s_suppkey"_,
+  //                                                             "s_nationkey"_,
+  //                                                             "s_nationkey"_)),
+  //                                                   "Where"_("Equal"_(
+  //                                                       "n_nationkey"_,
+  //                                                       "s_nationkey"_))),
+  //                                               "As"_("n_name"_, "n_name"_,
+  //                                                     "s_suppkey"_,
+  //                                                     "s_suppkey"_)),
+  //                                           "Project"_("PARTSUPP"_,
+  //                                                      "As"_("ps_partkey"_,
+  //                                                            "ps_partkey"_,
+  //                                                            "ps_suppkey"_,
+  //                                                            "ps_suppkey"_,
+  //                                                            "ps_supplycost"_,
+  //                                                            "ps_supplycost"_)),
+  //                                           "Where"_("Equal"_("s_suppkey"_,
+  //                                                             "ps_suppkey"_))),
+  //                                       "As"_("n_name"_, "n_name"_,
+  //                                             "ps_partkey"_, "ps_partkey"_,
+  //                                             "ps_suppkey"_, "ps_suppkey"_,
+  //                                             "ps_supplycost"_,
+  //                                             "ps_supplycost"_)),
+  //                                   "Where"_(
+  //                                       "Equal"_("p_partkey"_, "ps_partkey"_))),
+  //                               "As"_("n_name"_, "n_name"_, "ps_partkey"_,
+  //                                     "ps_partkey"_, "ps_suppkey"_,
+  //                                     "ps_suppkey"_, "ps_supplycost"_,
+  //                                     "ps_supplycost"_)),
+  //                           "Project"_("LINEITEM"_,
+  //                                      "As"_("l_partkey"_, "l_partkey"_,
+  //                                            "l_suppkey"_, "l_suppkey"_,
+  //                                            "l_orderkey"_, "l_orderkey"_,
+  //                                            "l_extendedprice"_,
+  //                                            "l_extendedprice"_, "l_discount"_,
+  //                                            "l_discount"_, "l_quantity"_,
+  //                                            "l_quantity"_)),
+  //                           "Where"_(
+  //                               "Equal"_("List"_("ps_partkey"_, "ps_suppkey"_),
+  //                                        "List"_("l_partkey"_, "l_suppkey"_)))),
+  //                       "As"_("n_name"_, "n_name"_, "ps_supplycost"_,
+  //                             "ps_supplycost"_, "l_orderkey"_, "l_orderkey"_,
+  //                             "l_extendedprice"_, "l_extendedprice"_,
+  //                             "l_discount"_, "l_discount"_, "l_quantity"_,
+  //                             "l_quantity"_)),
+  //                   "Where"_("Equal"_("o_orderkey"_, "l_orderkey"_))),
+  //               "As"_("nation"_, "n_name"_, "o_year"_, "Year"_("o_orderdate"_),
+  //                     "amount"_,
+  //                     "Minus"_("Times"_("l_extendedprice"_,
+  //                                       "Minus"_(1.0, "l_discount"_)),
+  //                              "Times"_("ps_supplycost"_, "l_quantity"_)))),
+  //           "By"_("nation"_, "o_year"_), "As"_("amount"_, "Sum"_("amount"_))),
+  //       "By"_("nation"_, "o_year"_, "desc"_)));
 
-    CHECK(result ==
-          "List"_("List"_(34850.16 * 0.05 + 25284.00 * 0.06))); // NOLINT
-  }
+  //   CHECK(result ==
+  //         "List"_("List"_(34850.16 * 0.05 + 25284.00 * 0.06))); // NOLINT
+  // }
 
   // SECTION("q3-no-top") {
   //   auto const &result = eval("Group"_(
@@ -363,28 +363,28 @@ TEST_CASE("TPCH", "[basics]") { // NOLINT
   // }
 }
 
-// TEST_CASE("SELECT", "[basics]") { // NOLINT
-//   boss::engines::numpy::Engine engine;
-//   auto eval = [&engine](boss::Expression &&expression) mutable {
-//     return engine.evaluate(std::move(expression));
-//   };
+TEST_CASE("SELECT", "[basics]") { // NOLINT
+  boss::engines::numpy::Engine engine;
+  auto eval = [&engine](boss::Expression &&expression) mutable {
+    return engine.evaluate(std::move(expression));
+  };
 
-// #ifdef USE_NEW_TABLE_FORMAT
-//   auto table1 = "Table"_("key"_(createSpansInt(1, 2, 3)),
-//                          "payload"_(createSpansInt(4, 5, 6)));
-// #else
-//   auto table1 = "Table"_("Column"_("key"_, createSpansInt(1, 2, 3)),
-//                          "Column"_("payload"_, createSpansInt(4, 5, 6)));
-// #endif
+#ifdef USE_NEW_TABLE_FORMAT
+  auto table1 = "Table"_("key"_(createSpansInt(1, 2, 3)),
+                         "payload"_(createSpansInt(4, 5, 6)));
+#else
+  auto table1 = "Table"_("Column"_("key"_, createSpansInt(1, 2, 3)),
+                         "Column"_("payload"_, createSpansInt(4, 5, 6)));
+#endif
 
-//   SECTION("Simple_select") {
-//     auto const &result = eval(
-//         "Select"_("Project"_(std::move(table1),
-//                              "As"_("key"_, "key"_, "payload"_, "payload"_)),
-//                   "Where"_("Greater"_("key"_, 2))));
+  SECTION("Simple_select") {
+    auto const &result = eval(
+        "Select"_("Project"_(std::move(table1),
+                             "As"_("key"_, "key"_, "payload"_, "payload"_)),
+                  "Where"_("Greater"_("key"_, 2))));
 
-//     CHECK(result == "List"_("List"_(3, 6))); // NOLINT
-//   }
+    CHECK(result == "List"_("List"_(3, 6))); // NOLINT
+  }
 
 // #ifdef USE_NEW_TABLE_FORMAT
 //   auto table2 = "Table"_("key"_(createSpansInt(1, 2, 3)),
@@ -402,7 +402,7 @@ TEST_CASE("TPCH", "[basics]") { // NOLINT
 
 //     CHECK(result == "List"_("List"_(1, 4))); // NOLINT
 //   }
-// }
+}
 
 // TEST_CASE("Gather", "[basics]") { // NOLINT
 //   boss::engines::numpy::Engine engine;

@@ -90,45 +90,32 @@ add_dependencies(NPTests catch2)
 set_property(TARGET BOSSNumPyEngine PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 set_property(TARGET NPTests PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 
-target_include_directories(BOSSNumPyEngine SYSTEM
-  PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include
-  PUBLIC /usr/include/python3.10
-  PUBLIC /usr/local/lib/python3.10/dist-packages/numpy/core/include
- )
-target_include_directories(NPTests SYSTEM
-  PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include
-  PUBLIC /usr/include/python3.10
-  PUBLIC /usr/local/lib/python3.10/dist-packages/numpy/core/include
- )
-
-target_link_directories(BOSSNumPyEngine 
-  PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
-)
-target_link_directories(NPTests 
-  PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
-)
-
-target_link_libraries(BOSSNumPyEngine
-  /usr/lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so
-)
-
-target_link_libraries(NPTests
-  /usr/lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so
-)
-
-add_dependencies(BOSSNumPyEngine BOSS)
-add_dependencies(NPTests BOSS)
 
 set(PUBLIC_HEADER_LIST
   ${CMAKE_CURRENT_SOURCE_DIR}/Source/BOSSNumPyEngine.hpp;
   )
 
-list(APPEND AllTargets BOSSNumPyEngine)
+list(APPEND AllTargets BOSSNumPyEngine NPTests)
 
 foreach(Target IN LISTS AllTargets)
   if(NOT WIN32)
     target_link_libraries(${Target} dl)
-  endif(NOT WIN32)
+  endif(NOT WIN32)    
+    target_include_directories(${Target} SYSTEM
+      PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include
+      PRIVATE /usr/local/lib/python3.10/dist-packages/numpy/core/include
+      PRIVATE /usr/include/python3.10
+    )
+    
+    target_link_directories(${Target} 
+      PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
+    )
+    target_link_libraries(${Target}
+      /usr/lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so
+    )
+    
+    add_dependencies(${Target} BOSS)
+
     target_link_libraries(${Target} Threads::Threads)
     set_target_properties(${Target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     if(MSVC)
@@ -156,4 +143,5 @@ install(TARGETS NPTests RUNTIME DESTINATION bin)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-
+set(CMAKE_RULE_MESSAGES OFF)
+set(CMAKE_VERBOSE_MAKEFILE ON)

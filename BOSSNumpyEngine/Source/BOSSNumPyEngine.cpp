@@ -80,7 +80,8 @@ PyArrayObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
           auto size = typedSpan.size();
           npy_intp dims[] = {static_cast<npy_intp>(size)};
 
-          result = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, dims, typenum, begin));
+          auto foo = PyArray_SimpleNewFromData(1, dims, typenum, begin);
+          result = reinterpret_cast<PyArrayObject *>(foo);
         } else {
           throw runtime_error("unsupported span type: " +
                               string(typeid(decltype(typedSpan)).name()));
@@ -111,7 +112,7 @@ Expression Engine::evaluate(Expression &&e) {
                 move(expression).decompose();
 
             // cout << "complex expression" << endl;
-            cout << "head is " << head.getName() << endl;
+            // cout << "head is " << head.getName() << endl;
 
             // for (auto &&arg : dynamics) {
             //   cout << "dynamic is " << arg << endl;
@@ -215,19 +216,20 @@ Expression Engine::evaluate(Expression &&e) {
           },
           [this](Symbol &&symbol) -> boss::Expression {
             auto name = symbol.getName();
-            cout << "symbol " << name << endl;
-            cout << endl;
+            // cout << "symbol " << name << endl;
+            // cout << endl;
             return move(symbol);
           },
           [](auto &&arg) -> boss::Expression {
-            cout << "other type " << typeid(arg).name() << endl;
-            cout << endl;
+            // cout << "other type " << typeid(arg).name() << endl;
+            // cout << endl;
             return forward<decltype(arg)>(move(arg));
           }),
       move(e));
 };
 
 void init_numpy() {
+  cout << "init numpy" << endl;
   Py_Initialize();
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type"
