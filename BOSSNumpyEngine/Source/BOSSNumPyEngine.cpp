@@ -14,7 +14,7 @@ using boss::Expression;
 
 namespace boss::engines::numpy {
 
-template <typename T> void print_1d_numpy_array_helper(PyObject *array) {
+template <typename T> void print_1d_numpy_array_helper(PyArrayObject *array) {
   auto size = PyArray_DIM(array, 0);
   cout << "[";
   for (npy_intp i = 0; i < size; ++i) {
@@ -27,7 +27,7 @@ template <typename T> void print_1d_numpy_array_helper(PyObject *array) {
   cout << "]" << endl;
 }
 
-void print_1d_numpy_array(PyObject *array) {
+void print_1d_numpy_array(PyArrayObject *array) {
   int dtype = PyArray_TYPE(array);
   switch (dtype) {
   case NPY_INT32: {
@@ -67,8 +67,8 @@ template <typename T> NPY_TYPES bossTypeToNumPy() {
   }
 }
 
-PyObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
-  PyObject *result;
+PyArrayObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
+  PyArrayObject *result;
   visit(
       [&result]<typename T>(boss::Span<T> &&typedSpan) {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
@@ -80,7 +80,7 @@ PyObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
           auto size = typedSpan.size();
           npy_intp dims[] = {static_cast<npy_intp>(size)};
 
-          result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
+          result = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, dims, typenum, begin));
         } else {
           throw runtime_error("unsupported span type: " +
                               string(typeid(decltype(typedSpan)).name()));
@@ -90,8 +90,8 @@ PyObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
   return result;
 }
 
-vector<PyObject *> convertSpanArgsToNumPy(ExpressionSpanArguments &&args) {
-  vector<PyObject *> numpyArrs;
+vector<PyArrayObject *> convertSpanArgsToNumPy(ExpressionSpanArguments &&args) {
+  vector<PyArrayObject *> numpyArrs;
   for_each(make_move_iterator(args.begin()), make_move_iterator(args.end()),
            [&](auto &&arg) {
              auto numpyArr =
@@ -111,38 +111,38 @@ Expression Engine::evaluate(Expression &&e) {
                 move(expression).decompose();
 
             // cout << "complex expression" << endl;
-            // cout << "head is " << head.getName() << endl;
+            cout << "head is " << head.getName() << endl;
 
             // for (auto &&arg : dynamics) {
             //   cout << "dynamic is " << arg << endl;
             // }
 
-            for_each(make_move_iterator(spans.begin()),
-                     make_move_iterator(spans.end()), [&](auto &&span) {
-                       visit(
-                           []<typename T>(boss::Span<T> &&typedSpan) -> void {
-                             if constexpr (is_same_v<T, int32_t> ||
-                                           is_same_v<T, int64_t> ||
-                                           is_same_v<T, float_t> ||
-                                           is_same_v<T, double_t> ||
-                                           is_same_v<T, int32_t const> ||
-                                           is_same_v<T, int64_t const> ||
-                                           is_same_v<T, float_t const> ||
-                                           is_same_v<T, double_t const>) {
-                               for_each(make_move_iterator(typedSpan.begin()),
-                                        make_move_iterator(typedSpan.end()),
-                                        [&](auto &&spanElement) {
-                                          cout << "span element " << spanElement
-                                               << endl;
-                                        });
-                             } else {
-                               throw runtime_error(
-                                   "unsupported span type: " +
-                                   string(typeid(decltype(typedSpan)).name()));
-                             }
-                           },
-                           move(span));
-                     });
+            // for_each(make_move_iterator(spans.begin()),
+            //          make_move_iterator(spans.end()), [&](auto &&span) {
+            //            visit(
+            //                []<typename T>(boss::Span<T> &&typedSpan) -> void {
+            //                  if constexpr (is_same_v<T, int32_t> ||
+            //                                is_same_v<T, int64_t> ||
+            //                                is_same_v<T, float_t> ||
+            //                                is_same_v<T, double_t> ||
+            //                                is_same_v<T, int32_t const> ||
+            //                                is_same_v<T, int64_t const> ||
+            //                                is_same_v<T, float_t const> ||
+            //                                is_same_v<T, double_t const>) {
+            //                    for_each(make_move_iterator(typedSpan.begin()),
+            //                             make_move_iterator(typedSpan.end()),
+            //                             [&](auto &&spanElement) {
+            //                               cout << "span element " << spanElement
+            //                                    << endl;
+            //                             });
+            //                  } else {
+            //                    throw runtime_error(
+            //                        "unsupported span type: " +
+            //                        string(typeid(decltype(typedSpan)).name()));
+            //                  }
+            //                },
+            //                move(span));
+            //          });
 
             // if (head == "Project"_)
             // {
@@ -201,8 +201,9 @@ Expression Engine::evaluate(Expression &&e) {
                   make_move_iterator(numpyArrs.begin()),
                   make_move_iterator(numpyArrs.end()),
                   [&](auto &&numpyArr) { print_1d_numpy_array(numpyArr); });
-              cout << endl;
             }
+            
+            cout << endl;
 
             transform(make_move_iterator(dynamics.begin()),
                       make_move_iterator(dynamics.end()), dynamics.begin(),
@@ -213,13 +214,14 @@ Expression Engine::evaluate(Expression &&e) {
                                            move(spans));
           },
           [this](Symbol &&symbol) -> boss::Expression {
-            // cout << "symbol" << endl;
-            // cout << endl;
+            auto name = symbol.getName();
+            cout << "symbol " << name << endl;
+            cout << endl;
             return move(symbol);
           },
           [](auto &&arg) -> boss::Expression {
-            // cout << typeid(arg).name() << endl;
-            // cout << endl;
+            cout << "other type " << typeid(arg).name() << endl;
+            cout << endl;
             return forward<decltype(arg)>(move(arg));
           }),
       move(e));

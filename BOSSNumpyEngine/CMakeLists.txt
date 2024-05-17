@@ -42,17 +42,6 @@ endif(MSVC)
 
 include(ExternalProject)
 
-# Core BOSS
-  if(NOT DEFINED BOSS_SOURCE_REPOSITORY)
-    if(NOT GITHUB_TOKEN)
-      message( FATAL_ERROR "You need to pass -DGITHUB_TOKEN=... to pass a github token to fetch the boss release or -DBOSS_SOURCE_REPOSITORY= for a non-github clone" )
-    endif()
-    set(BOSS_SOURCE_REPOSITORY https://little-big-h:${GITHUB_TOKEN}@github.com/symbol-store/BOSS.git)
-  endif()
-  if(NOT DEFINED BOSS_SOURCE_BRANCH)
-    set(BOSS_SOURCE_BRANCH temp_lazy_loading)
-  endif()
-  message("getting boss sources from ${BOSS_SOURCE_REPOSITORY}, branch ${BOSS_SOURCE_BRANCH}")
   ExternalProject_Add(BOSS
       GIT_REPOSITORY ${BOSS_SOURCE_REPOSITORY}
       GIT_TAG ${BOSS_SOURCE_BRANCH}
