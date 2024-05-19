@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <mutex>
+#include <unordered_set>
 
 namespace boss::engines::numpy {
 
@@ -37,6 +38,7 @@ public:
   boss::Expression evaluate(boss::Expression&& e);
 
 private:
+  boss::Expression evaluateColumn(boss::Expression &&e);
 };
 
 } // namespace boss::engines::numpy
