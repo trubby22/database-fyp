@@ -131,6 +131,29 @@ Expression Engine::evaluateColumn(Expression &&e) {
       move(e));
 };
 
+// Expression Engine::evaluateAsInProjection(Expression &&e, Expression &&relation) {
+//   return visit(
+//       boss::utilities::overload(
+//           [this](ComplexExpression &&expression) -> boss::Expression {
+//             auto [head, statics, dynamics, spans] =
+//                 move(expression).decompose();
+            
+//             auto name = head.getName();
+            
+//             cout << "yoo hoo from evaluateColumn " << name << endl;
+
+//             return boss::ComplexExpression(move(head), {}, move(dynamics),
+//                                            move(spans));
+//           },
+//           [this](Symbol &&symbol) -> boss::Expression {
+//             return move(symbol);
+//           },
+//           [](auto &&arg) -> boss::Expression {
+//             return forward<decltype(arg)>(move(arg));
+//           }),
+//       move(e));
+// };
+
 Expression Engine::evaluate(Expression &&e) {
   // cout << "expression is " << e << endl;
 
@@ -178,8 +201,14 @@ Expression Engine::evaluate(Expression &&e) {
 
             if (head == "Project"_) {
               auto it = std::make_move_iterator(dynamics.begin());
-              auto relation = boss::get<ComplexExpression>(std::move(*it));
-              auto asExpr = boss::get<ComplexExpression>(std::move(*++it));
+              auto relation = boss::get<ComplexExpression>(std::move(evaluate(std::move(*it))));
+              auto asExpr = boss::get<ComplexExpression>(std::move(evaluate(std::move(*++it))));
+              // auto relation = std::move(table1);
+
+              if(relation.getHead().getName() != "Table") {
+                // return unevaluated
+                return "Project"_(std::move(relation), std::move(asExpr));
+              }
 
               auto columns = std::move(relation).getDynamicArguments();
 
