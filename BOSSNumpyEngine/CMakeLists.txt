@@ -79,7 +79,10 @@ else()
   set(pluginInstallDir lib)
 endif(MSVC)
 
-set(ImplementationFiles Source/BOSSNumPyEngine.cpp)
+set(ImplementationFiles 
+  # Source/BOSSNumPyEngine.cpp
+  Source/BOSSNumPyEngineAF.cpp
+)
 set(TestFiles Tests/BOSSTests.cpp)
 
 add_library(BOSSNumPyEngine MODULE ${ImplementationFiles})
@@ -90,9 +93,7 @@ add_dependencies(NPTests catch2)
 set_property(TARGET BOSSNumPyEngine PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 set_property(TARGET NPTests PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 
-set(PUBLIC_HEADER_LIST
-  ${CMAKE_CURRENT_SOURCE_DIR}/Source/BOSSNumPyEngine.hpp;
-  )
+# set(PUBLIC_HEADER_LIST ${CMAKE_CURRENT_SOURCE_DIR}/Source/BOSSNumPyEngine.hpp;)
 
 list(APPEND AllTargets BOSSNumPyEngine NPTests)
 
@@ -133,7 +134,7 @@ foreach(Target IN LISTS AllTargets)
 endforeach()
 
 set_target_properties(BOSSNumPyEngine PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
-set_target_properties(BOSSNumPyEngine PROPERTIES PUBLIC_HEADER ${PUBLIC_HEADER_LIST})
+# set_target_properties(BOSSNumPyEngine PROPERTIES PUBLIC_HEADER ${PUBLIC_HEADER_LIST})
 install(TARGETS BOSSNumPyEngine LIBRARY DESTINATION lib)
 
 set_target_properties(NPTests PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
