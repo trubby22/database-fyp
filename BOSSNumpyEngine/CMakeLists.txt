@@ -80,8 +80,7 @@ else()
 endif(MSVC)
 
 set(ImplementationFiles 
-  # Source/BOSSNumPyEngine.cpp
-  Source/BOSSNumPyEngineAF.cpp
+  Source/BOSSNumPyEngine.cpp
 )
 set(TestFiles Tests/BOSSTests.cpp)
 
@@ -103,16 +102,16 @@ foreach(Target IN LISTS AllTargets)
   endif(NOT WIN32)    
     target_include_directories(${Target} SYSTEM
       PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include
-      PUBLIC /usr/local/lib/python3.10/dist-packages/numpy/core/include
+      PUBLIC /mnt/ubuntu-image-repos/.venv-numpy-from-pip/lib/python3.10/site-packages/numpy/core/include
       PUBLIC /usr/include/python3.10
     )
     
-    target_link_directories(${Target} 
-      PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
-      PUBLIC /usr/lib/python3.10/config-3.10-x86_64-linux-gnu
-    )
     target_link_libraries(${Target}
       PUBLIC /usr/lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so
+    )
+
+    target_link_directories(${Target} 
+      PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
     )
     
     add_dependencies(${Target} BOSS)

@@ -108,196 +108,25 @@ vector<PyArrayObject *> convertSpanArgsToNumPy(ExpressionSpanArguments &&args) {
   return numpyArrs;
 }
 
-Expression Engine::evaluateColumn(Expression &&e) {
-  return visit(
-      boss::utilities::overload(
-          [this](ComplexExpression &&expression) -> boss::Expression {
-            auto [head, statics, dynamics, spans] =
-                move(expression).decompose();
-            
-            auto name = head.getName();
-            
-            cout << "yoo hoo from evaluateColumn " << name << endl;
-
-            return boss::ComplexExpression(move(head), {}, move(dynamics),
-                                           move(spans));
-          },
-          [this](Symbol &&symbol) -> boss::Expression {
-            return move(symbol);
-          },
-          [](auto &&arg) -> boss::Expression {
-            return forward<decltype(arg)>(move(arg));
-          }),
-      move(e));
-};
-
-// Expression Engine::evaluateAsInProjection(Expression &&e, Expression &&relation) {
-//   return visit(
-//       boss::utilities::overload(
-//           [this](ComplexExpression &&expression) -> boss::Expression {
-//             auto [head, statics, dynamics, spans] =
-//                 move(expression).decompose();
-            
-//             auto name = head.getName();
-            
-//             cout << "yoo hoo from evaluateColumn " << name << endl;
-
-//             return boss::ComplexExpression(move(head), {}, move(dynamics),
-//                                            move(spans));
-//           },
-//           [this](Symbol &&symbol) -> boss::Expression {
-//             return move(symbol);
-//           },
-//           [](auto &&arg) -> boss::Expression {
-//             return forward<decltype(arg)>(move(arg));
-//           }),
-//       move(e));
-// };
-
 Expression Engine::evaluate(Expression &&e) {
-  // cout << "expression is " << e << endl;
-
   return visit(
       boss::utilities::overload(
           [this](ComplexExpression &&expression) -> boss::Expression {
             auto [head, statics, dynamics, spans] =
                 move(expression).decompose();
 
-            // cout << "complex expression" << endl;
-            cout << "head is " << head.getName() << endl;
-
-            // for (auto &&arg : dynamics) {
-            //   cout << "dynamic is " << arg << endl;
-            // }
-
-            // for_each(make_move_iterator(spans.begin()),
-            //          make_move_iterator(spans.end()), [&](auto &&span) {
-            //            visit(
-            //                []<typename T>(boss::Span<T> &&typedSpan) -> void
-            //                {
-            //                  if constexpr (is_same_v<T, int32_t> ||
-            //                                is_same_v<T, int64_t> ||
-            //                                is_same_v<T, float_t> ||
-            //                                is_same_v<T, double_t> ||
-            //                                is_same_v<T, int32_t const> ||
-            //                                is_same_v<T, int64_t const> ||
-            //                                is_same_v<T, float_t const> ||
-            //                                is_same_v<T, double_t const>) {
-            //                    for_each(make_move_iterator(typedSpan.begin()),
-            //                             make_move_iterator(typedSpan.end()),
-            //                             [&](auto &&spanElement) {
-            //                               cout << "span element " <<
-            //                               spanElement
-            //                                    << endl;
-            //                             });
-            //                  } else {
-            //                    throw runtime_error(
-            //                        "unsupported span type: " +
-            //                        string(typeid(decltype(typedSpan)).name()));
-            //                  }
-            //                },
-            //                move(span));
-            //          });
-
-            if (head == "Project"_) {
-              auto it = std::make_move_iterator(dynamics.begin());
-              auto relation = boss::get<ComplexExpression>(std::move(evaluate(std::move(*it))));
-              auto asExpr = boss::get<ComplexExpression>(std::move(evaluate(std::move(*++it))));
-              // auto relation = std::move(table1);
-
-              if(relation.getHead().getName() != "Table") {
-                // return unevaluated
-                return "Project"_(std::move(relation), std::move(asExpr));
-              }
-
-              auto columns = std::move(relation).getDynamicArguments();
-
-              std::unordered_set<std::string> columns_to_project{};
-
-              ExpressionArguments asArgs = asExpr.getArguments();
-              for(
-                auto asIt = std::make_move_iterator(asArgs.begin()); 
-                asIt - 1 != std::make_move_iterator(asArgs.end()) && asIt != std::make_move_iterator(asArgs.end()); 
-                asIt += 2
-              ) {
-                auto name = get<Symbol>(std::move(*asIt)).getName();
-                columns_to_project.insert(name);
-              }
-
-              auto projected_columns = ExpressionArguments{};
-
-              for(auto&& column : columns) {
-                auto const& columnExpr = get<ComplexExpression>(column);
-                auto const& colName = columnExpr.getHead().getName();
-                if (columns_to_project.contains(colName)) {
-                  projected_columns.emplace_back(std::move(column));
-                }
-              }
-
-              return ComplexExpression("Table"_, std::move(projected_columns));              
-
-            } else if (head == "Select"_) {
-
-            } else if (head == "Join"_) {
-
-            } else if (head == "Group"_) {
-
-            } else if (head == "As"_) {
-
-            } else if (head == "Where"_) {
-
-            } else if (head == "And"_) {
-
-            } else if (head == "Sum"_) {
-
-            } else if (head == "Times"_) {
-
-            } else if (head == "Greater"_) {
-
-            } else if (head == "Table"_) {
-
-              transform(make_move_iterator(dynamics.begin()),
-                make_move_iterator(dynamics.end()), dynamics.begin(),
-                [this](auto &&arg) {
-                  return evaluateColumn(forward<decltype(arg)>(move(arg)));
-                });
-
-            } else if (head == "List"_) {
-            } else if (head == "l_orderkey"_) {
-              // cout << "yoo hoo" << endl;
-            }
-
-            if (head == "List"_) {
-              // cout << "we have a list!" << endl;
-              auto numpyArrs =
-                  convertSpanArgsToNumPy(forward<decltype(spans)>(move(spans)));
-              for_each(make_move_iterator(numpyArrs.begin()),
-                       make_move_iterator(numpyArrs.end()),
-                       [&](auto &&numpyArr) {
-                         // print_1d_numpy_array(numpyArr);
-                         // cout << endl;
-                       });
-            }
-
-            // cout << endl;
-
-            transform(make_move_iterator(dynamics.begin()),
-                      make_move_iterator(dynamics.end()), dynamics.begin(),
-                      [this](auto &&arg) {
-                        return evaluate(forward<decltype(arg)>(move(arg)));
-                      });
             return boss::ComplexExpression(move(head), {}, move(dynamics),
                                            move(spans));
           },
           [this](Symbol &&symbol) -> boss::Expression {
             auto name = symbol.getName();
             cout << "symbol " << name << endl;
-            // cout << endl;
+            
             return move(symbol);
           },
           [](auto &&arg) -> boss::Expression {
             cout << "other type " << typeid(arg).name() << endl;
-            // cout << endl;
+
             return forward<decltype(arg)>(move(arg));
           }),
       move(e));

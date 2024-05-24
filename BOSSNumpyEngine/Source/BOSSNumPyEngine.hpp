@@ -39,12 +39,6 @@ public:
 
 private:
   boss::Expression evaluateColumn(boss::Expression &&e);
-
-  // boss::ComplexExpression &table1;
-  // boss::ComplexExpression &table2;
-
-  // std::unordered_map<std::string, boss::ComplexExpression &> &table1_map;
-  // std::unordered_map<std::string, boss::ComplexExpression &> &table2_map;
 };
 
 } // namespace boss::engines::numpy
