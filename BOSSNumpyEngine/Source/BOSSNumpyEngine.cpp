@@ -156,6 +156,21 @@ Expression Engine::evaluate(Expression &&e) {
           [this](ComplexExpression &&expression) -> boss::Expression {
             auto [head, statics, dynamics, spans] =
                 move(expression).decompose();
+            
+            cout << head.getName() << endl;
+
+            if (head == "List"_) {
+              cout << "we have a list!" << endl;
+              auto numpy_arrs =
+                  convert_span_args_to_numpy(forward<decltype(spans)>(move(spans)));
+              spans = convert_vector_of_numpy_to_span_args(forward<decltype(numpy_arrs)>(move(numpy_arrs)));
+            }
+
+            transform(make_move_iterator(dynamics.begin()),
+                      make_move_iterator(dynamics.end()), dynamics.begin(),
+                      [this](auto &&arg) {
+                        return evaluate(forward<decltype(arg)>(move(arg)));
+                      });
 
             return boss::ComplexExpression(move(head), {}, move(dynamics),
                                            move(spans));
