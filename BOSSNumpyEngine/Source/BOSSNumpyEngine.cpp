@@ -1,4 +1,4 @@
-#include "BOSSNumPyEngine.hpp"
+#include "BOSSNumpyEngine.hpp"
 
 using namespace std;
 
@@ -59,7 +59,7 @@ void print_1d_numpy_array(PyArrayObject *array) {
   }
 }
 
-template <typename T> NPY_TYPES bossTypeToNumPy() {
+template <typename T> NPY_TYPES boss_type_to_numpy() {
   if constexpr (is_same_v<T, int32_t>) {
     return NPY_INT32;
   } else if constexpr (is_same_v<T, int64_t>) {
@@ -73,14 +73,56 @@ template <typename T> NPY_TYPES bossTypeToNumPy() {
   }
 }
 
-PyArrayObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
+template <typename T> boss::Span<T> create_boss_span(PyArrayObject &&npy_arr) {
+  auto *data = const_cast<T *>(PyArray_DATA(npy_arr));
+  auto length = PyArray_SIZE(npy_arr);
+  return boss::Span<T>(data, length, [foo = std::move(npy_arr)]() {});
+}
+
+ExpressionSpanArgument convert_numpy_to_span_arg(PyArrayObject *npy_arr) {
+  ExpressionSpanArgument *result;
+
+  int typenum = PyArray_TYPE(npy_arr);
+  void *data = PyArray_DATA(npy_arr);
+
+  switch (typenum) {
+    case NPY_INT32:
+      return create_boss_span<int32_t>(npy_arr);
+      break;
+    case NPY_INT64:
+      return create_boss_span<int64_t>(npy_arr);
+      break;
+    case NPY_FLOAT:
+      return create_boss_span<float_t>(npy_arr);
+      break;
+    case NPY_DOUBLE:
+      return create_boss_span<double_t>(npy_arr);
+      break;
+    default:
+      throw runtime_error("shouldn't happen");
+      break;
+  }
+}
+
+ExpressionSpanArguments convert_vector_of_numpy_to_span_args(vector<PyArrayObject *> &&vec) {
+  vector<ExpressionSpanArgument> args;
+  for_each(make_move_iterator(vec.begin()), make_move_iterator(vec.end()),
+           [&](auto &&elem) {
+             auto span_arg =
+                 convert_numpy_to_span_arg(forward<decltype(elem)>(move(elem)));
+             args.emplace_back(std::move(span_arg));
+           });
+  return args;
+}
+
+PyArrayObject *convert_span_arg_to_numpy(ExpressionSpanArgument &&arg) {
   PyArrayObject *result;
   visit(
       [&result]<typename T>(boss::Span<T> &&typedSpan) {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
                       is_same_v<T, float_t> || is_same_v<T, double_t>) {
 
-          auto typenum = bossTypeToNumPy<T>();
+          auto typenum = boss_type_to_numpy<T>();
           auto begin = typedSpan.begin();
           auto end = typedSpan.end();
           auto size = typedSpan.size();
@@ -97,15 +139,15 @@ PyArrayObject *convertSpanArgToNumPy(ExpressionSpanArgument &&arg) {
   return result;
 }
 
-vector<PyArrayObject *> convertSpanArgsToNumPy(ExpressionSpanArguments &&args) {
-  vector<PyArrayObject *> numpyArrs;
+vector<PyArrayObject *> convert_span_args_to_numpy(ExpressionSpanArguments &&args) {
+  vector<PyArrayObject *> numpy_arrs;
   for_each(make_move_iterator(args.begin()), make_move_iterator(args.end()),
            [&](auto &&arg) {
              auto numpyArr =
-                 convertSpanArgToNumPy(forward<decltype(arg)>(move(arg)));
-             numpyArrs.push_back(numpyArr);
+                 convert_span_arg_to_numpy(forward<decltype(arg)>(move(arg)));
+             numpy_arrs.push_back(numpyArr);
            });
-  return numpyArrs;
+  return numpy_arrs;
 }
 
 Expression Engine::evaluate(Expression &&e) {

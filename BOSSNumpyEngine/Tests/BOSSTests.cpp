@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_RUNNER
 
-#include "../Source/BOSSNumPyEngine.hpp"
+#include "../Source/BOSSNumpyEngine.hpp"
 #include <BOSS.hpp>
 #include <ExpressionUtilities.hpp>
 

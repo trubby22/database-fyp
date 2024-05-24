@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(BOSSNumPyEngine)
+project(BOSSNumpyEngine)
 
 ############################## Custom build modes ###############################
 
@@ -46,9 +46,9 @@ include(ExternalProject)
       GIT_REPOSITORY ${BOSS_SOURCE_REPOSITORY}
       GIT_TAG ${BOSS_SOURCE_BRANCH}
       GIT_SHALLOW ON
-		  CMAKE_ARGS -DCMAKE_VERBOSE_MAKEFILE=${CMAKE_VERBOSE_MAKEFILE} -DCMAKE_INSTALL_PREFIX=${BOSSNumPyEngine_BINARY_DIR}/deps $<IF:$<CONFIG:>,,-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}>
+		  CMAKE_ARGS -DCMAKE_VERBOSE_MAKEFILE=${CMAKE_VERBOSE_MAKEFILE} -DCMAKE_INSTALL_PREFIX=${BOSSNumpyEngine_BINARY_DIR}/deps $<IF:$<CONFIG:>,,-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}>
                  -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}  -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-      BUILD_BYPRODUCTS ${BOSSNumPyEngine_BINARY_DIR}/deps/lib/${BOSS_LINK_LIBRARY_PREFIX}BOSS${BOSS_LINK_LIBRARY_SUFFIX}
+      BUILD_BYPRODUCTS ${BOSSNumpyEngine_BINARY_DIR}/deps/lib/${BOSS_LINK_LIBRARY_PREFIX}BOSS${BOSS_LINK_LIBRARY_SUFFIX}
     )
 
   ########################## Other Options and Library Dependencies ############################
@@ -57,7 +57,7 @@ include(ExternalProject)
   ExternalProject_Add(catch2
     URL https://github.com/catchorg/Catch2/archive/v2.13.6.tar.gz
     DOWNLOAD_DIR $ENV{HOME}/.cmake-downloads/${CMAKE_PROJECT_NAME}
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${BOSSNumPyEngine_BINARY_DIR}/deps -DCATCH_BUILD_TESTING=NO -DBUILD_TESTING=NO -DCATCH_ENABLE_WERROR=NO -DCATCH_INSTALL_DOCS=NO -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}  -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${BOSSNumpyEngine_BINARY_DIR}/deps -DCATCH_BUILD_TESTING=NO -DBUILD_TESTING=NO -DCATCH_ENABLE_WERROR=NO -DCATCH_INSTALL_DOCS=NO -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}  -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
     )
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -80,28 +80,28 @@ else()
 endif(MSVC)
 
 set(ImplementationFiles 
-  Source/BOSSNumPyEngine.cpp
+  Source/BOSSNumpyEngine.cpp
 )
 set(TestFiles Tests/BOSSTests.cpp)
 
-add_library(BOSSNumPyEngine MODULE ${ImplementationFiles})
+add_library(BOSSNumpyEngine MODULE ${ImplementationFiles})
 
 add_executable(NPTests ${ImplementationFiles} ${TestFiles})
 add_dependencies(NPTests catch2)
 
-set_property(TARGET BOSSNumPyEngine PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
+set_property(TARGET BOSSNumpyEngine PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 set_property(TARGET NPTests PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 
-# set(PUBLIC_HEADER_LIST ${CMAKE_CURRENT_SOURCE_DIR}/Source/BOSSNumPyEngine.hpp;)
+# set(PUBLIC_HEADER_LIST ${CMAKE_CURRENT_SOURCE_DIR}/Source/BOSSNumpyEngine.hpp;)
 
-list(APPEND AllTargets BOSSNumPyEngine NPTests)
+list(APPEND AllTargets BOSSNumpyEngine NPTests)
 
 foreach(Target IN LISTS AllTargets)
   if(NOT WIN32)
     target_link_libraries(${Target} PUBLIC dl)
   endif(NOT WIN32)    
     target_include_directories(${Target} SYSTEM
-      PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include
+      PUBLIC ${BOSSNumpyEngine_BINARY_DIR}/deps/include
       PUBLIC /mnt/ubuntu-image-repos/.venv-numpy-from-pip/lib/python3.10/site-packages/numpy/core/include
       PUBLIC /usr/include/python3.10
     )
@@ -111,7 +111,7 @@ foreach(Target IN LISTS AllTargets)
     )
 
     target_link_directories(${Target} 
-      PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
+      PUBLIC ${BOSSNumpyEngine_BINARY_DIR}/deps/lib
     )
     
     add_dependencies(${Target} BOSS)
@@ -124,7 +124,7 @@ foreach(Target IN LISTS AllTargets)
     endif()
     set_target_properties(${Target} PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
     add_dependencies(${Target} BOSS)
-    target_include_directories(${Target} SYSTEM PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include)
+    target_include_directories(${Target} SYSTEM PUBLIC ${BOSSNumpyEngine_BINARY_DIR}/deps/include)
     target_include_directories(${Target} SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/deps/include)
     target_link_libraries(${Target} PUBLIC ${CMAKE_BINARY_DIR}/deps/lib/${BOSS_LINK_LIBRARY_PREFIX}BOSS${BOSS_LINK_LIBRARY_SUFFIX})
     if(UNIX AND NOT APPLE)
@@ -132,9 +132,9 @@ foreach(Target IN LISTS AllTargets)
     endif()
 endforeach()
 
-set_target_properties(BOSSNumPyEngine PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
-# set_target_properties(BOSSNumPyEngine PROPERTIES PUBLIC_HEADER ${PUBLIC_HEADER_LIST})
-install(TARGETS BOSSNumPyEngine LIBRARY DESTINATION lib)
+set_target_properties(BOSSNumpyEngine PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+# set_target_properties(BOSSNumpyEngine PROPERTIES PUBLIC_HEADER ${PUBLIC_HEADER_LIST})
+install(TARGETS BOSSNumpyEngine LIBRARY DESTINATION lib)
 
 set_target_properties(NPTests PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 install(TARGETS NPTests RUNTIME DESTINATION bin)
