@@ -59,6 +59,48 @@ void print_1d_numpy_array(PyArrayObject *array) {
   }
 }
 
+ExpressionSpanArgument print_span_arg(ExpressionSpanArgument &&arg) {
+  return visit(
+      []<typename T>(boss::Span<T> &&typed_span) -> ExpressionSpanArgument {
+        if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
+                      is_same_v<T, float_t> || is_same_v<T, double_t>) {
+
+          cout << "[";
+
+          transform(make_move_iterator(typed_span.begin()),
+                    make_move_iterator(typed_span.end()), typed_span.begin(),
+                    [&](auto &&elem) {
+                      cout << elem << ", ";
+                      return forward<decltype(elem)>(elem);
+                    });
+
+          cout << "]" << endl;
+
+          return forward<decltype(typed_span)>(typed_span);
+
+        } else {
+          throw runtime_error("unsupported span type: " +
+                              string(typeid(decltype(typed_span)).name()));
+        }
+      },
+      forward<decltype(arg)>(arg));
+}
+
+ExpressionSpanArguments print_span_args(ExpressionSpanArguments &&args) {
+  cout << "[";
+
+  transform(make_move_iterator(args.begin()), make_move_iterator(args.end()),
+            args.begin(), [](auto &&arg) {
+              arg = print_span_arg(forward<decltype(arg)>(arg));
+              cout << ", ";
+              return move(arg);
+            });
+
+  cout << "]" << endl;
+
+  return forward<decltype(args)>(args);
+}
+
 template <typename T> NPY_TYPES boss_type_to_numpy() {
   if constexpr (is_same_v<T, int32_t>) {
     return NPY_INT32;
@@ -76,7 +118,7 @@ template <typename T> NPY_TYPES boss_type_to_numpy() {
 template <typename T> boss::Span<T> create_boss_span(PyArrayObject *npy_arr) {
   auto *data = static_cast<T *>(PyArray_DATA(npy_arr));
   auto length = PyArray_SIZE(npy_arr);
-  return boss::Span<T>(data, length, [foo = std::move(*npy_arr)]() {});
+  return boss::Span<T>(data, length, [foo = forward<decltype(*npy_arr)>(*npy_arr)]() {});
 }
 
 ExpressionSpanArgument convert_numpy_to_span_arg(PyArrayObject *npy_arr) {
@@ -112,7 +154,7 @@ convert_vector_of_numpy_to_span_args(vector<PyArrayObject *> &&vec) {
       std::make_move_iterator(vec.begin()), std::make_move_iterator(vec.end()),
       std::back_inserter(result), [](auto &&elem) {
         auto span_arg =
-            convert_numpy_to_span_arg(forward<decltype(elem)>(move(elem)));
+            convert_numpy_to_span_arg(forward<decltype(elem)>(elem));
         return span_arg;
       });
   return result;
@@ -121,24 +163,24 @@ convert_vector_of_numpy_to_span_args(vector<PyArrayObject *> &&vec) {
 PyArrayObject *convert_span_arg_to_numpy(ExpressionSpanArgument &&arg) {
   PyArrayObject *result;
   visit(
-      [&result]<typename T>(boss::Span<T> &&typedSpan) {
+      [&result]<typename T>(boss::Span<T> &&typed_span) {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
                       is_same_v<T, float_t> || is_same_v<T, double_t>) {
 
           auto typenum = boss_type_to_numpy<T>();
-          auto begin = typedSpan.begin();
-          auto end = typedSpan.end();
-          auto size = typedSpan.size();
+          auto begin = typed_span.begin();
+          auto end = typed_span.end();
+          auto size = typed_span.size();
           npy_intp dims[] = {static_cast<npy_intp>(size)};
 
           auto foo = PyArray_SimpleNewFromData(1, dims, typenum, begin);
           result = reinterpret_cast<PyArrayObject *>(foo);
         } else {
           throw runtime_error("unsupported span type: " +
-                              string(typeid(decltype(typedSpan)).name()));
+                              string(typeid(decltype(typed_span)).name()));
         }
       },
-      move(arg));
+      forward<decltype(arg)>(arg));
   return result;
 }
 
@@ -147,9 +189,9 @@ convert_span_args_to_numpy(ExpressionSpanArguments &&args) {
   vector<PyArrayObject *> numpy_arrs;
   for_each(make_move_iterator(args.begin()), make_move_iterator(args.end()),
            [&](auto &&arg) {
-             auto numpyArr =
-                 convert_span_arg_to_numpy(forward<decltype(arg)>(move(arg)));
-             numpy_arrs.push_back(numpyArr);
+             auto numpy_arr =
+                 convert_span_arg_to_numpy(forward<decltype(arg)>(arg));
+             numpy_arrs.push_back(numpy_arr);
            });
   return numpy_arrs;
 }
@@ -159,22 +201,30 @@ Expression Engine::evaluate(Expression &&e) {
       boss::utilities::overload(
           [this](ComplexExpression &&expression) -> boss::Expression {
             auto [head, statics, dynamics, spans] =
-                move(expression).decompose();
+                forward<decltype(expression)>(expression).decompose();
 
             cout << head.getName() << endl;
 
             if (head == "List"_) {
               cout << "we have a list!" << endl;
               auto numpy_arrs = convert_span_args_to_numpy(
-                  forward<decltype(spans)>(move(spans)));
+                  move(spans));
+              transform(make_move_iterator(numpy_arrs.begin()),
+                        make_move_iterator(numpy_arrs.end()),
+                        numpy_arrs.begin(), [&](auto &&numpy_arr) {
+                          print_1d_numpy_array(numpy_arr);
+                          return forward<decltype(numpy_arr)>(numpy_arr);
+                        });
               spans = convert_vector_of_numpy_to_span_args(
-                  forward<decltype(numpy_arrs)>(move(numpy_arrs)));
+                  move(numpy_arrs));
+
+              spans = print_span_args(move(spans));
             }
 
             transform(make_move_iterator(dynamics.begin()),
                       make_move_iterator(dynamics.end()), dynamics.begin(),
                       [this](auto &&arg) {
-                        return evaluate(forward<decltype(arg)>(move(arg)));
+                        return evaluate(forward<decltype(arg)>(arg));
                       });
 
             return boss::ComplexExpression(move(head), {}, move(dynamics),
@@ -184,14 +234,14 @@ Expression Engine::evaluate(Expression &&e) {
             auto name = symbol.getName();
             cout << "symbol " << name << endl;
 
-            return move(symbol);
+            return forward<decltype(symbol)>(symbol);
           },
           [](auto &&arg) -> boss::Expression {
             cout << "other type " << typeid(arg).name() << endl;
 
-            return forward<decltype(arg)>(move(arg));
+            return forward<decltype(arg)>(arg);
           }),
-      move(e));
+      forward<decltype(e)>(e));
 };
 
 void init_numpy() {
