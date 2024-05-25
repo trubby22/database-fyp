@@ -9,6 +9,7 @@ using boss::Span;
 using boss::Symbol;
 using boss::expressions::ExpressionSpanArgument;
 using boss::expressions::ExpressionSpanArguments;
+using boss::expressions::ExpressionArguments;
 
 using boss::Expression;
 
@@ -59,6 +60,16 @@ void print_1d_numpy_array(PyArrayObject *array) {
   }
 }
 
+void print_py_list(PyObject *list) {
+  cout << "py list" << endl;
+  auto size = PyList_Size(list);
+  for (int i = 0; i < size; i++) {
+    auto npy_arr = PyList_GetItem(list, i);
+    print_1d_numpy_array(npy_arr);
+  }
+  cout << "end of py list" << endl;
+}
+
 ExpressionSpanArgument print_span_arg(ExpressionSpanArgument &&arg) {
   return visit(
       []<typename T>(boss::Span<T> &&typed_span) -> ExpressionSpanArgument {
@@ -87,6 +98,7 @@ ExpressionSpanArgument print_span_arg(ExpressionSpanArgument &&arg) {
 }
 
 ExpressionSpanArguments print_span_args(ExpressionSpanArguments &&args) {
+  cout << "span args" << endl;
   cout << "[";
 
   transform(make_move_iterator(args.begin()), make_move_iterator(args.end()),
@@ -97,6 +109,7 @@ ExpressionSpanArguments print_span_args(ExpressionSpanArguments &&args) {
             });
 
   cout << "]" << endl;
+  cout << "end of span args" << endl;
 
   return forward<decltype(args)>(args);
 }
@@ -124,7 +137,7 @@ template <typename T> boss::Span<T> create_boss_span(PyArrayObject *npy_arr) {
   return result;
 }
 
-ExpressionSpanArgument convert_numpy_to_span_arg(PyArrayObject *npy_arr) {
+ExpressionSpanArgument numpy_arr_to_span(PyArrayObject *npy_arr) {
   int typenum = PyArray_TYPE(npy_arr);
 
   switch (typenum) {
@@ -146,21 +159,19 @@ ExpressionSpanArgument convert_numpy_to_span_arg(PyArrayObject *npy_arr) {
   }
 }
 
-ExpressionSpanArguments
-convert_vector_of_numpy_to_span_args(vector<PyArrayObject *> &&vec) {
+ExpressionSpanArguments py_list_to_spans(PyObject *list) {
   ExpressionSpanArguments result;
-  result.reserve(vec.size());
-  std::transform(std::make_move_iterator(vec.begin()),
-                 std::make_move_iterator(vec.end()), std::back_inserter(result),
-                 [](auto &&elem) {
-                   auto span_arg =
-                       convert_numpy_to_span_arg(forward<decltype(elem)>(elem));
-                   return span_arg;
-                 });
+  auto size = PyList_Size(list);
+  result.reserve(size);
+  for (int i = 0; i < size; i++) {
+    auto numpy_arr = PyList_GetItem(list, i);
+    auto span_arg = numpy_arr_to_span(numpy_arr);
+    result.emplace_back(move(span_arg));
+  }
   return result;
 }
 
-PyArrayObject *convert_span_arg_to_numpy(ExpressionSpanArgument &&arg) {
+PyArrayObject *span_to_numpy_arr(ExpressionSpanArgument &&arg) {
   PyArrayObject *result;
   visit(
       [&result]<typename T>(boss::Span<T> &&typed_span) {
@@ -184,16 +195,15 @@ PyArrayObject *convert_span_arg_to_numpy(ExpressionSpanArgument &&arg) {
   return result;
 }
 
-vector<PyArrayObject *>
-convert_span_args_to_numpy(ExpressionSpanArguments &&args) {
-  vector<PyArrayObject *> numpy_arrs;
-  for_each(make_move_iterator(args.begin()), make_move_iterator(args.end()),
-           [&](auto &&arg) {
-             auto numpy_arr =
-                 convert_span_arg_to_numpy(forward<decltype(arg)>(arg));
-             numpy_arrs.push_back(numpy_arr);
-           });
-  return numpy_arrs;
+PyObject *spans_to_py_list(ExpressionSpanArguments &&args) {
+  PyObject *result = PyList_New(args.size()) auto it =
+      make_move_iterator(args.begin());
+  auto it_end = make_move_iterator(args.end());
+  for (; it < it_end; it += 1) {
+    auto numpy_arr = span_to_numpy_arr(*it);
+    PyList_Append(result, numpy_arr);
+  }
+  return result;
 }
 
 Expression Engine::evaluate(Expression &&e) {
@@ -205,18 +215,98 @@ Expression Engine::evaluate(Expression &&e) {
 
             cout << head.getName() << endl;
 
-            if (head == "List"_) {
-              cout << "we have a list!" << endl;
-              auto numpy_arrs = convert_span_args_to_numpy(move(spans));
-              transform(make_move_iterator(numpy_arrs.begin()),
-                        make_move_iterator(numpy_arrs.end()),
-                        numpy_arrs.begin(), [&](auto &&numpy_arr) {
-                          print_1d_numpy_array(numpy_arr);
-                          return forward<decltype(numpy_arr)>(numpy_arr);
-                        });
-              spans = convert_vector_of_numpy_to_span_args(move(numpy_arrs));
+            if (head == "Python"_) {
+              // head = Python
+              auto it = std::make_move_iterator(dynamics.begin());
+              auto script = static_cast<Symbol>(*it).getName().c_str();
+              auto where = static_cast<ComplexExpression>(*++it);
 
-              spans = print_span_args(move(spans));
+              {
+                auto [head, statics, dynamics, spans] = move(where).decompose();
+                // head = Where
+                auto it = make_move_iterator(dynamics.begin());
+                auto it_end = make_move_iterator(dynamics.end());
+                for (; it < it_end; it += 2) {
+                  auto table_name = static_cast<Symbol>(*it).getName().c_str();
+                  auto table_expr = static_cast<ComplexExpression>(*(it + 1));
+
+                  {
+                    // head = Table
+                    auto [head, statics, dynamics, spans] =
+                        move(table_expr).decompose();
+
+                    PyObject *wrapper_dict = PyDict_New();
+                    PyObject *table_dict = PyDict_New();
+                    PyObject *matrix_dict = PyDict_New();
+                    
+                    auto it = make_move_iterator(dynamics.begin());
+                    auto it_end = make_move_iterator(dynamics.end());
+                    for (; it < it_end; it++) {
+                      auto column_expr = static_cast<ComplexExpression>(*(it));
+                      {
+                        // head = <column_name>
+                        auto [head, statics, dynamics, spans] =
+                          move(column_expr).decompose();
+                        auto column_name = head.getName().c_str();
+                        auto it = std::make_move_iterator(dynamics.begin());
+                        auto list_expr = static_cast<ComplexExpression>(*it);
+                        {
+                          // head = List
+                          auto [head, statics, dynamics, spans] =
+                            move(list_expr).decompose();
+                          
+                          py_list = spans_to_py_list(move(spans));
+                          PyDict_SetItemString(table_dict, column_name, py_list);
+                        }
+                      }
+                    }
+
+                    PyDict_SetItemString(wrapper_dict, "table", table_dict);
+                    PyDict_SetItemString(wrapper_dict, "matrix", matrix_dict);
+
+                    PyDict_SetItemString(global_dict, table_name, wrapper_dict);
+                  }
+                }
+              }
+
+              PyObject *result =
+                  PyRun_String(script, Py_file_input, global_dict, global_dict);
+
+              if (result == nullptr) {
+                PyErr_Print();
+              } else {
+                Py_DECREF(result);
+              }
+            }
+
+            if (head == "get_python_var"_) {
+              auto it = std::make_move_iterator(statics.begin());
+              auto var_name = static_cast<Symbol>(*it).getName().c_str();
+
+              auto wrapper_dict = PyDict_GetItemString(global_dict, var_name);
+              auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
+
+              ExpressionArguments dynamics(PyDict_Size(table_dict));
+
+              PyObject *col_name, *col_py_list;
+              Py_ssize_t pos = 0;
+
+              while (PyDict_Next(table_dict, &pos, &col_name, &col_py_list)) {
+                ComplexExpression *boss_column;
+                {
+                  // head = <column-name>
+                  Symbol head(move(*col_name));
+                  auto spans = py_list_to_spans(col_py_list);
+                  auto boss_list = ComplexExpression("List"_, {}, {}, move(spans));
+
+                  ExpressionArguments dynamics{boss_list};
+                  *boss_column = ComplexExpression(move(head), {}, {dynamics}, {});
+                }
+                dynamics.emplace_back(move(*boss_column));
+              }
+
+              auto result = ComplexExpression("Table"_, {}, {dynamics}, {});
+              return result;
             }
 
             transform(make_move_iterator(dynamics.begin()),
@@ -242,7 +332,7 @@ Expression Engine::evaluate(Expression &&e) {
       forward<decltype(e)>(e));
 };
 
-void init_numpy() {
+void init_python_and_numpy() {
   Py_Initialize();
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type"
@@ -254,7 +344,10 @@ void init_numpy() {
   assert(PyArray_API);
 }
 
-Engine::Engine() { init_numpy(); }
+Engine::Engine() {
+  init_python_and_numpy();
+  PyDict_SetItemString(global_dict, "__builtins__", PyEval_GetBuiltins());
+}
 
 } // namespace boss::engines::numpy
 

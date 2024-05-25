@@ -38,7 +38,7 @@ public:
   boss::Expression evaluate(boss::Expression&& e);
 
 private:
-  boss::Expression evaluateColumn(boss::Expression &&e);
+  PyObject *global_dict = PyDict_New();
 };
 
 } // namespace boss::engines::numpy
