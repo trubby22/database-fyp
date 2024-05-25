@@ -116,16 +116,16 @@ template <typename T> NPY_TYPES boss_type_to_numpy() {
 }
 
 template <typename T> boss::Span<T> create_boss_span(PyArrayObject *npy_arr) {
-  auto *data = static_cast<T *>(PyArray_DATA(npy_arr));
+  T *data = static_cast<T *>(PyArray_DATA(npy_arr));
   auto length = PyArray_SIZE(npy_arr);
-  return boss::Span<T>(data, length, [foo = forward<decltype(*npy_arr)>(*npy_arr)]() {});
+  std::vector<T> v;
+  v.assign(data, data + length);
+  auto result = boss::Span<T>(std::move(v));
+  return result;
 }
 
 ExpressionSpanArgument convert_numpy_to_span_arg(PyArrayObject *npy_arr) {
-  ExpressionSpanArgument *result;
-
   int typenum = PyArray_TYPE(npy_arr);
-  void *data = PyArray_DATA(npy_arr);
 
   switch (typenum) {
   case NPY_INT32:
@@ -150,13 +150,13 @@ ExpressionSpanArguments
 convert_vector_of_numpy_to_span_args(vector<PyArrayObject *> &&vec) {
   ExpressionSpanArguments result;
   result.reserve(vec.size());
-  std::transform(
-      std::make_move_iterator(vec.begin()), std::make_move_iterator(vec.end()),
-      std::back_inserter(result), [](auto &&elem) {
-        auto span_arg =
-            convert_numpy_to_span_arg(forward<decltype(elem)>(elem));
-        return span_arg;
-      });
+  std::transform(std::make_move_iterator(vec.begin()),
+                 std::make_move_iterator(vec.end()), std::back_inserter(result),
+                 [](auto &&elem) {
+                   auto span_arg =
+                       convert_numpy_to_span_arg(forward<decltype(elem)>(elem));
+                   return span_arg;
+                 });
   return result;
 }
 
@@ -207,16 +207,14 @@ Expression Engine::evaluate(Expression &&e) {
 
             if (head == "List"_) {
               cout << "we have a list!" << endl;
-              auto numpy_arrs = convert_span_args_to_numpy(
-                  move(spans));
+              auto numpy_arrs = convert_span_args_to_numpy(move(spans));
               transform(make_move_iterator(numpy_arrs.begin()),
                         make_move_iterator(numpy_arrs.end()),
                         numpy_arrs.begin(), [&](auto &&numpy_arr) {
                           print_1d_numpy_array(numpy_arr);
                           return forward<decltype(numpy_arr)>(numpy_arr);
                         });
-              spans = convert_vector_of_numpy_to_span_args(
-                  move(numpy_arrs));
+              spans = convert_vector_of_numpy_to_span_args(move(numpy_arrs));
 
               spans = print_span_args(move(spans));
             }
