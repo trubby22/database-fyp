@@ -73,10 +73,10 @@ template <typename T> NPY_TYPES boss_type_to_numpy() {
   }
 }
 
-template <typename T> boss::Span<T> create_boss_span(PyArrayObject &&npy_arr) {
-  auto *data = const_cast<T *>(PyArray_DATA(npy_arr));
+template <typename T> boss::Span<T> create_boss_span(PyArrayObject *npy_arr) {
+  auto *data = static_cast<T *>(PyArray_DATA(npy_arr));
   auto length = PyArray_SIZE(npy_arr);
-  return boss::Span<T>(data, length, [foo = std::move(npy_arr)]() {});
+  return boss::Span<T>(data, length, [foo = std::move(*npy_arr)]() {});
 }
 
 ExpressionSpanArgument convert_numpy_to_span_arg(PyArrayObject *npy_arr) {
@@ -86,33 +86,36 @@ ExpressionSpanArgument convert_numpy_to_span_arg(PyArrayObject *npy_arr) {
   void *data = PyArray_DATA(npy_arr);
 
   switch (typenum) {
-    case NPY_INT32:
-      return create_boss_span<int32_t>(npy_arr);
-      break;
-    case NPY_INT64:
-      return create_boss_span<int64_t>(npy_arr);
-      break;
-    case NPY_FLOAT:
-      return create_boss_span<float_t>(npy_arr);
-      break;
-    case NPY_DOUBLE:
-      return create_boss_span<double_t>(npy_arr);
-      break;
-    default:
-      throw runtime_error("shouldn't happen");
-      break;
+  case NPY_INT32:
+    return create_boss_span<int32_t>(npy_arr);
+    break;
+  case NPY_INT64:
+    return create_boss_span<int64_t>(npy_arr);
+    break;
+  case NPY_FLOAT:
+    return create_boss_span<float_t>(npy_arr);
+    break;
+  case NPY_DOUBLE:
+    return create_boss_span<double_t>(npy_arr);
+    break;
+  default:
+    throw runtime_error("shouldn't happen");
+    break;
   }
 }
 
-ExpressionSpanArguments convert_vector_of_numpy_to_span_args(vector<PyArrayObject *> &&vec) {
-  vector<ExpressionSpanArgument> args;
-  for_each(make_move_iterator(vec.begin()), make_move_iterator(vec.end()),
-           [&](auto &&elem) {
-             auto span_arg =
-                 convert_numpy_to_span_arg(forward<decltype(elem)>(move(elem)));
-             args.emplace_back(std::move(span_arg));
-           });
-  return args;
+ExpressionSpanArguments
+convert_vector_of_numpy_to_span_args(vector<PyArrayObject *> &&vec) {
+  ExpressionSpanArguments result;
+  result.reserve(vec.size());
+  std::transform(
+      std::make_move_iterator(vec.begin()), std::make_move_iterator(vec.end()),
+      std::back_inserter(result), [](auto &&elem) {
+        auto span_arg =
+            convert_numpy_to_span_arg(forward<decltype(elem)>(move(elem)));
+        return span_arg;
+      });
+  return result;
 }
 
 PyArrayObject *convert_span_arg_to_numpy(ExpressionSpanArgument &&arg) {
@@ -139,7 +142,8 @@ PyArrayObject *convert_span_arg_to_numpy(ExpressionSpanArgument &&arg) {
   return result;
 }
 
-vector<PyArrayObject *> convert_span_args_to_numpy(ExpressionSpanArguments &&args) {
+vector<PyArrayObject *>
+convert_span_args_to_numpy(ExpressionSpanArguments &&args) {
   vector<PyArrayObject *> numpy_arrs;
   for_each(make_move_iterator(args.begin()), make_move_iterator(args.end()),
            [&](auto &&arg) {
@@ -156,14 +160,15 @@ Expression Engine::evaluate(Expression &&e) {
           [this](ComplexExpression &&expression) -> boss::Expression {
             auto [head, statics, dynamics, spans] =
                 move(expression).decompose();
-            
+
             cout << head.getName() << endl;
 
             if (head == "List"_) {
               cout << "we have a list!" << endl;
-              auto numpy_arrs =
-                  convert_span_args_to_numpy(forward<decltype(spans)>(move(spans)));
-              spans = convert_vector_of_numpy_to_span_args(forward<decltype(numpy_arrs)>(move(numpy_arrs)));
+              auto numpy_arrs = convert_span_args_to_numpy(
+                  forward<decltype(spans)>(move(spans)));
+              spans = convert_vector_of_numpy_to_span_args(
+                  forward<decltype(numpy_arrs)>(move(numpy_arrs)));
             }
 
             transform(make_move_iterator(dynamics.begin()),
@@ -178,7 +183,7 @@ Expression Engine::evaluate(Expression &&e) {
           [this](Symbol &&symbol) -> boss::Expression {
             auto name = symbol.getName();
             cout << "symbol " << name << endl;
-            
+
             return move(symbol);
           },
           [](auto &&arg) -> boss::Expression {

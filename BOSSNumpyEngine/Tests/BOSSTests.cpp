@@ -51,65 +51,6 @@ auto createSpansFloat = [](auto... values) {
   return boss::expressions::ComplexExpression("List"_, {}, {}, std::move(args));
 };
 
-// TEST_CASE("TPCH", "[basics]") { // NOLINT
-//   boss::engines::numpy::Engine engine;
-//   auto eval = [&engine](boss::Expression &&expression) mutable {
-//     return engine.evaluate(std::move(expression));
-//   };
-
-// #ifdef USE_NEW_TABLE_FORMAT
-//   auto lineitem =
-//       "Table"_("l_orderkey"_(createSpansInt(1, 1, 2, 3)),
-//                "l_partkey"_(createSpansInt(1, 2, 3, 4)),
-//                "l_suppkey"_(createSpansInt(1, 2, 3, 4)),
-//                "l_returnflag"_(createSpansInt('N', 'N', 'A', 'A')),
-//                "l_linestatus"_(createSpansInt('O', 'O', 'F', 'F')),
-//                "l_quantity"_(createSpansInt(17, 21, 8, 5)),
-//                "l_extendedprice"_(
-//                    createSpansFloat(17954.55, 34850.16, 7712.48, 25284.00)),
-//                "l_discount"_(createSpansFloat(0.10, 0.05, 0.06, 0.06)),
-//                "l_tax"_(createSpansFloat(0.02, 0.06, 0.02, 0.06)),
-//                "l_shipdate"_(createSpansInt(1992, 1994, 1996, 1994)));
-// #else
-//   auto lineitem = "Table"_(
-//       "Column"_("l_orderkey"_, createSpansInt(1, 2, 3, 4)),
-//       "Column"_("l_partkey"_, createSpansInt(1, 2, 3, 4)),
-//       "Column"_("l_suppkey"_, createSpansInt(1, 2, 3, 4)),
-//       "Column"_("l_quantity"_, createSpansInt(17, 21, 8, 5)),
-//       "Column"_("l_extendedprice"_,
-//                 createSpansFloat(17954.55, 34850.16, 7712.48, 25284.00)),
-//       "Column"_("l_discount"_, createSpansFloat(0.10, 0.05, 0.06, 0.06)),
-//       "Column"_("l_tax"_, createSpansFloat(0.02, 0.06, 0.02, 0.06)),
-//       "Column"_("l_returnflag"_, createSpansInt('N', 'N', 'A', 'A')),
-//       "Column"_("l_linestatus"_, createSpansInt('O', 'O', 'F', 'F')),
-//       "Column"_("l_shipdate"_, createSpansInt(1992, 1994, 1996, 1994)));
-// #endif
-// }
-
-// TEST_CASE("SELECT", "[basics]") { // NOLINT
-//   boss::engines::numpy::Engine engine;
-//   auto eval = [&engine](boss::Expression &&expression) mutable {
-//     return engine.evaluate(std::move(expression));
-//   };
-
-// #ifdef USE_NEW_TABLE_FORMAT
-//   auto table1 = "Table"_("key"_(createSpansInt(1, 2, 3)),
-//                          "payload"_(createSpansInt(4, 5, 6)));
-// #else
-//   auto table1 = "Table"_("Column"_("key"_, createSpansInt(1, 2, 3)),
-//                          "Column"_("payload"_, createSpansInt(4, 5, 6)));
-// #endif
-
-//   SECTION("Simple_select") {
-//     auto const &result = eval(
-//         "Select"_("Project"_(std::move(table1),
-//                              "As"_("key"_, "key"_, "payload"_, "payload"_)),
-//                   "Where"_("Greater"_("key"_, 2))));
-
-//     CHECK(result == "List"_("List"_(3, 6))); // NOLINT
-//   }
-// }
-
 TEST_CASE("PROJECT", "[basics]") { // NOLINT
   boss::engines::numpy::Engine engine;
   auto eval = [&engine](boss::Expression &&expression) mutable {
@@ -144,15 +85,23 @@ TEST_CASE("PROJECT", "[basics]") { // NOLINT
       "Column"_("l_shipdate"_, createSpansInt(1992, 1994, 1996, 1994)));
 #endif
 
-  SECTION("simple_project") {
-    auto const &result = eval(
-        "Project"_(std::move(lineitem),
-                             "As"_("l_quantity"_, "l_quantity"_, "l_suppkey"_, "l_suppkey"_)));
-
-    CHECK(result == "Table"_(
+  auto lineitem_copy =
+      "Table"_("l_orderkey"_(createSpansInt(1, 1, 2, 3)),
+               "l_partkey"_(createSpansInt(1, 2, 3, 4)),
                "l_suppkey"_(createSpansInt(1, 2, 3, 4)),
-               "l_quantity"_(createSpansInt(17, 21, 8, 5))
-               )); // NOLINT
+               "l_returnflag"_(createSpansInt('N', 'N', 'A', 'A')),
+               "l_linestatus"_(createSpansInt('O', 'O', 'F', 'F')),
+               "l_quantity"_(createSpansInt(17, 21, 8, 5)),
+               "l_extendedprice"_(
+                   createSpansFloat(17954.55, 34850.16, 7712.48, 25284.00)),
+               "l_discount"_(createSpansFloat(0.10, 0.05, 0.06, 0.06)),
+               "l_tax"_(createSpansFloat(0.02, 0.06, 0.02, 0.06)),
+               "l_shipdate"_(createSpansInt(1992, 1994, 1996, 1994)));
+
+  SECTION("identity transformation") {
+    auto const &result = eval(std::move(lineitem));
+
+    CHECK(result == lineitem_copy); // NOLINT
   }
 }
 
