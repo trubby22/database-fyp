@@ -39,7 +39,9 @@ public:
   boss::Expression evaluate(boss::Expression&& e);
 
 private:
-  PyObject *global_dict = PyDict_New();
+  PyObject *global_dict;
+
+  void init_python_and_numpy();
 };
 
 } // namespace boss::engines::numpy

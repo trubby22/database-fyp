@@ -238,8 +238,7 @@ PyObject *spans_to_py_list(ExpressionSpanArguments &&args) {
 Expression Engine::evaluate(Expression &&e) {
   return visit(
       boss::utilities::overload(
-          [this](ComplexExpressionWithStaticArguments<Symbol>) -> boss::Expression {}
-          [this](ComplexExpression &&expression) -> boss::Expression {
+          [this](ComplexExpressionWithStaticArguments<Symbol> &&expression) -> Expression {
             auto [head, statics, dynamics, spans] =
                 forward<decltype(expression)>(expression).decompose();
 
@@ -248,9 +247,9 @@ Expression Engine::evaluate(Expression &&e) {
             if (head == "Python"_) {
               // head = Python
               auto script =
-                  reinterpret_cast<Symbol>(get<0>(statics)).getName().c_str();
+                  move(static_cast<Symbol>(get<0>(statics)).getName()).c_str();
               auto it = make_move_iterator(dynamics.begin());
-              auto where = reinterpret_cast<ComplexExpression>(*it);
+              auto where = get<ComplexExpression>(*it);
 
               {
                 auto [head, statics, dynamics, spans] = move(where).decompose();
@@ -259,9 +258,9 @@ Expression Engine::evaluate(Expression &&e) {
                 auto it_end = make_move_iterator(dynamics.end());
                 for (; it < it_end; it += 2) {
                   auto table_name =
-                      reinterpret_cast<Symbol>(*it).getName().c_str();
+                      move(get<Symbol>(*it).getName()).c_str();
                   auto table_expr =
-                      reinterpret_cast<ComplexExpression>(*(it + 1));
+                      get<ComplexExpression>(*(it + 1));
 
                   {
                     // head = Table
@@ -276,7 +275,7 @@ Expression Engine::evaluate(Expression &&e) {
                     auto it_end = make_move_iterator(dynamics.end());
                     for (; it < it_end; it++) {
                       auto column_expr =
-                          reinterpret_cast<ComplexExpression>(*(it));
+                          get<ComplexExpression>(*(it));
                       {
                         // head = <column_name>
                         auto [head, statics, dynamics, spans] =
@@ -284,7 +283,7 @@ Expression Engine::evaluate(Expression &&e) {
                         auto column_name = head.getName().c_str();
                         auto it = make_move_iterator(dynamics.begin());
                         auto list_expr =
-                            reinterpret_cast<ComplexExpression>(*it);
+                            get<ComplexExpression>(*it);
                         {
                           // head = List
                           auto [head, statics, dynamics, spans] =
@@ -313,11 +312,13 @@ Expression Engine::evaluate(Expression &&e) {
               } else {
                 Py_DECREF(result);
               }
+
+              return ComplexExpression("void"_, {}, {}, {});
             }
 
             if (head == "get_python_var"_) {
               auto var_name =
-                  reinterpret_cast<Symbol>(get<0>(statics)).getName().c_str();
+                  move(static_cast<Symbol>(get<0>(statics)).getName()).c_str();
 
               auto wrapper_dict = PyDict_GetItemString(global_dict, var_name);
               auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
@@ -349,6 +350,13 @@ Expression Engine::evaluate(Expression &&e) {
               auto result = ComplexExpression("Table"_, {}, move(dynamics), {});
               return result;
             }
+            throw runtime_error("shouldn't happen");
+          },
+          [this](ComplexExpression &&expression) -> Expression {
+            auto [head, statics, dynamics, spans] =
+                forward<decltype(expression)>(expression).decompose();
+
+            cout << head.getName() << endl;
 
             transform(make_move_iterator(dynamics.begin()),
                       make_move_iterator(dynamics.end()), dynamics.begin(),
@@ -359,13 +367,13 @@ Expression Engine::evaluate(Expression &&e) {
             return boss::ComplexExpression(move(head), {}, move(dynamics),
                                            move(spans));
           },
-          [this](Symbol &&symbol) -> boss::Expression {
+          [this](Symbol &&symbol) -> Expression {
             auto name = symbol.getName();
             cout << "symbol " << name << endl;
 
             return forward<decltype(symbol)>(symbol);
           },
-          [](auto &&arg) -> boss::Expression {
+          [](auto &&arg) -> Expression {
             cout << "other type " << typeid(arg).name() << endl;
 
             return forward<decltype(arg)>(arg);
@@ -373,7 +381,7 @@ Expression Engine::evaluate(Expression &&e) {
       forward<decltype(e)>(e));
 };
 
-void init_python_and_numpy() {
+void Engine::init_python_and_numpy() {
   Py_Initialize();
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type"
@@ -383,6 +391,8 @@ void init_python_and_numpy() {
     throw runtime_error("Failed to import numpy Python module(s).");
   }
   assert(PyArray_API);
+
+  global_dict = PyDict_New();
 }
 
 Engine::Engine() {
