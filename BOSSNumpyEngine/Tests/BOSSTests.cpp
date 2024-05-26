@@ -93,8 +93,7 @@ TEST_CASE("Python", "[basics]") { // NOLINT
   SECTION("can pass in table to Python") {
     auto const &result = eval(
       "Python"_(
-        "print(foo)\n"
-        "print('hello')"_,
+        "print(foo)\nprint('hello')"_,
         "where"_(
           "foo"_, std::move(lineitem)
         )

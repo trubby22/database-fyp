@@ -87,12 +87,13 @@ void print_1d_numpy_array(PyArrayObject *array) {
     break;
   }
   }
+  cout << "end of numpy array" << endl;
 }
 
 void print_py_list(PyObject *list) {
-  cout << "py list" << endl;
-  auto size = PyList_Size(list);
-  for (int i = 0; i < size; i++) {
+  cout << "printing py list" << endl;
+  Py_ssize_t size = PyList_Size(list);
+  for (Py_ssize_t i = 0; i < size; i++) {
     auto npy_arr = reinterpret_cast<PyArrayObject *>(PyList_GetItem(list, i));
     print_1d_numpy_array(npy_arr);
   }
@@ -161,7 +162,7 @@ template <typename T> boss::Span<T> create_boss_span(PyArrayObject *npy_arr) {
   T *data = static_cast<T *>(PyArray_DATA(npy_arr));
   auto length = PyArray_SIZE(npy_arr);
   vector<T> v;
-  v.assign(data, data + length);
+  v.assign(move(data), move(static_cast<T *>(data + length)));
   auto result = boss::Span<T>(move(v));
   return result;
 }
@@ -200,8 +201,8 @@ ExpressionSpanArguments py_list_to_spans(PyObject *list) {
   return result;
 }
 
-PyArrayObject *span_to_numpy_arr(ExpressionSpanArgument &&arg) {
-  PyArrayObject *result;
+PyObject *span_to_numpy_arr(ExpressionSpanArgument &&arg) {
+  PyObject *result;
   visit(
       [&result]<typename T>(boss::Span<T> &&typed_span) {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
@@ -213,8 +214,8 @@ PyArrayObject *span_to_numpy_arr(ExpressionSpanArgument &&arg) {
           auto size = typed_span.size();
           npy_intp dims[] = {static_cast<npy_intp>(size)};
 
-          auto foo = PyArray_SimpleNewFromData(1, dims, typenum, begin);
-          result = reinterpret_cast<PyArrayObject *>(foo);
+          result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
+          print_1d_numpy_array(reinterpret_cast<PyArrayObject *>(result));
         } else {
           throw runtime_error("unsupported span type: " +
                               string(typeid(decltype(typed_span)).name()));
@@ -228,10 +229,13 @@ PyObject *spans_to_py_list(ExpressionSpanArguments &&args) {
   PyObject *result = PyList_New(args.size());
   auto it = make_move_iterator(args.begin());
   auto it_end = make_move_iterator(args.end());
+  Py_ssize_t i = 0;
   for (; it < it_end; it += 1) {
-    auto numpy_arr = reinterpret_cast<PyObject *>(span_to_numpy_arr(*it));
-    PyList_Append(result, numpy_arr);
+    auto numpy_arr = span_to_numpy_arr(*it);
+    PyList_SET_ITEM(result, i, numpy_arr);
+    i++;
   }
+  print_py_list(result);
   return result;
 }
 
@@ -241,15 +245,22 @@ Expression Engine::evaluate(Expression &&e) {
           [this](ComplexExpressionWithStaticArguments<Symbol> &&expression) -> Expression {
             auto [head, statics, dynamics, spans] =
                 forward<decltype(expression)>(expression).decompose();
+            cout << "ComplexExpressionWithStaticArguments<Symbol> " << head.getName() << endl;
 
-            cout << head.getName() << endl;
+            
+            throw runtime_error("shouldn't happen");
+          },
+          [this](ComplexExpression &&expression) -> Expression {
+            auto [head, statics, dynamics, spans] =
+                forward<decltype(expression)>(expression).decompose();
+            cout << "ComplexExpression " << head.getName() << endl;
 
             if (head == "Python"_) {
               // head = Python
-              auto script =
-                  move(static_cast<Symbol>(get<0>(statics)).getName()).c_str();
               auto it = make_move_iterator(dynamics.begin());
-              auto where = get<ComplexExpression>(*it);
+              auto script_str = get<Symbol>(*it).getName();
+              auto script = move(script_str).c_str();
+              auto where = get<ComplexExpression>(*++it);
 
               {
                 auto [head, statics, dynamics, spans] = move(where).decompose();
@@ -257,8 +268,8 @@ Expression Engine::evaluate(Expression &&e) {
                 auto it = make_move_iterator(dynamics.begin());
                 auto it_end = make_move_iterator(dynamics.end());
                 for (; it < it_end; it += 2) {
-                  auto table_name =
-                      move(get<Symbol>(*it).getName()).c_str();
+                  auto table_name_str = get<Symbol>(*it).getName();
+                  auto table_name = move(table_name_str).c_str();
                   auto table_expr =
                       get<ComplexExpression>(*(it + 1));
 
@@ -280,7 +291,8 @@ Expression Engine::evaluate(Expression &&e) {
                         // head = <column_name>
                         auto [head, statics, dynamics, spans] =
                             move(column_expr).decompose();
-                        auto column_name = head.getName().c_str();
+                        auto column_name_str = head.getName();
+                        auto column_name = move(column_name_str).c_str();
                         auto it = make_move_iterator(dynamics.begin());
                         auto list_expr =
                             get<ComplexExpression>(*it);
@@ -317,8 +329,9 @@ Expression Engine::evaluate(Expression &&e) {
             }
 
             if (head == "get_python_var"_) {
-              auto var_name =
-                  move(static_cast<Symbol>(get<0>(statics)).getName()).c_str();
+              auto it = make_move_iterator(dynamics.begin());
+              auto var_name_str = get<Symbol>(*it).getName();
+              auto var_name = move(var_name_str).c_str();
 
               auto wrapper_dict = PyDict_GetItemString(global_dict, var_name);
               auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
@@ -350,13 +363,6 @@ Expression Engine::evaluate(Expression &&e) {
               auto result = ComplexExpression("Table"_, {}, move(dynamics), {});
               return result;
             }
-            throw runtime_error("shouldn't happen");
-          },
-          [this](ComplexExpression &&expression) -> Expression {
-            auto [head, statics, dynamics, spans] =
-                forward<decltype(expression)>(expression).decompose();
-
-            cout << head.getName() << endl;
 
             transform(make_move_iterator(dynamics.begin()),
                       make_move_iterator(dynamics.end()), dynamics.begin(),
@@ -369,7 +375,7 @@ Expression Engine::evaluate(Expression &&e) {
           },
           [this](Symbol &&symbol) -> Expression {
             auto name = symbol.getName();
-            cout << "symbol " << name << endl;
+            cout << "Symbol " << name << endl;
 
             return forward<decltype(symbol)>(symbol);
           },
