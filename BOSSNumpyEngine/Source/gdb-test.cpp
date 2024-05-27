@@ -48,32 +48,29 @@ auto create_lineitem() {
 }
 
 int main(int argc, char *argv[]) {
-  Engine engine;
+  Engine engine(2);
 
   auto lineitem = create_lineitem();
 
-  cout << "lineitem " << endl << lineitem << endl << endl;
-
-  auto const python_query = engine.evaluate(move("Python"_(
-    "print(lineitem)\n"
-    "print(lineitem['table']['l_tax'][0].dtype)\n"_,
+  auto const python_query_result = engine.evaluate(move("Python"_(
+    R"(
+import numpy as np
+table = lineitem["table"]
+a = table["l_orderkey"][0]
+b = table["l_quantity"][0]
+c = np.stack((a, b))
+print(c)
+print()
+d = c @ c.T
+print(d)
+e = {"table": {}, "matrix": {"data": d, "col_names": ["foo", "bar"]}}
+)"_,
     "where"_("lineitem"_, move(lineitem)))));
+  cout << "python_query_result " << endl << python_query_result << endl << endl;
 
-  cout << "python_query_result " << endl << python_query << endl << endl;
-
-  auto const repeated_python_query = engine.evaluate(move(
-    "Python"_(
-      "print(lineitem)\n"
-      "print(lineitem['table']['l_tax'][0].dtype)\n"_
+  auto const get_matrix_result = engine.evaluate(move("python_get_var"_("e"_
   )));
-
-  cout << "repeated_python_query_result " << endl << repeated_python_query << endl << endl;
-
-  auto const lineitem_from_python = engine.evaluate(move(
-    "get_python_var"_("lineitem"_)
-  ));
-
-  cout << "lineitem_from_python_result " << endl << lineitem_from_python << endl << endl;
+  cout << "get_matrix_result " << endl << get_matrix_result << endl << endl;
 
   return 0;
 }
