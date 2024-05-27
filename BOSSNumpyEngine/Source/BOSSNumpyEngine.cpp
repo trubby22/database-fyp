@@ -261,20 +261,11 @@ tuple<ExpressionSpanArguments, PyObject *> spans_to_py_list(ExpressionSpanArgume
 Expression Engine::evaluate(Expression &&e) {
   return visit(
       boss::utilities::overload(
-          [this](ComplexExpressionWithStaticArguments<Symbol> &&expression)
-              -> Expression {
-            auto [head, statics, dynamics, spans] =
-                forward<decltype(expression)>(expression).decompose();
-            cout << "ComplexExpressionWithStaticArguments<Symbol> "
-                 << head.getName() << endl;
-
-            throw runtime_error("shouldn't happen");
-          },
           [this](ComplexExpression &&expression) -> Expression {
             // top-level
             auto [top_head, top_statics, top_dynamics, top_spans] =
                 forward<decltype(expression)>(expression).decompose();
-            cout << "ComplexExpression " << top_head.getName() << endl;
+            // cout << "ComplexExpression " << top_head.getName() << endl;
 
             if (top_head == "Python"_) {
               // head = Python
@@ -283,7 +274,7 @@ Expression Engine::evaluate(Expression &&e) {
               auto top_script_str = get<Symbol>(*top_it).getName();
               auto top_script = move(top_script_str).c_str();
 
-              cout << "top_dynamics_size " << top_dynamics_size << " " << (top_dynamics_size >= 2) << endl;
+              // cout << "top_dynamics_size " << top_dynamics_size << " " << (top_dynamics_size >= 2) << endl;
 
               if (top_dynamics_size >= 2) {
                 auto top_where = get<ComplexExpression>(*(top_it + 1));
@@ -391,9 +382,12 @@ Expression Engine::evaluate(Expression &&e) {
               auto var_name = move(var_name_str).c_str();
 
               auto wrapper_dict = PyDict_GetItemString(global_dict, move(var_name));
+              // cout << "wrapper_dict " << wrapper_dict << endl;
               auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
+              // cout << "table " << table << endl;
 
-              ExpressionArguments res_dynamics(PyDict_Size(table_dict));
+              ExpressionArguments res_dynamics;
+              res_dynamics.reserve(PyDict_Size(table_dict));
 
               PyObject *col_name, *col_py_list;
               Py_ssize_t pos = 0;
@@ -405,20 +399,25 @@ Expression Engine::evaluate(Expression &&e) {
                 auto col_list_spans = py_list_to_spans(col_py_list);
                 auto boss_list =
                     ComplexExpression("List"_, {}, {}, move(col_list_spans));
+                // cout << "boss_list " << boss_list << endl;
                 // head = List
 
-                ExpressionArguments res_dynamics;
-                res_dynamics.reserve(1);
-                res_dynamics.emplace_back(move(boss_list));
+                ExpressionArguments col_dynamics;
+                col_dynamics.reserve(1);
+                col_dynamics.emplace_back(move(boss_list));
 
                 auto boss_column =
-                  ComplexExpression(move(col_head), {}, move(res_dynamics), {});
+                  ComplexExpression(move(col_head), {}, move(col_dynamics), {});
+                // cout << "boss_column " << boss_column << endl;
                 // head = <col_name>
 
                 res_dynamics.emplace_back(move(boss_column));
               }
 
-              return ComplexExpression("Table"_, {}, move(res_dynamics), {});
+              auto table = ComplexExpression("Table"_, {}, move(res_dynamics), {});
+              // cout << "table " << table << endl;
+
+              return table;
             }
 
             transform(make_move_iterator(top_dynamics.begin()),
@@ -432,12 +431,12 @@ Expression Engine::evaluate(Expression &&e) {
           },
           [this](Symbol &&symbol) -> Expression {
             auto name = symbol.getName();
-            cout << "Symbol " << name << endl;
+            // cout << "Symbol " << name << endl;
 
             return forward<decltype(symbol)>(symbol);
           },
           [](auto &&arg) -> Expression {
-            cout << "other type " << typeid(arg).name() << endl;
+            // cout << "other type " << typeid(arg).name() << endl;
 
             return forward<decltype(arg)>(arg);
           }),
