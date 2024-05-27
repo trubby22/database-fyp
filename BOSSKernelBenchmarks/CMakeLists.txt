@@ -129,6 +129,24 @@ set(BenchmarkFiles
 add_executable(Benchmarks ${BenchmarkFiles})
 add_dependencies(Benchmarks BOSS)
 
+################################ Custom hacky code ################################
+
+target_include_directories(Benchmarks SYSTEM
+    PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/include
+    PRIVATE /usr/local/lib/python3.10/dist-packages/numpy/core/include
+    PRIVATE /usr/include/python3.10
+)
+
+target_link_directories(Benchmarks 
+    PUBLIC ${BOSSNumPyEngine_BINARY_DIR}/deps/lib
+    PRIVATE /usr/lib/python3.10/config-3.10-x86_64-linux-gnu
+)
+target_link_libraries(Benchmarks
+    /usr/lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so
+)
+
+################################ End of custom hacky code ################################
+
 if(WIN32)
     target_link_libraries(Benchmarks shlwapi.lib)
 endif(WIN32)
