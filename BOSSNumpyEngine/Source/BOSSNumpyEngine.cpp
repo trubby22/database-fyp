@@ -230,10 +230,7 @@ tuple<ExpressionSpanArgument, PyObject *> span_to_numpy_arr(ExpressionSpanArgume
           npy_intp dims[] = {static_cast<npy_intp>(size)};
 
           result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
-          print_1d_numpy_array(reinterpret_cast<PyArrayObject *>(result));
-
-          // ExpressionSpanArgument<T> v;
-          // v.assign(move(static_cast<T *>(begin)), move(static_cast<T *>(end)));
+          
           return typed_span;
         } else {
           throw runtime_error("unsupported span type: " +
@@ -256,7 +253,6 @@ tuple<ExpressionSpanArguments, PyObject *> spans_to_py_list(ExpressionSpanArgume
     PyList_SET_ITEM(result, i, numpy_arr);
     i++;
   }
-  print_py_list(result);
   return make_tuple(move(args), move(result));
 }
 
@@ -282,73 +278,91 @@ Expression Engine::evaluate(Expression &&e) {
 
             if (top_head == "Python"_) {
               // head = Python
+              auto top_dynamics_size = top_dynamics.size();
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto top_script_str = get<Symbol>(*top_it).getName();
               auto top_script = move(top_script_str).c_str();
-              auto top_where = get<ComplexExpression>(*(top_it + 1));
 
-              auto [where_unused_0, where_unused_1, where_dynamics, where_unused_3] =
-                  move(top_where).decompose();
-              // head = Where
-              auto where_it = make_move_iterator(where_dynamics.begin());
-              auto where_it_end = make_move_iterator(where_dynamics.end());
-              for (; where_it < where_it_end; where_it += 2) {
-                auto where_table_name_str = get<Symbol>(*where_it).getName();
-                auto where_table_name = move(where_table_name_str).c_str();
-                auto where_table_expr = get<ComplexExpression>(*(where_it + 1));
+              cout << "top_dynamics_size " << top_dynamics_size << " " << (top_dynamics_size >= 2) << endl;
 
-                auto [table_unused_0, table_unused_1, table_dynamics, table_unused_3] =
-                    move(where_table_expr).decompose();
-                // head = Table
+              if (top_dynamics_size >= 2) {
+                auto top_where = get<ComplexExpression>(*(top_it + 1));
 
-                PyObject *wrapper_dict = PyDict_New();
-                PyObject *table_dict = PyDict_New();
-                PyObject *matrix_dict = PyDict_New();
+                auto [where_unused_0, where_unused_1, where_dynamics, where_unused_3] =
+                    move(top_where).decompose();
+                // head = Where
+                auto where_it = make_move_iterator(where_dynamics.begin());
+                auto where_it_end = make_move_iterator(where_dynamics.end());
+                for (; where_it < where_it_end; where_it += 2) {
+                  auto where_table_name_str = get<Symbol>(*where_it).getName();
+                  auto where_table_name = move(where_table_name_str).c_str();
+                  auto where_table_expr = get<ComplexExpression>(*(where_it + 1));
 
-                auto table_it = make_move_iterator(table_dynamics.begin());
-                auto table_it_end = make_move_iterator(table_dynamics.end());
-                for (; table_it < table_it_end; table_it++) {
-                  auto table_column_expr = get<ComplexExpression>(*(table_it));
+                  auto [table_unused_0, table_unused_1, table_dynamics, table_unused_3] =
+                      move(where_table_expr).decompose();
+                  // head = Table
 
-                  auto [colname_head, colname_unused_1, colname_dynamics,
-                        colname_unused_3] = move(table_column_expr).decompose();
-                  // head = <column_name>
-                  auto colname_column_name_str = colname_head.getName();
-                  auto colname_column_name =
-                      move(colname_column_name_str).c_str();
-                  auto colname_it =
-                      make_move_iterator(colname_dynamics.begin());
-                  auto colname_list_expr = get<ComplexExpression>(*colname_it);
+                  PyObject *wrapper_dict = PyDict_New();
+                  PyObject *table_dict = PyDict_New();
+                  PyObject *matrix_dict = PyDict_New();
 
-                  auto [list_head, list_unused_1, list_unused_2, list_spans] =
-                      move(colname_list_expr).decompose();
-                  // head = List
+                  auto table_it = make_move_iterator(table_dynamics.begin());
+                  auto table_it_end = make_move_iterator(table_dynamics.end());
+                  for (; table_it < table_it_end; table_it++) {
+                    auto table_column_expr = get<ComplexExpression>(*(table_it));
 
-                  auto t = spans_to_py_list(move(list_spans));
-                  list_spans = move(get<0>(t));
-                  auto list_py_list = move(get<1>(t));
-                  PyDict_SetItemString(table_dict, colname_column_name,
-                                       move(list_py_list));
+                    auto [colname_head, colname_unused_1, colname_dynamics,
+                          colname_unused_3] = move(table_column_expr).decompose();
+                    // head = <column_name>
+                    auto colname_column_name_str = colname_head.getName();
+                    auto colname_column_name =
+                        move(colname_column_name_str).c_str();
+                    auto colname_it =
+                        make_move_iterator(colname_dynamics.begin());
+                    auto colname_list_expr = get<ComplexExpression>(*colname_it);
+
+                    auto [list_head, list_unused_1, list_unused_2, list_spans] =
+                        move(colname_list_expr).decompose();
+                    // head = List
+
+                    auto t = spans_to_py_list(move(list_spans));
+                    list_spans = move(get<0>(t));
+                    auto list_py_list = move(get<1>(t));
+                    PyDict_SetItemString(table_dict, colname_column_name,
+                                        move(list_py_list));
+                    
+                    auto return_list = ComplexExpression("List"_, {}, {}, move(list_spans));
+                    // cout << "return_list " << return_list << endl;
+
+                    *colname_it = move(return_list);
+                    string colname_column_name_str_return = colname_column_name;
+                    Symbol colname_column_name_return = Symbol(move(colname_column_name));
+                    auto return_col = ComplexExpression(move(colname_column_name_return),
+                      {}, move(colname_dynamics), {});
+                    // cout << "return_table " << return_col << endl;
+
+                    *table_it = move(return_col);
+                  }
+
+                  auto return_table = ComplexExpression("Table"_, {}, move(table_dynamics), {});
+                  // cout << "return_table " << return_table << endl;
+
+                  *(where_it + 1) = move(return_table);
+
+                  PyDict_SetItemString(wrapper_dict, "table", table_dict);
+                  PyDict_SetItemString(wrapper_dict, "matrix", matrix_dict);
+                  PyDict_SetItemString(global_dict, where_table_name,
+                                      wrapper_dict);
                   
-                  *colname_it = ComplexExpression("List"_, {}, {}, move(list_spans));
-                  string colname_column_name_str_return = colname_column_name;
-                  Symbol colname_column_name_return = Symbol(move(colname_column_name));
-                  *table_it = ComplexExpression(move(colname_column_name_return),
-                    {}, move(colname_dynamics), {});
+                  string where_table_name_str_return = where_table_name;
+                  *where_it = Symbol(move(where_table_name_str_return));
                 }
 
-                *(where_it + 1) = ComplexExpression("Table"_, {}, move(table_dynamics), {});
+                auto return_where = ComplexExpression("Where"_, {}, move(where_dynamics), {});
+                // cout << "return_where " << return_where << endl;
 
-                PyDict_SetItemString(wrapper_dict, "table", table_dict);
-                PyDict_SetItemString(wrapper_dict, "matrix", matrix_dict);
-                PyDict_SetItemString(global_dict, where_table_name,
-                                     wrapper_dict);
-                
-                string where_table_name_str_return = where_table_name;
-                *where_it = Symbol(move(where_table_name_str_return));
+                *(top_it + 1) = move(return_where);
               }
-
-              *(top_it + 1) = ComplexExpression("Where"_, {}, move(top_dynamics), {});
 
               PyObject *top_result = PyRun_String(top_script, Py_file_input,
                                                   global_dict, global_dict);
@@ -362,45 +376,50 @@ Expression Engine::evaluate(Expression &&e) {
                 Py_DECREF(top_result);
               }
 
-              return ComplexExpression(move(top_head), move(top_statics),
+              auto result = ComplexExpression(move(top_head), move(top_statics),
                                        move(top_dynamics), move(top_spans));
+
+              // cout << "result inside evaluate " << result << endl;
+
+              return result;
             }
 
-            // if (head == "get_python_var"_) {
-            //   auto it = make_move_iterator(dynamics.begin());
-            //   auto var_name_str = get<Symbol>(*it).getName();
-            //   auto var_name = move(var_name_str).c_str();
+            if (top_head == "get_python_var"_) {
+              // head = get_python_var
+              auto it = make_move_iterator(top_dynamics.begin());
+              auto var_name_str = get<Symbol>(*it).getName();
+              auto var_name = move(var_name_str).c_str();
 
-            //   auto wrapper_dict = PyDict_GetItemString(global_dict, var_name);
-            //   auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
+              auto wrapper_dict = PyDict_GetItemString(global_dict, move(var_name));
+              auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
 
-            //   ExpressionArguments dynamics(PyDict_Size(table_dict));
+              ExpressionArguments res_dynamics(PyDict_Size(table_dict));
 
-            //   PyObject *col_name, *col_py_list;
-            //   Py_ssize_t pos = 0;
+              PyObject *col_name, *col_py_list;
+              Py_ssize_t pos = 0;
 
-            //   while (PyDict_Next(table_dict, &pos, &col_name, &col_py_list)) {
-            //     ComplexExpression *boss_column;
-            //     {
-            //       // head = <column-name>
-            //       string col_name_str = PyObject_to_string(col_name);
-            //       Symbol head(move(col_name_str));
-            //       auto spans = py_list_to_spans(col_py_list);
-            //       auto boss_list =
-            //           ComplexExpression("List"_, {}, {}, move(spans));
+              while (PyDict_Next(table_dict, &pos, &col_name, &col_py_list)) {
+                string col_name_str = PyObject_to_string(col_name);
+                Symbol col_head(move(col_name_str));
 
-            //       ExpressionArguments dynamics;
-            //       dynamics.reserve(1);
-            //       dynamics.emplace_back(move(boss_list));
-            //       *boss_column =
-            //           ComplexExpression(move(head), {}, move(dynamics), {});
-            //     }
-            //     dynamics.emplace_back(move(*boss_column));
-            //   }
+                auto col_list_spans = py_list_to_spans(col_py_list);
+                auto boss_list =
+                    ComplexExpression("List"_, {}, {}, move(col_list_spans));
+                // head = List
 
-            //   auto result = ComplexExpression("Table"_, {}, move(dynamics), {});
-            //   return result;
-            // }
+                ExpressionArguments res_dynamics;
+                res_dynamics.reserve(1);
+                res_dynamics.emplace_back(move(boss_list));
+
+                auto boss_column =
+                  ComplexExpression(move(col_head), {}, move(res_dynamics), {});
+                // head = <col_name>
+
+                res_dynamics.emplace_back(move(boss_column));
+              }
+
+              return ComplexExpression("Table"_, {}, move(res_dynamics), {});
+            }
 
             transform(make_move_iterator(top_dynamics.begin()),
                       make_move_iterator(top_dynamics.end()), top_dynamics.begin(),

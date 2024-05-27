@@ -52,8 +52,28 @@ int main(int argc, char *argv[]) {
 
   auto lineitem = create_lineitem();
 
-  auto const &result = engine.evaluate(move("Python"_(
-      "print(foo)\nprint('hello')"_, "where"_("foo"_, move(lineitem)))));
+  cout << "lineitem " << lineitem << endl << endl;
+
+  auto const python_query = engine.evaluate(move("Python"_(
+    "print(lineitem)\n"
+    "print(lineitem['table']['l_tax'][0].dtype)\n"_,
+    "where"_("lineitem"_, move(lineitem)))));
+
+  cout << "python_query_result " << python_query << endl << endl;
+
+  auto const repeated_python_query = engine.evaluate(move(
+    "Python"_(
+      "print(lineitem)\n"
+      "print(lineitem['table']['l_tax'][0].dtype)\n"_
+  )));
+
+  cout << "repeated_python_query_result " << repeated_python_query << endl << endl;
+
+  auto const lineitem_from_python = engine.evaluate(move(
+    "get_python_var"_("lineitem"_)
+  ));
+
+  cout << "lineitem_from_python_result " << lineitem_from_python << endl << endl;
 
   return 0;
 }
