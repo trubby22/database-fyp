@@ -241,10 +241,10 @@ tuple<ExpressionSpanArgument, PyObject *> span_to_numpy_arr(ExpressionSpanArgume
         }
       },
       forward<decltype(arg)>(arg));
-  return make_tuple<ExpressionSpanArgument, PyObject *>(move(result_arg), move(result));
+  return make_tuple(move(result_arg), move(result));
 }
 
-PyObject *spans_to_py_list(ExpressionSpanArguments &&args) {
+tuple<ExpressionSpanArguments, PyObject *> spans_to_py_list(ExpressionSpanArguments &&args) {
   PyObject *result = PyList_New(args.size());
   auto it = make_move_iterator(args.begin());
   auto it_end = make_move_iterator(args.end());
@@ -257,7 +257,7 @@ PyObject *spans_to_py_list(ExpressionSpanArguments &&args) {
     i++;
   }
   print_py_list(result);
-  return result;
+  return make_tuple(move(args), move(result));
 }
 
 #pragma endregion incoming
@@ -287,7 +287,7 @@ Expression Engine::evaluate(Expression &&e) {
               auto top_script = move(top_script_str).c_str();
               auto top_where = get<ComplexExpression>(*(top_it + 1));
 
-              auto [where_head, where_statics, where_dynamics, where_spans] =
+              auto [where_unused_0, where_unused_1, where_dynamics, where_unused_3] =
                   move(top_where).decompose();
               // head = Where
               auto where_it = make_move_iterator(where_dynamics.begin());
@@ -297,7 +297,7 @@ Expression Engine::evaluate(Expression &&e) {
                 auto where_table_name = move(where_table_name_str).c_str();
                 auto where_table_expr = get<ComplexExpression>(*(where_it + 1));
 
-                auto [table_head, table_statics, table_dynamics, table_spans] =
+                auto [table_unused_0, table_unused_1, table_dynamics, table_unused_3] =
                     move(where_table_expr).decompose();
                 // head = Table
 
@@ -310,8 +310,8 @@ Expression Engine::evaluate(Expression &&e) {
                 for (; table_it < table_it_end; table_it++) {
                   auto table_column_expr = get<ComplexExpression>(*(table_it));
 
-                  auto [colname_head, colname_statics, colname_dynamics,
-                        colname_spans] = move(table_column_expr).decompose();
+                  auto [colname_head, colname_unused_1, colname_dynamics,
+                        colname_unused_3] = move(table_column_expr).decompose();
                   // head = <column_name>
                   auto colname_column_name_str = colname_head.getName();
                   auto colname_column_name =
@@ -324,35 +324,43 @@ Expression Engine::evaluate(Expression &&e) {
                       move(colname_list_expr).decompose();
                   // head = List
 
-                  auto list_py_list = spans_to_py_list(move(list_spans));
+                  auto t = spans_to_py_list(move(list_spans));
+                  list_spans = move(get<0>(t));
+                  auto list_py_list = move(get<1>(t));
                   PyDict_SetItemString(table_dict, colname_column_name,
-                                       list_py_list);
+                                       move(list_py_list));
                   
-                  colname_list_expr = ComplexExpression("List"_, {}, {}, move(list_spans));
+                  *colname_it = ComplexExpression("List"_, {}, {}, move(list_spans));
+                  string colname_column_name_str_return = colname_column_name;
+                  Symbol colname_column_name_return = Symbol(move(colname_column_name));
+                  *table_it = ComplexExpression(move(colname_column_name_return),
+                    {}, move(colname_dynamics), {});
                 }
+
+                *(where_it + 1) = ComplexExpression("Table"_, {}, move(table_dynamics), {});
 
                 PyDict_SetItemString(wrapper_dict, "table", table_dict);
                 PyDict_SetItemString(wrapper_dict, "matrix", matrix_dict);
-
                 PyDict_SetItemString(global_dict, where_table_name,
                                      wrapper_dict);
-
-                // *where_it = ...;
-                // *(where_it + 1) = ...;
+                
+                string where_table_name_str_return = where_table_name;
+                *where_it = Symbol(move(where_table_name_str_return));
               }
+
+              *(top_it + 1) = ComplexExpression("Where"_, {}, move(top_dynamics), {});
 
               PyObject *top_result = PyRun_String(top_script, Py_file_input,
                                                   global_dict, global_dict);
+
+              string top_script_return = top_script;
+              *top_it = Symbol(move(top_script_return));
 
               if (top_result == nullptr) {
                 PyErr_Print();
               } else {
                 Py_DECREF(top_result);
               }
-
-              // string top_script_return(move(top_script));
-              // *top_it = top_script_return;
-              // *(top_it + 1) = ...;
 
               return ComplexExpression(move(top_head), move(top_statics),
                                        move(top_dynamics), move(top_spans));
