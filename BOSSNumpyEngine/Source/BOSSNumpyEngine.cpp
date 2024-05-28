@@ -1,5 +1,7 @@
 #include "BOSSNumpyEngine.hpp"
 
+#pragma region using
+
 using namespace std;
 using string_literals::operator"" s;
 using boss::utilities::operator""_;
@@ -11,6 +13,8 @@ using boss::expressions::ComplexExpressionWithStaticArguments;
 using boss::expressions::ExpressionArguments;
 using boss::expressions::ExpressionSpanArgument;
 using boss::expressions::ExpressionSpanArguments;
+
+#pragma endregion using
 
 namespace boss::engines::numpy {
 
@@ -167,6 +171,52 @@ template <typename T> NPY_TYPES cpp_type_to_numpy() {
 
 #pragma endregion type_conversion
 
+#pragma region benchmark
+
+Span<int> create_random_span(int size) {
+  random_device rnd_device;
+  mt19937 mersenne_engine {rnd_device()};
+  uniform_int_distribution<int> dist {0, 100};
+  auto gen = [&dist, &mersenne_engine](){
+                  return dist(mersenne_engine);
+              };
+  
+  vector<int> vec(size);
+  generate(begin(vec), end(vec), gen);
+
+  auto result = Span<int>(move(vec));
+  return result;
+}
+
+ComplexExpression create_random_table(int num_cols, int num_spans, int span_size) {
+  ExpressionArguments table_dynamics;
+  for (int i = 0; i < num_cols; i++) {
+    ExpressionSpanArguments list_spans;
+    for (int j = 0; j < num_spans; j++) {
+      auto span = create_random_span(span_size);
+      list_spans.emplace_back(move(span));
+    }
+    auto list = ComplexExpression("List"_, {}, {}, move(list_spans));
+    // List
+
+    ExpressionArguments column_dynamics;
+    column_dynamics.emplace_back(move(list));
+
+    ostringstream oss;
+    oss << "col_" << i;
+    string col_name_str = oss.str();
+    Symbol col_name(move(col_name_str));
+
+    auto column = ComplexExpression(move(col_name), {}, move(column_dynamics));
+    // Column
+    table_dynamics.emplace_back(move(column));
+  }
+
+  return ComplexExpression("Table"_, {}, move(table_dynamics), {});
+}
+
+#pragma endregion benchmark
+
 #pragma region python_to_boss
 
 template <typename T> Span<T> numpy_arr_to_span_helper(PyArrayObject *npy_arr) {
@@ -215,6 +265,8 @@ ExpressionSpanArguments py_list_to_spans(PyObject *list) {
 template <typename T>
 ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
                                                      PyObject *col_names) {
+
+  cout << "npy_matrix_to_table_helper" << endl;
   Py_ssize_t col_names_size = PyList_Size(col_names);
   npy_intp *dims = PyArray_DIMS(npy_matrix);
   auto num_rows = *dims;
@@ -231,7 +283,12 @@ ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
     Symbol col_head(move(col_name_str));
 
     ExpressionSpanArguments col_list_spans;
-    col_list_spans.reserve(num_cols / span_size);
+    int div = num_cols / span_size;
+    int mod = num_cols % span_size;
+    if (mod > 0) {
+      div += 1;
+    }
+    col_list_spans.reserve(div);
     for (int j = 0; j < num_cols; j += span_size) {
       T *span_begin =
           matrix_begin + i * num_cols + j * span_size;
@@ -335,6 +392,11 @@ Expression Engine::evaluate(Expression &&e) {
   return visit(
       boss::utilities::overload(
           [this](ComplexExpression &&expression) -> Expression {
+
+            if (expression.getHead() == "Table"_) {
+              cout << expression << endl;
+            }
+
             // top-level
             auto [top_head, top_statics, top_dynamics, top_spans] =
                 forward<decltype(expression)>(expression).decompose();
@@ -449,8 +511,8 @@ Expression Engine::evaluate(Expression &&e) {
               return result;
             }
 
-            if (top_head == "python_get_var"_) {
-              // head = python_get_var
+            if (top_head == "get_python_var"_) {
+              // head = get_python_var
               auto it = make_move_iterator(top_dynamics.begin());
               auto var_name_str = get<Symbol>(*it).getName();
               auto var_name = move(var_name_str).c_str();
@@ -525,6 +587,8 @@ Expression Engine::evaluate(Expression &&e) {
 
 void Engine::init_python_and_numpy() {
   Py_Initialize();
+  PyRun_SimpleString("import sys");
+  PyRun_SimpleString("sys.path.append(\".\")");
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type"
   import_array();
@@ -537,7 +601,7 @@ void Engine::init_python_and_numpy() {
   global_dict = PyDict_New();
 }
 
-Engine::Engine(size_t span_size) : span_size(span_size) {
+Engine::Engine() : span_size(1 << 20) {
   init_python_and_numpy();
   PyDict_SetItemString(global_dict, "__builtins__", PyEval_GetBuiltins());
 }
@@ -551,7 +615,7 @@ Engine::Engine(size_t span_size) : span_size(span_size) {
 static auto &enginePtr(bool initialise = true) {
   static auto engine = unique_ptr<boss::engines::numpy::Engine>();
   if (!engine && initialise) {
-    engine.reset(new boss::engines::numpy::Engine(2));
+    engine.reset(new boss::engines::numpy::Engine());
   }
   return engine;
 }

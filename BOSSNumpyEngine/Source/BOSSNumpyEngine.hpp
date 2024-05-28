@@ -18,6 +18,11 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <sstream>
+#include <random>
+#include <algorithm>
+#include <iterator>
+#include <vector>
 
 namespace boss::engines::numpy {
 
@@ -32,7 +37,7 @@ public:
 
   Engine &operator=(Engine &&) = delete;
 
-  Engine(size_t span_size);
+  Engine();
 
   ~Engine() = default;
 
@@ -52,5 +57,7 @@ private:
   ComplexExpression npy_matrix_to_table(PyArrayObject *npy_matrix,
                                                 PyObject *col_names);
 };
+
+ComplexExpression create_random_table(int num_cols, int num_spans, int span_size);
 
 } // namespace boss::engines::numpy
