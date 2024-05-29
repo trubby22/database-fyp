@@ -213,6 +213,8 @@ void runBenchmark(benchmark::State& state, const std::string& queryName, const b
     eval("Set"_("minimumOutputBatchNumRows"_, VELOX_MINIMUM_OUTPUT_BATCH_SIZE));
   }
 
+  std::cout << "queryName " << queryName << std::endl;
+  std::cout << "query " << query << std::endl;
   auto testResult = eval(utilities::shallowCopy(std::get<boss::ComplexExpression>(query)));
   if(error_found(testResult, queryName)) {
     throw std::runtime_error("Error in test result");

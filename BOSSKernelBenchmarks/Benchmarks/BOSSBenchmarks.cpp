@@ -99,6 +99,8 @@ void initAndRunBenchmarks(int argc, char** argv) {
       }
     } else if(std::string("--tpch") == argv[i]) {
       tpchQueriesToBenchmark.insert({TPCH_Q1, TPCH_Q3, TPCH_Q6, TPCH_Q9, TPCH_Q18});
+    } else if(std::string("--numpy") == argv[i]) {
+      tpchQueriesToBenchmark.insert(NUMPY);
     } else if(std::string("--tpch-q1") == argv[i]) {
       tpchQueriesToBenchmark.insert(TPCH_Q1);
     } else if(std::string("--tpch-q3") == argv[i]) {
@@ -332,7 +334,8 @@ void initAndRunBenchmarks(int argc, char** argv) {
   }
 
   /* register TPC-H benchmarks */
-  for(int dataSize : std::vector<int>{1, 10, 100, 1000, 10000}) {
+  // for(int dataSize : std::vector<int>{1, 10, 100, 1000, 10000}) {
+  for(int dataSize : std::vector<int>{1}) {
     for(int64_t blockSize :
         (BENCHMARK_STORAGE_BLOCK_SIZE
              ? std::vector<int64_t>{1 << 25, 1 << 26, 1 << 27, 1 << 28, 1 << 29, 1 << 30,

@@ -9,6 +9,19 @@ using SpanArgument = boss::DefaultExpressionSystem::ExpressionSpanArgument;
 using ComplexExpression = boss::DefaultExpressionSystem::ComplexExpression;
 using ExpressionArguments = boss::ExpressionArguments;
 
+using namespace std;
+using intType = int32_t;
+using string_literals::operator"" s;
+using boss::utilities::operator""_;
+using boss::ComplexExpression;
+using boss::Expression;
+using boss::Span;
+using boss::Symbol;
+using boss::expressions::ComplexExpressionWithStaticArguments;
+using boss::expressions::ExpressionArguments;
+using boss::expressions::ExpressionSpanArgument;
+using boss::expressions::ExpressionSpanArguments;
+
 enum TPCH_QUERIES {
   TPCH_Q1 = 1,
   TPCH_Q3 = 3,
@@ -20,6 +33,8 @@ enum TPCH_QUERIES {
   TPCH_Q9_SPLIT_TWO_KEYS,
   TPCH_Q18_SUBQUERY,
   TPCH_Q18_NOTOP,
+  
+  NUMPY,
 };
 
 void initStorageEngine_TPCH(int dataSize, int blockSize) {
@@ -39,9 +54,10 @@ void initStorageEngine_TPCH(int dataSize, int blockSize) {
 
 #if FALSE
   checkForErrors(eval("Set"_("LoadToMemoryMappedFiles"_, !DISABLE_MMAP_CACHE)));
-  checkForErrors(eval("Set"_("UseAutoDictionaryEncoding"_, !DISABLE_AUTO_DICTIONARY_ENCODING)));
   checkForErrors(eval("Set"_("AllStringColumnsAsIntegers"_, ALL_STRINGS_AS_INTEGERS)));
 #endif
+
+  checkForErrors(evalStorage("Set"_("UseAutoDictionaryEncoding"_, false)));
 
   if(blockSize > 0) {
     checkForErrors(evalStorage("Set"_("FileLoadingBlockSize"_, blockSize)));
@@ -123,6 +139,8 @@ void initStorageEngine_TPCH(int dataSize, int blockSize) {
 static auto& tpchQueryNames() {
   static std::map<int, std::string> names;
   if(names.empty()) {
+    names.try_emplace(static_cast<int>(DATASETS::TPCH) + static_cast<int>(NUMPY), "NUMPY");
+
     names.try_emplace(static_cast<int>(DATASETS::TPCH) + static_cast<int>(TPCH_Q1), "TPC-H_Q1");
     names.try_emplace(static_cast<int>(DATASETS::TPCH) + static_cast<int>(TPCH_Q3), "TPC-H_Q3");
     names.try_emplace(static_cast<int>(DATASETS::TPCH) + static_cast<int>(TPCH_Q6), "TPC-H_Q6");
@@ -142,10 +160,69 @@ static auto& tpchQueryNames() {
   return names;
 }
 
+Span<int> create_random_span(int size) {
+  random_device rnd_device;
+  mt19937 mersenne_engine {rnd_device()};
+  uniform_int_distribution<int> dist {0, 100};
+  auto gen = [&dist, &mersenne_engine](){
+                  return dist(mersenne_engine);
+              };
+  
+  vector<int> vec(size);
+  generate(begin(vec), end(vec), gen);
+
+  auto result = Span<int>(move(vec));
+  return result;
+}
+
+ComplexExpression create_random_table(int num_cols, int num_spans, int span_size) {
+  ExpressionArguments table_dynamics;
+  for (int i = 0; i < num_cols; i++) {
+    ExpressionSpanArguments list_spans;
+    for (int j = 0; j < num_spans; j++) {
+      auto span = create_random_span(span_size);
+      list_spans.emplace_back(move(span));
+    }
+    auto list = ComplexExpression("List"_, {}, {}, move(list_spans));
+    // List
+
+    ExpressionArguments column_dynamics;
+    column_dynamics.emplace_back(move(list));
+
+    ostringstream oss;
+    oss << "col_" << i;
+    string col_name_str = oss.str();
+    Symbol col_name(move(col_name_str));
+
+    auto column = ComplexExpression(move(col_name), {}, move(column_dynamics));
+    // Column
+    table_dynamics.emplace_back(move(column));
+  }
+
+  return ComplexExpression("Table"_, {}, move(table_dynamics), {});
+}
+
 auto& tpchQueries() {
   // Queries are Expressions and therefore cannot be just a table i.e. a Symbol
   static std::map<int, boss::Expression> queries;
   if(queries.empty()) {
+    auto rand_table = create_random_table(2, 2, 2);
+    queries.try_emplace(
+        static_cast<int>(DATASETS::TPCH) + static_cast<int>(NUMPY),
+        "Bar"_(
+          "Python"_(
+          R"(
+)"_,
+          "Where"_(
+            "foo"_, move(rand_table)
+          )
+        ),
+          "get_python_var"_(
+          "foo"_
+        )
+        )
+    );
+
     queries.try_emplace(
         static_cast<int>(DATASETS::TPCH) + static_cast<int>(TPCH_Q1),
         "Order"_(
@@ -531,7 +608,28 @@ auto& tpchQueries() {
 
 void setTPCH_groupResultCardinality(int queryIdx, int dataSize) {
   int groupResultCardinality = 1;
-  if(queryIdx == TPCH_Q1) {
+  if(queryIdx == NUMPY) {
+    switch(dataSize) { // NOLINT
+    case 1:
+      groupResultCardinality = 4;
+      break;
+    case 10:
+      groupResultCardinality = 4;
+      break;
+    case 100:
+      groupResultCardinality = 4;
+      break;
+    case 1000:
+      groupResultCardinality = 4;
+      break;
+    case 10000:
+      groupResultCardinality = 4;
+      break;
+    case 100000:
+      groupResultCardinality = 4;
+      break;
+    }
+  } else if(queryIdx == TPCH_Q1) {
     switch(dataSize) { // NOLINT
     case 1:
       groupResultCardinality = 4;
