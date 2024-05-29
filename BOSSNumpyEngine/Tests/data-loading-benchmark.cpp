@@ -75,7 +75,7 @@ auto createSpansFloat = [](auto... values) {
   return ComplexExpression("List"_, {}, {}, move(args));
 };
 
-ComplexExpression boss_to_python(ComplexExpression&& rand_table) {
+ComplexExpression boss_to_python(Expression&& rand_table) {
   return "Python"_(
               ""_,
               "Where"_(
@@ -100,7 +100,6 @@ void print_elapsed_time(chrono::nanoseconds elapsed_time) {
 int main(int argc, char *argv[]) {
   Engine engine;
 
-
   int num_columns = 1 << 3;
   // in MB
   int span_size = 1 << 3;
@@ -110,24 +109,24 @@ int main(int argc, char *argv[]) {
   // in MB
   for(int table_size : std::vector<int>{1, 10, 100, 1000, 10000}) {
     int num_spans_per_column = table_size / chunk_size;
-    const Expression rand_table = create_random_table(
-      num_cols, num_spans_per_column, span_size);
+    Expression rand_table = create_random_table(
+      num_columns, num_spans_per_column, span_size);
     
-    const Expression query = boss_to_python(move(rand_table));
+    Expression query = boss_to_python(move(rand_table));
 
     for (int warmup_it = 0; warmup_it < 1; warmup_it++) {
-      const Expression query_clone = query.clone(CloneReason::FOR_TESTING);
-      engine.evaluate(query_clone);
+      Expression query_clone = query.clone(CloneReason::FOR_TESTING);
+      engine.evaluate(move(query_clone));
     }
 
-    chrono::nanoseconds total_time = 0;
+    chrono::nanoseconds total_time = chrono::nanoseconds::zero();
     int num_test_iterations = 3;
 
     for (int test_it = 0; test_it < num_test_iterations; test_it++) {
-      const Expression query_clone = query.clone(CloneReason::FOR_TESTING);
+      Expression query_clone = query.clone(CloneReason::FOR_TESTING);
 
       chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
-      engine.evaluate(query_clone);
+      engine.evaluate(move(query_clone));
       chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
       auto elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
       total_time += elapsed_time;

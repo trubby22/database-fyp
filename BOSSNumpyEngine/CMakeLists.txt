@@ -86,16 +86,22 @@ set(TestFiles Tests/BOSSTests.cpp)
 
 add_library(BOSSNumpyEngine MODULE ${ImplementationFiles})
 
-add_executable(gdb-test ${ImplementationFiles} Source/gdb-test.cpp)
-add_executable(NPTests ${ImplementationFiles} ${TestFiles})
-add_dependencies(NPTests catch2)
+# add_executable(gdb-test ${ImplementationFiles} Tests/gdb-test.cpp)
+add_executable(data-loading-benchmark ${ImplementationFiles} Tests/data-loading-benchmark.cpp)
+# add_executable(NPTests ${ImplementationFiles} ${TestFiles})
+# add_dependencies(NPTests catch2)
 
 set_property(TARGET BOSSNumpyEngine PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
-set_property(TARGET NPTests PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
+# set_property(TARGET NPTests PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 
 # set(PUBLIC_HEADER_LIST ${CMAKE_CURRENT_SOURCE_DIR}/Source/BOSSNumpyEngine.hpp;)
 
-list(APPEND AllTargets BOSSNumpyEngine NPTests gdb-test)
+list(APPEND AllTargets 
+  BOSSNumpyEngine 
+  # NPTests 
+  # gdb-test 
+  data-loading-benchmark
+)
 
 foreach(Target IN LISTS AllTargets)
   if(NOT WIN32)
@@ -137,11 +143,14 @@ set_target_properties(BOSSNumpyEngine PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRU
 # set_target_properties(BOSSNumpyEngine PROPERTIES PUBLIC_HEADER ${PUBLIC_HEADER_LIST})
 install(TARGETS BOSSNumpyEngine LIBRARY DESTINATION lib)
 
-set_target_properties(NPTests PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
-install(TARGETS NPTests RUNTIME DESTINATION bin)
+# set_target_properties(NPTests PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+# install(TARGETS NPTests RUNTIME DESTINATION bin)
 
-set_target_properties(gdb-test PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
-install(TARGETS gdb-test RUNTIME DESTINATION bin)
+# set_target_properties(gdb-test PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+# install(TARGETS gdb-test RUNTIME DESTINATION bin)
+
+set_target_properties(data-loading-benchmark PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+install(TARGETS data-loading-benchmark RUNTIME DESTINATION bin)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
