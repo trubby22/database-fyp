@@ -173,15 +173,6 @@ template <typename T> NPY_TYPES cpp_type_to_numpy() {
 
 #pragma region benchmark
 
-template <class Generator>
-Span<int> create_random_span(int size, Generator g) {
-  vector<int> vec(size);
-  generate(begin(vec), end(vec), g);
-
-  auto result = Span<int>(move(vec));
-  return result;
-}
-
 ComplexExpression create_random_table(int num_cols, int num_spans, int span_size) {
   random_device rnd_device;
   mt19937 mersenne_engine {rnd_device()};
@@ -194,7 +185,11 @@ ComplexExpression create_random_table(int num_cols, int num_spans, int span_size
   for (int i = 0; i < num_cols; i++) {
     ExpressionSpanArguments list_spans;
     for (int j = 0; j < num_spans; j++) {
-      auto span = create_random_span<function<int()> >(span_size, gen);
+
+      vector<int> vec(span_size);
+      generate(begin(vec), end(vec), gen);
+      auto span = Span<int>(move(vec));
+
       list_spans.emplace_back(move(span));
     }
     auto list = ComplexExpression("List"_, {}, {}, move(list_spans));
