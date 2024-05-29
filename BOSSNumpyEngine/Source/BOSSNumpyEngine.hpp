@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <iterator>
 #include <vector>
+#include <functional>
 
 namespace boss::engines::numpy {
 
