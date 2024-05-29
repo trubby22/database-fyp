@@ -1,4 +1,4 @@
-#include "BOSSNumpyEngine.hpp"
+#include "../Source/BOSSNumpyEngine.hpp"
 
 #include <chrono>
 
@@ -136,18 +136,17 @@ int main(int argc, char *argv[]) {
   auto rand_table = create_random_table(10, 10, 1 << 20);
 
   benchmark(
-    move("Bar"_(
+    "noop"_(
       "Python"_(
-      R"(
-)"_,
-      "Where"_(
-        "foo"_, move(rand_table)
-      )
+        ""_,
+        "Where"_(
+          "rand_table"_, move(rand_table)
+        )
     ),
       "get_python_var"_(
-      "foo"_
+        "rand_table"_
     )
-    ))
+    )
   );
   return 0;
 }
