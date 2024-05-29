@@ -97,9 +97,71 @@ void print_elapsed_time(chrono::nanoseconds elapsed_time) {
   cout << "elapsed time = " << chrono::duration_cast<chrono::nanoseconds> (elapsed_time).count() << "[ns]" << endl;
 }
 
-int main(int argc, char *argv[]) {
+void test_boss_to_python(Expression &&rand_table) {
   Engine engine;
 
+  Expression query = boss_to_python(move(rand_table));
+
+  for (int warmup_it = 0; warmup_it < 1; warmup_it++) {
+    Expression query_clone = query.clone(CloneReason::FOR_TESTING);
+    engine.evaluate(move(query_clone));
+  }
+
+  chrono::nanoseconds total_time = chrono::nanoseconds::zero();
+  int num_test_iterations = 3;
+
+  for (int test_it = 0; test_it < num_test_iterations; test_it++) {
+    Expression query_clone = query.clone(CloneReason::FOR_TESTING);
+
+    chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
+    engine.evaluate(move(query_clone));
+    chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+    auto elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
+    total_time += elapsed_time;
+  }
+
+  chrono::nanoseconds avg_elapsed_time = total_time / num_test_iterations;
+  cout << "boss to python" << endl;
+  print_elapsed_time(move(avg_elapsed_time));
+  cout << endl;
+}
+
+void test_python_to_boss(Expression &&rand_table) {
+  Engine engine;
+
+  Expression boss_to_python_query = boss_to_python(move(rand_table));
+  Expression boss_to_python_result = engine.evaluate(
+    move(boss_to_python_query)
+  );
+
+  Expression query = python_to_boss();
+
+  for (int warmup_it = 0; warmup_it < 1; warmup_it++) {
+    Expression query_clone = query.clone(CloneReason::FOR_TESTING);
+    engine.evaluate(move(query_clone));
+  }
+
+  chrono::nanoseconds total_time = chrono::nanoseconds::zero();
+  int num_test_iterations = 3;
+
+  for (int test_it = 0; test_it < num_test_iterations; test_it++) {
+    Expression query_clone = query.clone(CloneReason::FOR_TESTING);
+
+    chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
+    engine.evaluate(move(query_clone));
+    chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+    auto elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
+    total_time += elapsed_time;
+  }
+
+  chrono::nanoseconds avg_elapsed_time = total_time / num_test_iterations;
+  cout << "python to boss" << endl;
+  print_elapsed_time(move(avg_elapsed_time));
+  cout << endl;
+}
+
+
+int main(int argc, char *argv[]) {
   int num_columns = 1 << 3;
   // in MB
   int span_size = 1 << 3;
@@ -108,38 +170,23 @@ int main(int argc, char *argv[]) {
 
   // in MB
   for(int table_size : std::vector<int>{1, 10, 100, 1000, 10000}) {
+    cout << "table size = " << table_size << " MB" << endl;
+    cout << endl;
     int num_spans_per_column = table_size / chunk_size;
+
+    chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
     Expression rand_table = create_random_table(
       num_columns, num_spans_per_column, span_size);
-    
-    Expression query = boss_to_python(move(rand_table));
-
-    for (int warmup_it = 0; warmup_it < 1; warmup_it++) {
-      Expression query_clone = query.clone(CloneReason::FOR_TESTING);
-      engine.evaluate(move(query_clone));
-    }
-
-    chrono::nanoseconds total_time = chrono::nanoseconds::zero();
-    int num_test_iterations = 3;
-
-    for (int test_it = 0; test_it < num_test_iterations; test_it++) {
-      Expression query_clone = query.clone(CloneReason::FOR_TESTING);
-
-      chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
-      engine.evaluate(move(query_clone));
-      chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
-      auto elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
-      total_time += elapsed_time;
-    }
-
-    chrono::nanoseconds avg_elapsed_time = total_time / num_test_iterations;
-    cout << "table size = " << table_size << " MB" << endl;
-    print_elapsed_time(avg_elapsed_time);
+    chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+    auto elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
+    cout << "create random table" << endl;
+    print_elapsed_time(move(elapsed_time));
     cout << endl;
-  }
 
-  auto rand_table = create_random_table(2, 2, 2);
-  
+    Expression rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
+    test_boss_to_python(move(rand_table));
+    test_python_to_boss(move(rand_table_clone));
+  }
 
   return 0;
 }
