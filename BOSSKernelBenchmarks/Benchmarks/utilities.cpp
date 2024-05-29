@@ -124,6 +124,7 @@ auto getEvaluateBaselineLambda() {
 
 auto getErrorFoundLambda() {
   static auto lambda = [](auto&& result, auto const& queryName) {
+    return false;
     if(!std::holds_alternative<boss::ComplexExpression>(result)) {
       return false;
     }
