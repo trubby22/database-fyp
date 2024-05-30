@@ -175,7 +175,7 @@ template <typename T> NPY_TYPES cpp_type_to_numpy() {
 
 #pragma region benchmark
 
-ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size) {
+ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size, vector<unique_ptr<vector<int>>> &span_ptrs) {
   random_device rnd_device;
   mt19937 mersenne_engine {rnd_device()};
   uniform_int_distribution<int> dist {0, 100};
@@ -193,10 +193,14 @@ ComplexExpression create_random_table(int num_cols, ull table_size, ull span_siz
       ull span_end = min(j + span_size, col_size);
       ull size = span_end - j;
 
-      vector<int> vec(size);
+      // vector<int> vec(size);
+      unique_ptr<vector<int>> vec_ptr = make_unique<vector<int>>(size);
+      vector<int> &vec = *vec_ptr;
+
       generate(begin(vec), end(vec), gen);
       auto span = Span<int>(move(vec));
 
+      span_ptrs.emplace_back(move(vec_ptr));
       list_spans.emplace_back(move(span));
     }
     auto list = ComplexExpression("List"_, {}, {}, move(list_spans));
@@ -368,6 +372,8 @@ span_to_numpy_arr(ExpressionSpanArgument &&arg) {
 
           result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
 
+          // int aligned = PyArray_ISALIGNED(result);
+          // cout << "aligned " << aligned << endl;
           return typed_span;
         } else {
           throw runtime_error("unsupported span type: " +

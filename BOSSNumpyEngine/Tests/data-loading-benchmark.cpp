@@ -96,10 +96,23 @@ ComplexExpression boss_to_python_matrix(Expression&& rand_table) {
   return "Python"_(
     R"(
 import numpy as np
+
+def foo(a):
+  print(a)
+  print(a.shape)
+  print(a.dtype)
+
 table = rand_table["table"]
-cols = [np.concatenate(xs) for xs in table.values()]
-mat_helper = np.stack(cols)
-mat = {"table": {}, "matrix": {"data": mat_helper, "col_names": list(table.keys())}}
+cols = list(table.values()) # list[list[npy_arr]]
+print(cols)
+col_0 = cols[0] # list[npy_arr]
+print(col_0)
+col_0_merged = np.concatenate(col_0) # npy_arr
+foo(col_0_merged)
+
+# cols = [np.concatenate(xs) for xs in table.values()]
+# mat_helper = np.stack(cols)
+# mat = {"table": {}, "matrix": {"data": mat_helper, "col_names": list(table.keys())}}
 )"_,
     "Where"_(
                 "rand_table"_, move(rand_table)
@@ -295,9 +308,11 @@ int main(int argc, char *argv[]) {
       cout << "table size = " << (table_size >> 20) << " MB" << endl;
       cout << endl;
 
+      vector<unique_ptr<vector<int>>> span_ptrs;
+
       chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
       Expression rand_table = create_random_table(
-        num_columns, table_size, span_size);
+        num_columns, table_size, span_size, span_ptrs);
       chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
       auto elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
       cout << "create random table" << endl;
@@ -315,8 +330,8 @@ int main(int argc, char *argv[]) {
       // test_python_to_boss(move(rand_table_clone), span_size);
       // rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
       test_boss_to_python_matrix(move(rand_table_clone), span_size);
-      rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
-      test_python_to_boss_matrix(move(rand_table_clone), span_size);
+      // rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
+      // test_python_to_boss_matrix(move(rand_table_clone), span_size);
     }
   }
 

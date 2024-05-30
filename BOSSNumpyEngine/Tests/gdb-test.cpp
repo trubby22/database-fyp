@@ -51,6 +51,8 @@ auto create_lineitem() {
                   "l_shipdate"_(createSpansInt(1992, 1994, 1996, 1994)));
 }
 
+wrapper = {"table": {"col1": [npy_arr_1, npy_arr_2], "col2": [npy_arr_3, npy_arr4]}, "matrix": {"data": npy_matrix, "col_names": ["col1", "col2"]}}
+
 void foo() {
   Engine engine(42);
 

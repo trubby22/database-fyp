@@ -24,7 +24,9 @@
 #include <iterator>
 #include <vector>
 #include <functional>
+#include <memory>
 
+using namespace std;
 typedef unsigned long long ull;
 
 namespace boss::engines::numpy {
@@ -61,6 +63,6 @@ private:
                                                 PyObject *col_names);
 };
 
-ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size);
+ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size, vector<unique_ptr<vector<int>>> &span_ptrs);
 
 } // namespace boss::engines::numpy
