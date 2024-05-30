@@ -66,7 +66,7 @@ auto create_lineitem() {
 }
 
 TEST_CASE("PROJECT", "[basics]") { // NOLINT
-  boss::engines::numpy::Engine engine;
+  boss::engines::numpy::Engine engine(42);
   auto eval = [&engine](boss::Expression &&expression) mutable {
     return engine.evaluate(std::move(expression));
   };
@@ -82,7 +82,7 @@ TEST_CASE("PROJECT", "[basics]") { // NOLINT
 }
 
 TEST_CASE("Python", "[basics]") { // NOLINT
-  boss::engines::numpy::Engine engine;
+  boss::engines::numpy::Engine engine(42);
   auto eval = [&engine](boss::Expression &&expression) mutable {
     return engine.evaluate(std::move(expression));
   };

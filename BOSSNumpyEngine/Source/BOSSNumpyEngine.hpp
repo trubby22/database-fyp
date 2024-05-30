@@ -25,6 +25,8 @@
 #include <vector>
 #include <functional>
 
+typedef unsigned long long ull;
+
 namespace boss::engines::numpy {
 
 class Engine {
@@ -38,7 +40,7 @@ public:
 
   Engine &operator=(Engine &&) = delete;
 
-  Engine();
+  Engine(ull span_size);
 
   ~Engine() = default;
 
@@ -46,7 +48,7 @@ public:
 
 private:
   PyObject *global_dict;
-  size_t span_size;
+  ull span_size;
 
   void init_python_and_numpy();
 
@@ -59,6 +61,6 @@ private:
                                                 PyObject *col_names);
 };
 
-ComplexExpression create_random_table(int num_cols, int num_spans, int span_size);
+ComplexExpression create_random_table(int num_cols, int num_spans, ull span_size);
 
 } // namespace boss::engines::numpy

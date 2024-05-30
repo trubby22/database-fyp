@@ -52,7 +52,7 @@ auto create_lineitem() {
 }
 
 void foo() {
-  Engine engine;
+  Engine engine(42);
 
   auto lineitem = create_lineitem();
 
@@ -78,7 +78,7 @@ e = {"table": {}, "matrix": {"data": d, "col_names": ["foo", "bar"]}}
 }
 
 void bar() {
-  Engine engine;
+  Engine engine(42);
 
   auto rand_table = create_random_table(2, 2, 2);
 
@@ -103,7 +103,7 @@ print(foo["table"])
 }
 
 void benchmark(Expression &&query) {
-  Engine engine;
+  Engine engine(42);
   int num_warmup = 3;
   int num_main = 10;
 

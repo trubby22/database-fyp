@@ -173,7 +173,7 @@ template <typename T> NPY_TYPES cpp_type_to_numpy() {
 
 #pragma region benchmark
 
-ComplexExpression create_random_table(int num_cols, int num_spans, int span_size) {
+ComplexExpression create_random_table(int num_cols, int num_spans, ull span_size) {
   random_device rnd_device;
   mt19937 mersenne_engine {rnd_device()};
   uniform_int_distribution<int> dist {0, 100};
@@ -261,8 +261,6 @@ ExpressionSpanArguments py_list_to_spans(PyObject *list) {
 template <typename T>
 ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
                                                      PyObject *col_names) {
-
-  cout << "npy_matrix_to_table_helper" << endl;
   Py_ssize_t col_names_size = PyList_Size(col_names);
   npy_intp *dims = PyArray_DIMS(npy_matrix);
   auto num_rows = *dims;
@@ -279,13 +277,13 @@ ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
     Symbol col_head(move(col_name_str));
 
     ExpressionSpanArguments col_list_spans;
-    int div = num_cols / span_size;
+    int num_spans_per_column = num_cols / span_size;
     int mod = num_cols % span_size;
     if (mod > 0) {
-      div += 1;
+      num_spans_per_column += 1;
     }
-    col_list_spans.reserve(div);
-    for (int j = 0; j < num_cols; j += span_size) {
+    col_list_spans.reserve(num_spans_per_column);
+    for (ull j = 0; j < num_cols; j += span_size) {
       T *span_begin =
           matrix_begin + i * num_cols + j * span_size;
       T *span_end = min(span_begin + span_size,
@@ -597,7 +595,7 @@ void Engine::init_python_and_numpy() {
   global_dict = PyDict_New();
 }
 
-Engine::Engine() : span_size(1 << 20) {
+Engine::Engine(ull span_size) : span_size(span_size) {
   init_python_and_numpy();
   PyDict_SetItemString(global_dict, "__builtins__", PyEval_GetBuiltins());
 }
@@ -611,7 +609,7 @@ Engine::Engine() : span_size(1 << 20) {
 static auto &enginePtr(bool initialise = true) {
   static auto engine = unique_ptr<boss::engines::numpy::Engine>();
   if (!engine && initialise) {
-    engine.reset(new boss::engines::numpy::Engine());
+    engine.reset(new boss::engines::numpy::Engine(42));
   }
   return engine;
 }
