@@ -16,6 +16,8 @@ using boss::expressions::ExpressionSpanArguments;
 
 #pragma endregion using
 
+// #define DEBUG
+
 namespace boss::engines::numpy {
 
 #pragma region python_helpers
@@ -173,7 +175,7 @@ template <typename T> NPY_TYPES cpp_type_to_numpy() {
 
 #pragma region benchmark
 
-ComplexExpression create_random_table(int num_cols, int num_spans, ull span_size) {
+ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size) {
   random_device rnd_device;
   mt19937 mersenne_engine {rnd_device()};
   uniform_int_distribution<int> dist {0, 100};
@@ -181,12 +183,17 @@ ComplexExpression create_random_table(int num_cols, int num_spans, ull span_size
                   return dist(mersenne_engine);
               };
 
+  ull col_size = table_size / num_cols;
+
   ExpressionArguments table_dynamics;
   for (int i = 0; i < num_cols; i++) {
     ExpressionSpanArguments list_spans;
-    for (int j = 0; j < num_spans; j++) {
+    for (ull j = 0; j < col_size; j += span_size) {
+      
+      ull span_end = min(j + span_size, col_size);
+      ull size = span_end - j;
 
-      vector<int> vec(span_size);
+      vector<int> vec(size);
       generate(begin(vec), end(vec), gen);
       auto span = Span<int>(move(vec));
 
@@ -263,31 +270,38 @@ ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
                                                      PyObject *col_names) {
   Py_ssize_t col_names_size = PyList_Size(col_names);
   npy_intp *dims = PyArray_DIMS(npy_matrix);
-  auto num_rows = *dims;
-  auto num_cols = *(dims + 1);
-  assert(col_names_size == num_rows);
+  auto mat_rows = static_cast<int>(*dims);
+  auto mat_cols = static_cast<ull>(*(dims + 1));
+  assert(col_names_size == mat_rows);
   T *matrix_begin = static_cast<T *>(PyArray_DATA(npy_matrix));
 
   ExpressionArguments res_dynamics;
-  res_dynamics.reserve(num_rows);
+  res_dynamics.reserve(mat_rows);
 
-  for (int i = 0; i < num_rows; i++) {
+  for (int i = 0; i < mat_rows; i++) {
     auto col_name = PyList_GetItem(col_names, i);
     string col_name_str = PyObject_to_string(col_name);
     Symbol col_head(move(col_name_str));
 
     ExpressionSpanArguments col_list_spans;
-    int num_spans_per_column = num_cols / span_size;
-    int mod = num_cols % span_size;
+    ull num_spans_per_boss_col = mat_cols / span_size;
+    ull mod = mat_cols % span_size;
     if (mod > 0) {
-      num_spans_per_column += 1;
+      num_spans_per_boss_col += 1;
     }
-    col_list_spans.reserve(num_spans_per_column);
-    for (ull j = 0; j < num_cols; j += span_size) {
+    col_list_spans.reserve(num_spans_per_boss_col);
+    for (ull j = 0; j < mat_cols; j += span_size) {
       T *span_begin =
-          matrix_begin + i * num_cols + j * span_size;
+          matrix_begin + i * mat_cols + j;
       T *span_end = min(span_begin + span_size,
-                        matrix_begin + (i + 1) * num_cols);
+                        matrix_begin + (i + 1) * mat_cols);
+#ifdef DEBUG
+      cout << "actual size" << endl;
+      cout << distance(span_begin, span_end) << endl;
+      cout << "max size" << endl; 
+      cout << span_size << endl;
+      cout << endl;
+#endif
       vector<T> v;
       v.assign(move(span_begin), move(span_end));
       auto result = Span<T>(move(v));

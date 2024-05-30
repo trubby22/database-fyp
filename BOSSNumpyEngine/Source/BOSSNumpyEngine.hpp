@@ -61,6 +61,6 @@ private:
                                                 PyObject *col_names);
 };
 
-ComplexExpression create_random_table(int num_cols, int num_spans, ull span_size);
+ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size);
 
 } // namespace boss::engines::numpy
