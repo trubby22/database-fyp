@@ -87,7 +87,7 @@ set(TestFiles Tests/BOSSTests.cpp)
 add_library(BOSSNumpyEngine MODULE ${ImplementationFiles})
 
 # add_executable(gdb-test ${ImplementationFiles} Tests/gdb-test.cpp)
-add_executable(data-loading-benchmark ${ImplementationFiles} Tests/data-loading-benchmark.cpp)
+add_executable(vec-to-span ${ImplementationFiles} Tests/vec-to-span.cpp)
 # add_executable(NPTests ${ImplementationFiles} ${TestFiles})
 # add_dependencies(NPTests catch2)
 
@@ -100,7 +100,7 @@ list(APPEND AllTargets
   BOSSNumpyEngine 
   # NPTests 
   # gdb-test 
-  data-loading-benchmark
+  vec-to-span
 )
 
 foreach(Target IN LISTS AllTargets)
@@ -149,8 +149,8 @@ install(TARGETS BOSSNumpyEngine LIBRARY DESTINATION lib)
 # set_target_properties(gdb-test PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 # install(TARGETS gdb-test RUNTIME DESTINATION bin)
 
-set_target_properties(data-loading-benchmark PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
-install(TARGETS data-loading-benchmark RUNTIME DESTINATION bin)
+set_target_properties(vec-to-span PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+install(TARGETS vec-to-span RUNTIME DESTINATION bin)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
