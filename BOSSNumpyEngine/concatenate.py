@@ -7,3 +7,5 @@ c = np.concatenate([a, b])
 
 print(size)
 print(c.shape)
+
+18_446_744_073_709_551_615

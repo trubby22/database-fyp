@@ -50,6 +50,7 @@ public:
 
 private:
   PyObject *global_dict;
+  unordered_map<int, vector<int>> npy_arr_ptr_vec_map;
   ull span_size;
 
   void init_python_and_numpy();

@@ -152,6 +152,34 @@ void print_elapsed_time(chrono::nanoseconds elapsed_time) {
   cout << "elapsed time = " << chrono::duration_cast<chrono::nanoseconds> (elapsed_time).count() << "[ns]" << endl;
 }
 
+void test_round_trip_move(Expression &&rand_table, ull span_size) {
+  Engine engine(span_size);
+
+  chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
+
+  Expression boss_to_python_query = boss_to_python(move(rand_table));
+  Expression boss_to_python_result = engine.evaluate(
+    move(boss_to_python_query)
+  );
+#ifdef DEBUG
+  engine.evaluate(move(python_print()));
+#endif
+
+  Expression query = python_to_boss();
+  Expression result = engine.evaluate(move(query));
+#ifdef DEBUG
+  cout << "boss table from python" << endl;
+  cout << result << endl;
+  cout << endl;
+#endif
+
+  chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+  chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
+  cout << "round trip" << endl;
+  print_elapsed_time(move(elapsed_time));
+  cout << endl;
+}
+
 void test_boss_to_python(Expression &&rand_table, ull span_size) {
   Engine engine(span_size);
 
@@ -299,13 +327,25 @@ int main(int argc, char *argv[]) {
   // ull num_columns = 1;
 
   // in B
-  for(ull table_size : std::vector<ull>{1 << 20, 10 << 20, 100 << 20, 1000 << 20, 10000 << 20}) {
+  for(ull table_size : std::vector<ull>{
+    // static_cast<ull>(1ULL << 20), 
+    // static_cast<ull>(10ULL << 20), 
+    // static_cast<ull>(100ULL << 20), 
+    // static_cast<ull>(1ULL << 30), 
+    static_cast<ull>(3ULL << 30),
+    // static_cast<ull>(10ULL << 30), 
+    // static_cast<ull>(100ULL << 30)
+    }) {
   // for(ull table_size : std::vector<ull>{1000 << 20, 10000 << 20}) {
   // for(ull table_size : std::vector<ull>{1 << 20, 10 << 20}) {
     // in B
-    for (ull span_size : std::vector<ull>{1 << 3 << 20}) {
+    for (ull span_size : std::vector<ull>{1ULL << 3 << 20}) {
       // in B
-      cout << "table size = " << (table_size >> 20) << " MB" << endl;
+      if (table_size < (1ULL << 30)) {
+        cout << "table size = " << (table_size >> 20) << " MB" << endl;
+      } else {
+        cout << "table size = " << (table_size >> 30) << " GB" << endl;
+      }
       cout << endl;
 
       vector<unique_ptr<vector<int>>> span_ptrs;
@@ -323,13 +363,15 @@ int main(int argc, char *argv[]) {
       cout << rand_table << endl;
 #endif
 
-      Expression rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
+      test_round_trip_move(move(rand_table), span_size);
+
+      // Expression rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
 
       // test_boss_to_python(move(rand_table_clone), span_size);
       // rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
       // test_python_to_boss(move(rand_table_clone), span_size);
       // rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
-      test_boss_to_python_matrix(move(rand_table_clone), span_size);
+      // test_boss_to_python_matrix(move(rand_table_clone), span_size);
       // rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
       // test_python_to_boss_matrix(move(rand_table_clone), span_size);
     }

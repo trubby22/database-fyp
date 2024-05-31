@@ -369,7 +369,7 @@ span_to_numpy_arr(ExpressionSpanArgument &&arg) {
           auto end = typed_span.end();
           auto size = typed_span.size();
           npy_intp dims[] = {static_cast<npy_intp>(size)};
-
+  
           result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
 
           // int aligned = PyArray_ISALIGNED(result);
@@ -613,6 +613,7 @@ void Engine::init_python_and_numpy() {
   assert(PyArray_API);
 
   global_dict = PyDict_New();
+  npy_arr_ptr_vec_map = unordered_map<int, vector<int>>{};
 }
 
 Engine::Engine(ull span_size) : span_size(span_size) {
