@@ -2,6 +2,9 @@
 #define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
 #define NPY_TARGET_VERSION NPY_2_0_API_VERSION
 
+#include "numpy/arrayobject.h"
+#include <Python.h>
+
 #include "../Source/BOSSNumpyEngine.hpp"
 
 #include <iostream>
@@ -101,37 +104,73 @@ ExpressionSpanArgument print_span_arg(ExpressionSpanArgument &&arg) {
       forward<decltype(arg)>(arg));
 }
 
+void print_vec(vector<int32_t> &vec) {
+  for (int32_t i = 0; i < vec.size(); i++) {
+    cout << vec[i] << ", ";
+  }
+  cout << endl;
+}
+
+void init_python_and_numpy() {
+  Py_Initialize();
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type"
+  import_array();
+#pragma clang diagnostic pop
+  if (PyErr_Occurred()) {
+    throw runtime_error("Failed to import numpy Python module(s).");
+  }
+  assert(PyArray_API);
+}
+
 int main() {
-    vector<int> vec{1, 2, 3};
-    auto span = boss::Span<int>(vec.data(), vec.size(), [to_destroy = std::move(vec)]() {
+    init_python_and_numpy();
+
+    vector<int32_t> vec{1, 2, 3};
+
+    auto span = boss::Span<int32_t>(vec.data(), vec.size(), [
+      // to_destroy = std::move(vec)
+      ]() {
       cout << "deleting span" << endl;
     });
 
+    auto typenum = NPY_INT32;
+    auto begin = reinterpret_cast<int32_t*>(span.begin());
+    auto end = span.end();
+    auto size = span.size();
+    npy_intp dims[] = {static_cast<npy_intp>(size)};
+    auto npy_arr = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, dims, typenum, begin));
+
     auto span_arg = move(print_span_arg(move(span)));
-    cout << vec.size() << endl;
-    for (int i = 0; i < 3; i++) {
-      cout << vec[i] << ", ";
-    }
-    cout << endl;
+    // cout << vec.size() << endl;
+    print_vec(vec);
+    print_1d_numpy_array(npy_arr);
     cout << endl;
 
     vec[0] = 42;
 
     span_arg = move(print_span_arg(move(span_arg)));
-    for (int i = 0; i < 3; i++) {
-      cout << vec[i] << ", ";
-    }
-    cout << endl;
+    print_vec(vec);
+    print_1d_numpy_array(npy_arr);
     cout << endl;
 
-
+    *reinterpret_cast<int32_t*>(PyArray_GETPTR1(npy_arr, 1)) = 13;
 
     span_arg = move(print_span_arg(move(span_arg)));
-    for (int i = 0; i < 3; i++) {
-      cout << vec[i] << ", ";
-    }
+    print_vec(vec);
+    print_1d_numpy_array(npy_arr);
     cout << endl;
+
+    span = get<Span<int32_t>>(move(span_arg));
+    begin = reinterpret_cast<int32_t *>(span.begin());
+    *(begin + 2) = 420;
+
+    span_arg = move(print_span_arg(move(span)));
+    print_vec(vec);
+    print_1d_numpy_array(npy_arr);
     cout << endl;
+
+    Py_Finalize();
 
     return 0;
 }
