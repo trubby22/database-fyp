@@ -219,7 +219,9 @@ ComplexExpression create_random_table(int num_cols, ull table_size, ull span_siz
 // }
 
 ExpressionSpanArgument Engine::numpy_arr_to_span(PyObject *npy_arr) {
-  return move(npy_arr_ptr_expr_span_map[npy_arr]);
+  auto result = move(npy_arr_ptr_expr_span_map[npy_arr]);
+  npy_arr_ptr_expr_span_map.erase(npy_arr);
+  return result;
 
   // int typenum = PyArray_TYPE(npy_arr);
 
