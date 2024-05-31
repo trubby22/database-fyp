@@ -330,9 +330,9 @@ int main(int argc, char *argv[]) {
   for(ull table_size : std::vector<ull>{
     // static_cast<ull>(1ULL << 20), 
     // static_cast<ull>(10ULL << 20), 
-    static_cast<ull>(100ULL << 20), 
+    // static_cast<ull>(100ULL << 20), 
     // static_cast<ull>(1ULL << 30), 
-    // static_cast<ull>(3ULL << 30),
+    static_cast<ull>(5ULL << 30),
     // static_cast<ull>(10ULL << 30), 
     // static_cast<ull>(100ULL << 30)
     }) {
