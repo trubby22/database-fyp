@@ -27,6 +27,17 @@
 #include <memory>
 
 using namespace std;
+using string_literals::operator"" s;
+using boss::utilities::operator""_;
+using boss::ComplexExpression;
+using boss::Expression;
+using boss::Span;
+using boss::Symbol;
+using boss::expressions::ComplexExpressionWithStaticArguments;
+using boss::expressions::ExpressionArguments;
+using boss::expressions::ExpressionSpanArgument;
+using boss::expressions::ExpressionSpanArguments;
+
 typedef unsigned long long ull;
 
 namespace boss::engines::numpy {
@@ -50,7 +61,7 @@ public:
 
 private:
   PyObject *global_dict;
-  unordered_map<int, vector<int>> npy_arr_ptr_vec_map;
+  unordered_map<PyObject *, ExpressionSpanArgument> npy_arr_ptr_expr_span_map;
   ull span_size;
 
   void init_python_and_numpy();
@@ -62,6 +73,12 @@ private:
 
   ComplexExpression npy_matrix_to_table(PyArrayObject *npy_matrix,
                                                 PyObject *col_names);
+                                            
+  ExpressionSpanArgument numpy_arr_to_span(PyObject *npy_arr);
+  PyObject *span_to_numpy_arr(ExpressionSpanArgument &&arg);
+  ExpressionSpanArguments py_list_to_spans(PyObject *list);
+  PyObject *spans_to_py_list(ExpressionSpanArguments &&args);
+
 };
 
 ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size, vector<unique_ptr<vector<int>>> &span_ptrs);

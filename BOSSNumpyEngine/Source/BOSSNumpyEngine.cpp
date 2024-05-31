@@ -2,18 +2,6 @@
 
 #pragma region using
 
-using namespace std;
-using string_literals::operator"" s;
-using boss::utilities::operator""_;
-using boss::ComplexExpression;
-using boss::Expression;
-using boss::Span;
-using boss::Symbol;
-using boss::expressions::ComplexExpressionWithStaticArguments;
-using boss::expressions::ExpressionArguments;
-using boss::expressions::ExpressionSpanArgument;
-using boss::expressions::ExpressionSpanArguments;
-
 #pragma endregion using
 
 // #define DEBUG
@@ -226,43 +214,40 @@ ComplexExpression create_random_table(int num_cols, ull table_size, ull span_siz
 
 #pragma region python_to_boss
 
-template <typename T> Span<T> numpy_arr_to_span_helper(PyArrayObject *npy_arr) {
-  T *data = static_cast<T *>(PyArray_DATA(npy_arr));
-  auto length = PyArray_SIZE(npy_arr);
-  vector<T> v;
-  v.assign(move(data), move(static_cast<T *>(data + length)));
-  auto result = Span<T>(move(v));
-  return result;
+// template <typename T> Span<T> numpy_arr_to_span_helper(PyArrayObject *npy_arr) {
+//   return move(npy_arr_ptr_expr_span_map[npy_arr]);
+// }
+
+ExpressionSpanArgument Engine::numpy_arr_to_span(PyObject *npy_arr) {
+  return move(npy_arr_ptr_expr_span_map[npy_arr]);
+
+  // int typenum = PyArray_TYPE(npy_arr);
+
+  // switch (typenum) {
+  // case NPY_INT32:
+  //   return numpy_arr_to_span_helper<int32_t>(npy_arr);
+  //   break;
+  // case NPY_INT64:
+  //   return numpy_arr_to_span_helper<int64_t>(npy_arr);
+  //   break;
+  // case NPY_FLOAT:
+  //   return numpy_arr_to_span_helper<float_t>(npy_arr);
+  //   break;
+  // case NPY_DOUBLE:
+  //   return numpy_arr_to_span_helper<double_t>(npy_arr);
+  //   break;
+  // default:
+  //   throw runtime_error("shouldn't happen");
+  //   break;
+  // }
 }
 
-ExpressionSpanArgument numpy_arr_to_span(PyArrayObject *npy_arr) {
-  int typenum = PyArray_TYPE(npy_arr);
-
-  switch (typenum) {
-  case NPY_INT32:
-    return numpy_arr_to_span_helper<int32_t>(npy_arr);
-    break;
-  case NPY_INT64:
-    return numpy_arr_to_span_helper<int64_t>(npy_arr);
-    break;
-  case NPY_FLOAT:
-    return numpy_arr_to_span_helper<float_t>(npy_arr);
-    break;
-  case NPY_DOUBLE:
-    return numpy_arr_to_span_helper<double_t>(npy_arr);
-    break;
-  default:
-    throw runtime_error("shouldn't happen");
-    break;
-  }
-}
-
-ExpressionSpanArguments py_list_to_spans(PyObject *list) {
+ExpressionSpanArguments Engine::py_list_to_spans(PyObject *list) {
   ExpressionSpanArguments result;
   auto size = PyList_Size(list);
   result.reserve(size);
   for (int i = 0; i < size; i++) {
-    auto npy_arr = reinterpret_cast<PyArrayObject *>(PyList_GetItem(list, i));
+    auto npy_arr = PyList_GetItem(list, i);
     auto span_arg = numpy_arr_to_span(npy_arr);
     result.emplace_back(move(span_arg));
   }
@@ -356,11 +341,11 @@ ComplexExpression Engine::npy_matrix_to_table(PyArrayObject *npy_matrix,
 
 #pragma region boss_to_python
 
-tuple<ExpressionSpanArgument, PyObject *>
-span_to_numpy_arr(ExpressionSpanArgument &&arg) {
+PyObject *
+Engine::span_to_numpy_arr(ExpressionSpanArgument &&arg) {
   PyObject *result;
-  ExpressionSpanArgument result_arg = visit(
-      [&result]<typename T>(Span<T> &&typed_span) -> ExpressionSpanArgument {
+  visit(
+      [&result, this]<typename T>(Span<T> &&typed_span) -> void {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
                       is_same_v<T, float_t> || is_same_v<T, double_t>) {
 
@@ -372,32 +357,28 @@ span_to_numpy_arr(ExpressionSpanArgument &&arg) {
   
           result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
 
-          // int aligned = PyArray_ISALIGNED(result);
-          // cout << "aligned " << aligned << endl;
-          return typed_span;
+          npy_arr_ptr_expr_span_map[result] = move(typed_span);
         } else {
           throw runtime_error("unsupported span type: " +
                               string(typeid(decltype(typed_span)).name()));
         }
       },
       forward<decltype(arg)>(arg));
-  return make_tuple(move(result_arg), move(result));
+  return result;
 }
 
-tuple<ExpressionSpanArguments, PyObject *>
-spans_to_py_list(ExpressionSpanArguments &&args) {
+PyObject *
+Engine::spans_to_py_list(ExpressionSpanArguments &&args) {
   PyObject *result = PyList_New(args.size());
   auto it = make_move_iterator(args.begin());
   auto it_end = make_move_iterator(args.end());
   Py_ssize_t i = 0;
   for (; it < it_end; it += 1) {
-    auto t = span_to_numpy_arr(*it);
-    *it = move(get<0>(t));
-    auto numpy_arr = move(get<1>(t));
+    auto numpy_arr = span_to_numpy_arr(*it);
     PyList_SET_ITEM(result, i, numpy_arr);
     i++;
   }
-  return make_tuple(move(args), move(result));
+  return result;
 }
 
 #pragma endregion boss_to_python
@@ -466,14 +447,12 @@ Expression Engine::evaluate(Expression &&e) {
                         move(colname_list_expr).decompose();
                     // head = List
 
-                    auto t = spans_to_py_list(move(list_spans));
-                    list_spans = move(get<0>(t));
-                    auto list_py_list = move(get<1>(t));
+                    auto list_py_list = spans_to_py_list(move(list_spans));
                     PyDict_SetItemString(table_dict, colname_column_name,
                                          move(list_py_list));
 
                     auto return_list =
-                        ComplexExpression("List"_, {}, {}, move(list_spans));
+                        ComplexExpression("List"_, {}, {}, {});
 
                     *colname_it = move(return_list);
                     string colname_column_name_str_return = colname_column_name;
@@ -613,7 +592,6 @@ void Engine::init_python_and_numpy() {
   assert(PyArray_API);
 
   global_dict = PyDict_New();
-  npy_arr_ptr_vec_map = unordered_map<int, vector<int>>{};
 }
 
 Engine::Engine(ull span_size) : span_size(span_size) {
