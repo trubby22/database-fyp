@@ -123,53 +123,40 @@ void init_python_and_numpy() {
   assert(PyArray_API);
 }
 
+template <typename T>
+void sink(T&& to_destroy) {
+  T temp = move(to_destroy);
+}
+
 int main() {
     init_python_and_numpy();
 
     vector<int32_t> vec{1, 2, 3};
+    auto span = boss::Span<int32_t>(move(vec));
+    {
+      auto typenum = NPY_INT32;
+      auto begin = reinterpret_cast<int32_t*>(span.begin());
+      auto end = span.end();
+      auto size = span.size();
+      npy_intp dims[] = {static_cast<npy_intp>(size)};
+      auto npy_arr = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, dims, typenum, begin));
 
-    auto span = boss::Span<int32_t>(vec.data(), vec.size(), [
-      // to_destroy = std::move(vec)
-      ]() {
-      cout << "deleting span" << endl;
-    });
+      cout << "vec.size() " << vec.size() << endl;
+      auto span_arg = move(print_span_arg(move(span)));
+      print_1d_numpy_array(npy_arr);
+      cout << endl;
 
-    auto typenum = NPY_INT32;
-    auto begin = reinterpret_cast<int32_t*>(span.begin());
-    auto end = span.end();
-    auto size = span.size();
-    npy_intp dims[] = {static_cast<npy_intp>(size)};
-    auto npy_arr = reinterpret_cast<PyArrayObject *>(PyArray_SimpleNewFromData(1, dims, typenum, begin));
+      *reinterpret_cast<int32_t*>(PyArray_GETPTR1(npy_arr, 1)) = 13;
 
-    auto span_arg = move(print_span_arg(move(span)));
-    print_vec(vec);
-    print_1d_numpy_array(npy_arr);
-    cout << endl;
+      span_arg = move(print_span_arg(move(span_arg)));
+      print_1d_numpy_array(npy_arr);
+      cout << endl;
+    }
 
-    vec[0] = 42;
-
+    cout << "npy_arr has been deallocated" << endl;
     span_arg = move(print_span_arg(move(span_arg)));
-    print_vec(vec);
-    print_1d_numpy_array(npy_arr);
-    cout << endl;
-
-    *reinterpret_cast<int32_t*>(PyArray_GETPTR1(npy_arr, 1)) = 13;
-
-    span_arg = move(print_span_arg(move(span_arg)));
-    print_vec(vec);
-    print_1d_numpy_array(npy_arr);
-    cout << endl;
-
-    span = get<Span<int32_t>>(move(span_arg));
-    begin = reinterpret_cast<int32_t *>(span.begin());
-    *(begin + 2) = 420;
-
-    span_arg = move(print_span_arg(move(span)));
-    print_vec(vec);
-    print_1d_numpy_array(npy_arr);
     cout << endl;
 
     Py_Finalize();
-
     return 0;
 }
