@@ -83,7 +83,7 @@ ExpressionSpanArgument print_span_arg(ExpressionSpanArgument &&arg) {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
                       is_same_v<T, float_t> || is_same_v<T, double_t>) {
 
-          cout << "[";
+          cout << "printing span [";
 
           transform(make_move_iterator(typed_span.begin()),
                     make_move_iterator(typed_span.end()), typed_span.begin(),
@@ -128,6 +128,18 @@ void sink(T&& to_destroy) {
   T temp = move(to_destroy);
 }
 
+template <typename T> Span<T> numpy_arr_to_span_helper(PyArrayObject *npy_arr) {
+  T *data = static_cast<T *>(PyArray_DATA(npy_arr));
+  auto length = PyArray_SIZE(npy_arr);
+  auto span = boss::Span<T>(data, length, [npy_arr]() {
+#ifdef DEBUG
+    cout << "deleting span" << endl;
+#endif
+    Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
+  });
+  return span;
+}
+
 int main() {
     init_python_and_numpy();
 
@@ -137,22 +149,32 @@ int main() {
 
     const char* script = R"(
 import numpy as np
-foo = np.array([1, 2, 3])
+foo = np.array([1, 2, 3], dtype=np.int32)
 print(foo)
 )";
-
     PyRun_String(script, Py_file_input,
                   globals, locals);
-
     PyObject *foo = PyDict_GetItemString(locals, "foo");
     auto npy_arr = reinterpret_cast<PyArrayObject *>(foo);
     print_1d_numpy_array(npy_arr);
+    cout << endl;
 
-    auto span = boss::Span<int32_t>(vec.data(), vec.size(), [
-      // to_destroy = std::move(vec)
-      ]() {
-      cout << "deleting span" << endl;
-    });
+    auto span = numpy_arr_to_span_helper<int32_t>(npy_arr);
+
+    auto span_arg = print_span_arg(move(span));
+    print_1d_numpy_array(npy_arr);
+    cout << endl;
+
+    script = R"(
+foo[0] = 42
+)";
+    PyRun_String(script, Py_file_input,
+                  globals, locals);
+    foo = PyDict_GetItemString(locals, "foo");
+    npy_arr = reinterpret_cast<PyArrayObject *>(foo);
+    span_arg = print_span_arg(move(span));
+    print_1d_numpy_array(npy_arr);
+    cout << endl;
 
     Py_Finalize();
     return 0;

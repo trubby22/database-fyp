@@ -214,34 +214,45 @@ ComplexExpression create_random_table(int num_cols, ull table_size, ull span_siz
 
 #pragma region python_to_boss
 
-// template <typename T> Span<T> numpy_arr_to_span_helper(PyArrayObject *npy_arr) {
-//   return move(npy_arr_ptr_expr_span_map[npy_arr]);
-// }
+template <typename T> Span<T> numpy_arr_to_span_helper(PyObject *py_npy_arr) {
+  auto npy_arr = reinterpret_cast<PyArrayObject *>(py_npy_arr);
+  T *data = static_cast<T *>(PyArray_DATA(npy_arr));
+  auto length = PyArray_SIZE(npy_arr);
+  auto span = boss::Span<T>(data, length, [npy_arr]() {
+#ifdef DEBUG
+    cout << "deleting span" << endl;
+#endif
+    Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
+  });
+  return span;
+}
 
 ExpressionSpanArgument Engine::numpy_arr_to_span(PyObject *npy_arr) {
-  auto result = move(npy_arr_ptr_expr_span_map[npy_arr]);
-  npy_arr_ptr_expr_span_map.erase(npy_arr);
-  return result;
+  if (auto search = npy_arr_ptr_expr_span_map.find(npy_arr); search != npy_arr_ptr_expr_span_map.end()) {
+    auto result = move(search->second);
+    npy_arr_ptr_expr_span_map.erase(search->first);
+    return result;
+  } else {
+    int typenum = PyArray_TYPE(npy_arr);
 
-  // int typenum = PyArray_TYPE(npy_arr);
-
-  // switch (typenum) {
-  // case NPY_INT32:
-  //   return numpy_arr_to_span_helper<int32_t>(npy_arr);
-  //   break;
-  // case NPY_INT64:
-  //   return numpy_arr_to_span_helper<int64_t>(npy_arr);
-  //   break;
-  // case NPY_FLOAT:
-  //   return numpy_arr_to_span_helper<float_t>(npy_arr);
-  //   break;
-  // case NPY_DOUBLE:
-  //   return numpy_arr_to_span_helper<double_t>(npy_arr);
-  //   break;
-  // default:
-  //   throw runtime_error("shouldn't happen");
-  //   break;
-  // }
+    switch (typenum) {
+    case NPY_INT32:
+      return numpy_arr_to_span_helper<int32_t>(npy_arr);
+      break;
+    case NPY_INT64:
+      return numpy_arr_to_span_helper<int64_t>(npy_arr);
+      break;
+    case NPY_FLOAT:
+      return numpy_arr_to_span_helper<float_t>(npy_arr);
+      break;
+    case NPY_DOUBLE:
+      return numpy_arr_to_span_helper<double_t>(npy_arr);
+      break;
+    default:
+      throw runtime_error("shouldn't happen");
+      break;
+    }
+  }
 }
 
 ExpressionSpanArguments Engine::py_list_to_spans(PyObject *list) {
