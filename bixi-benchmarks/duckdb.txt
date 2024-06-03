@@ -1,0 +1,3 @@
+apt-get update && apt-get install -y git g++ cmake ninja-build libssl-dev
+
+CREATE TABLE bixi AS SELECT * FROM read_csv_auto('~/Documents/4-year/fyp-70011/bixi-data/bixi-no-index-yes-colnames.csv');
