@@ -5,7 +5,6 @@
 #include <ExpressionUtilities.hpp>
 #include <fstream>
 #include <iostream>
-#include <benchmark/benchmark.h>
 #include <chrono>
 #include <cstdlib>
 
@@ -164,24 +163,7 @@ auto getCheckForErrorsLambda() {
 
 void resetStorageEngine() {
   auto evalStorage = getEvaluateStorageLambda();
-
-  if(latestDataSet == "TPCH") {
-    evalStorage("DropTable"_("REGION"_));
-    evalStorage("DropTable"_("NATION"_));
-    evalStorage("DropTable"_("PART"_));
-    evalStorage("DropTable"_("SUPPLIER"_));
-    evalStorage("DropTable"_("PARTSUPP"_));
-    evalStorage("DropTable"_("CUSTOMER"_));
-    evalStorage("DropTable"_("ORDERS"_));
-    evalStorage("DropTable"_("LINEITEM"_));
-  } else if(latestDataSet == "selectivity_sweep_uniform_dis") {
-    evalStorage("DropTable"_("UNIFORM_DIS"_));
-  } else if(latestDataSet == "randomness_sweep_sorted_dis") {
-    evalStorage("DropTable"_("PARTIALLY_SORTED_DIS"_));
-  } else if(latestDataSet == "tpch_q6_clustering_sweep") {
-    evalStorage("DropTable"_("LINEITEM"_));
-    evalStorage("DropTable"_("LINEITEM_CLUSTERED"_));
-  }
+  evalStorage("DropTable"_("BIXI"_));
 }
 
 size_t getNumberOfRowsInTable(std::string& filepath) {
@@ -201,71 +183,6 @@ size_t getNumberOfRowsInTable(std::string& filepath) {
   return rowCount;
 }
 
-void runBenchmark(benchmark::State& state, const std::string& queryName, const boss::Expression& query) {
-  auto eval = getEvaluateLambda();
-  auto error_found = getErrorFoundLambda();
-
-  if(VELOX_INTERNAL_BATCH_SIZE > 0) {
-    eval("Set"_("internalBatchNumRows"_, VELOX_INTERNAL_BATCH_SIZE));
-  }
-
-  if(VELOX_MINIMUM_OUTPUT_BATCH_SIZE > 0) {
-    eval("Set"_("minimumOutputBatchNumRows"_, VELOX_MINIMUM_OUTPUT_BATCH_SIZE));
-  }
-
-  std::cout << "queryName " << queryName << std::endl;
-  std::cout << "query " << query << std::endl;
-  auto testResult = eval(utilities::shallowCopy(std::get<boss::ComplexExpression>(query)));
-  if(error_found(testResult, queryName)) {
-    throw std::runtime_error("Error in test result");
-  }
-
-  if(VERIFY_QUERY_OUTPUT) {
-    auto evalBaseline = getEvaluateBaselineLambda();
-    auto baselineResult =
-        evalBaseline(utilities::shallowCopy(std::get<boss::ComplexExpression>(query)));
-    if(testResult != baselineResult) {
-      std::cout << "BOSS " << queryName << ": output = " << std::endl;
-      std::cout << (VERY_VERBOSE_QUERY_OUTPUT
-                        ? std::move(testResult)
-                        : utilities::injectDebugInfoToSpans(std::move(testResult)))
-                << std::endl;
-      std::cout << "baselineOutput = "
-                << (VERY_VERBOSE_QUERY_OUTPUT
-                        ? std::move(baselineResult)
-                        : utilities::injectDebugInfoToSpans(std::move(baselineResult)))
-                << std::endl;
-      throw std::runtime_error("outputs are not matching.");
-    }
-    std::cout << "outputs are matching." << std::endl;
-  }
-
-  if(VERBOSE_QUERY_OUTPUT) {
-    std::cout << "BOSS " << queryName << " output = "
-              << (VERY_VERBOSE_QUERY_OUTPUT
-                      ? std::move(testResult)
-                      : utilities::injectDebugInfoToSpans(std::move(testResult)))
-              << std::endl;
-  }
-
-  int i = 1;
-  auto start_time = std::chrono::high_resolution_clock::now();
-  auto end_time = start_time + std::chrono::seconds(BENCHMARK_MIN_WARMPUP_TIME);
-  while(i++ < BENCHMARK_MIN_WARMPUP_ITERATIONS || std::chrono::high_resolution_clock::now() < end_time) {
-    auto warmUpResult = eval(utilities::shallowCopy(std::get<boss::ComplexExpression>(query)));
-    if(error_found(warmUpResult, queryName)) {
-      throw std::runtime_error("Error in warm up result");
-    }
-  }
-
-  vtune.startSampling(queryName + " - BOSS");
-  for(auto _ : state) { // NOLINT
-    auto result = eval(utilities::shallowCopy(std::get<boss::ComplexExpression>(query)));
-    benchmark::DoNotOptimize(result);
-  }
-  vtune.stopSampling();
-}
-
 template<typename T>
 SpanArguments loadVectorIntoSpans(std::vector<T> vector) {
   SpanArguments spans;
@@ -278,11 +195,6 @@ SpanArguments loadVectorIntoSpans(std::vector<T> vector) {
     remainingTuples -= spanLength;
   }
   return spans;
-}
-
-void setCardinalityEnvironmentVariable(int cardinality) {
-  std::string value = std::to_string(cardinality);
-  setenv("GROUP_RESULT_CARDINALITY", value.c_str(), 1);
 }
 
 #endif // UTILITIES_CPP

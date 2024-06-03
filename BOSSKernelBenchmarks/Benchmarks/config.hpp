@@ -1,13 +1,10 @@
 #ifndef BOSSBENCHMARKS_CONFIG_HPP
 #define BOSSBENCHMARKS_CONFIG_HPP
 
-#include "ITTNotifySupport.hpp"
 #include <string>
 #include <vector>
 
 extern std::string tpch_filePath_prefix;
-
-extern VTuneAPIInterface vtune;
 
 extern bool USING_COORDINATOR_ENGINE;
 extern bool VERBOSE_QUERY_OUTPUT;
@@ -25,9 +22,5 @@ extern std::string storageLibrary;
 extern int latestDataSize; // Scale factor for TPCH and num of elements for custom
 extern int latestBlockSize;
 extern std::string latestDataSet;
-
-extern int googleBenchmarkApplyParameterHelper;
-
-enum DATASETS { TPCH = 0, GROUP = 100 };
 
 #endif // BOSSBENCHMARKS_CONFIG_HPP
