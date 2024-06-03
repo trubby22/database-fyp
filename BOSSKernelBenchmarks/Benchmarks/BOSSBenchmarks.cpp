@@ -68,7 +68,6 @@ static void releaseBOSSEngines() {
 void initStorageEngine_bixi() {
   resetStorageEngine();
 
-
   auto evalStorage = getEvaluateStorageLambda();
   auto checkForErrors = getCheckForErrorsLambda();
   auto eval = getEvaluateLambda();
@@ -86,14 +85,9 @@ void initStorageEngine_bixi() {
   "longitude_y"_, "As"_("DOUBLE"_)
   )));
 
-  auto filenamesAndTables = std::vector<std::pair<std::string, boss::Symbol>>{
-      {"bixi-clean", "BIXI"_}};
-
-  for(auto const& [filename, table] : filenamesAndTables) {
-    std::string path =
-        tpch_filePath_prefix + "bixi-data/" + filename + ".tbl";
-    checkForErrors(evalStorage("Load"_(table, path)));
-  }
+  std::string path = "/root/Documents/4-year/fyp-70011/bixi-data/bixi-no-index-yes-colnames.csv";
+  Symbol table = "BIXI"_;
+  checkForErrors(evalStorage("Load"_(table, path)));
 }
 
 ComplexExpression bixi_query() {
@@ -199,7 +193,7 @@ pred = np.reshape(pred, -1)
 sq_err = squared_err(train_out, pred)
 print(sq_err)
 
-for i in range(100):
+for i in range(500):
     pred = train_in @ params.T
     pred = np.reshape(pred, -1)
     params = params - alpha * grad_desc(train_out, pred, train_in)
