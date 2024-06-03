@@ -68,9 +68,12 @@ static void releaseBOSSEngines() {
 void initStorageEngine_bixi() {
   resetStorageEngine();
 
+
   auto evalStorage = getEvaluateStorageLambda();
   auto checkForErrors = getCheckForErrorsLambda();
+  auto eval = getEvaluateLambda();
 
+  checkForErrors(eval("Set"_("LoadToMemoryMappedFiles"_, false)));
   if(DEFAULT_STORAGE_BLOCK_SIZE > 0) {
     checkForErrors(evalStorage("Set"_("FileLoadingBlockSize"_, DEFAULT_STORAGE_BLOCK_SIZE)));
   }
@@ -84,7 +87,7 @@ void initStorageEngine_bixi() {
   )));
 
   auto filenamesAndTables = std::vector<std::pair<std::string, boss::Symbol>>{
-      {"bixi-small", "BIXI"_}};
+      {"bixi-clean", "BIXI"_}};
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
