@@ -163,7 +163,13 @@ auto getCheckForErrorsLambda() {
 
 void resetStorageEngine() {
   auto evalStorage = getEvaluateStorageLambda();
-  evalStorage("DropTable"_("BIXI"_));
+
+  evalStorage("DropTable"_("sf-1mb"_));
+  evalStorage("DropTable"_("sf-10mb"_));
+  evalStorage("DropTable"_("sf-100mb"_));
+  evalStorage("DropTable"_("sf-1gb"_));
+
+  evalStorage("DropTable"_("bixi"_));
 }
 
 size_t getNumberOfRowsInTable(std::string& filepath) {

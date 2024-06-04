@@ -45,15 +45,18 @@ int latestDataSize = -1;
 int latestBlockSize = -1;
 std::string latestDataSet;
 
-vector<string> scaling_factors = {
-  "1mb",
-  "10mb",
-  "100mb",
-  "1gb"
+vector<string> rand_table_names = {
+  "_1mb",
+  "_10mb",
+  "_100mb",
+  "_1gb"
 };
 
-vector<double_t> weights = {
-  8.41, 3.14, 5.29, -3.81, 0.03, -6.42, -8.37, 2.78,
+unordered_map<string, ComplexExpression> tbd_map = {
+  {"_1mb", },
+  {"_10mb", },
+  {"_100mb", },
+  {"_1gb", },
 };
 
 void print_elapsed_time(chrono::nanoseconds elapsed_time) {
@@ -69,8 +72,6 @@ void init_libraries() {
 }
 
 static void releaseBOSSEngines() {
-  // make sure to release engines in reverse order of evaluation
-  // (important for data ownership across engines)
   auto reversedLibraries = librariesToTest;
   std::reverse(reversedLibraries.begin(), reversedLibraries.end());
   boss::expressions::ExpressionSpanArguments spans;
@@ -91,6 +92,24 @@ ComplexExpression create_rand_table(string table_name) {
   );
 }
 
+ComplexExpression create_bixi_table() {
+  return "CreateTable"_("bixi"_, 
+    "duration_sec"_, "As"_("BIGINT"_),
+    "latitude_x"_, "As"_("DOUBLE"_),
+    "longitude_x"_, "As"_("DOUBLE"_),
+    "latitude_y"_, "As"_("DOUBLE"_),
+    "longitude_y"_, "As"_("DOUBLE"_)
+  );
+}
+
+ComplexExpression create_table(string name) {
+  if (name == "bixi") {
+    return create_bixi_table();
+  } else {
+    return create_rand_table(name);
+  }
+}
+
 void initStorageEngine() {
   resetStorageEngine();
 
@@ -103,7 +122,7 @@ void initStorageEngine() {
     checkForErrors(evalStorage("Set"_("FileLoadingBlockSize"_, DEFAULT_STORAGE_BLOCK_SIZE)));
   }
 
-  checkForErrors(evalStorage("CreateTable"_("BIXI"_, 
+  checkForErrors(evalStorage("CreateTable"_("bixi"_, 
   "duration_sec"_, "As"_("BIGINT"_),
   "latitude_x"_, "As"_("DOUBLE"_),
   "longitude_x"_, "As"_("DOUBLE"_),
@@ -114,13 +133,13 @@ void initStorageEngine() {
   for (auto &sf : scaling_factors) {
     ostringstream oss;
     oss << "sf-" << sf;
-    string col_name_str = oss.str();
-    auto table = create_rand_table(col_name_str);
+    string table_name_str = oss.str();
+    auto table = create_rand_table(table_name_str);
     checkForErrors(evalStorage(move(table)));
   }
 
   std::string path = "/root/Documents/4-year/fyp-70011/bixi-data/bixi-no-index-yes-colnames.csv";
-  Symbol table = "BIXI"_;
+  Symbol table = "bixi"_;
   checkForErrors(evalStorage("Load"_(table, path)));
 
   string path_prefix = "/root/Documents/4-year/fyp-70011/rand-table-data/";
@@ -136,6 +155,18 @@ void initStorageEngine() {
     Symbol table = Symbol(table_name);
     checkForErrors(evalStorage("Load"_(table, path)));
   }
+}
+
+void create_and_load_table(string &name_str, string &&path) {
+  Symbol name = Symbol(name_str);
+  ComplexExpression create_table_expr = create_table(name_str);
+
+  auto checkForErrors = getCheckForErrorsLambda();
+  auto evalStorage = getEvaluateStorageLambda();
+  auto eval = getEvaluateLambda();
+
+  checkForErrors(evalStorage(move(create_table_expr)));
+  checkForErrors(evalStorage("Load"_(move(name), move(path))));
 }
 
 ComplexExpression python_import_numpy() {
@@ -344,12 +375,20 @@ sq_err = squared_err(test_out * max_dur, test_pred * max_dur)
 print(sq_err)
 )"_,
     "Where"_(
-                "bixi"_, "BIXI"_
+                "bixi"_, "bixi"_
               )
           );
 }
 
 #pragma endregion queries
+
+table_paths = unordered_map<> {
+  {"table-to-load-name", "table-path"}
+};
+
+random_tables = vector<string> {
+  {"csv-name", "table-to-load-name"}
+};
 
 void initAndRunBenchmarks() {
   init_libraries();
@@ -357,12 +396,51 @@ void initAndRunBenchmarks() {
   initStorageEngine();
   auto eval = getEvaluateLambda();
   eval(python_import_numpy());
+  ostringstream csv;
+  csv << "sf,data-in,round-trip,materialise-columns,materialise-matrix,matrix-vector-product,matrix-matrix-product" << endl;
 
+  for (string sf : scaling_factors) {
+    ostringstream table_name_oss;
+    table_name_oss << "sf-" << sf;
+    string table_name = oss.str();
 
+    initTable(table);
 
-  auto result = eval(move(query));
-  benchmark::DoNotOptimize(result);
+    csv << table_name;
 
+    for (auto query : random_queries) {
+
+      for (int i = 0; i < num_warmup; i++) {
+        eval(query);
+      }
+
+      chrono start;
+      for (int i = 0; i < num_main; i++) {
+        auto res = eval(query);
+        benchmark::DoNotOptimize(res);
+      }
+      chrono end;
+      chrono avg_nano = (end - start) / num_main;
+
+      csv << "," << avg_nano;
+    }
+    csv << endl;
+
+    resetStorageEngine();
+  }
+
+  string csv_str = csv.str();
+  csv_str.to_file(path/to/csv);
+
+  csv.str("");
+  csv << "data-in,processing" << endl;
+
+  auto table = bixi_table;
+  initTable(table);
+
+  bixi_query();
+
+  resetStorageEngine();
 
 
   releaseBOSSEngines();
