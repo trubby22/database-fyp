@@ -6,6 +6,8 @@
 
 // #define DEBUG
 
+const int ENGINE_SPAN_SIZE = reinterpret_cast<int>(pow(10, 6));
+
 namespace boss::engines::numpy {
 
 #pragma region python_helpers
@@ -621,7 +623,7 @@ Engine::Engine(ull span_size) : span_size(span_size) {
 static auto &enginePtr(bool initialise = true) {
   static auto engine = unique_ptr<boss::engines::numpy::Engine>();
   if (!engine && initialise) {
-    engine.reset(new boss::engines::numpy::Engine(42));
+    engine.reset(new boss::engines::numpy::Engine(ENGINE_SPAN_SIZE));
   }
   return engine;
 }

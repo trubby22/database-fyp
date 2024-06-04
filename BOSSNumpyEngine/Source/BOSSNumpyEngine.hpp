@@ -25,6 +25,7 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <cmath>
 
 using namespace std;
 using string_literals::operator"" s;
