@@ -85,23 +85,12 @@ static boss::Expression injectDebugInfoToSpans(boss::Expression&& expr) {
 auto getEvaluateLambda() {
   static auto lambda =
       []() -> std::function<boss::expressions::Expression(boss::expressions::Expression&&)> {
-    if(USING_COORDINATOR_ENGINE) {
-      return [](auto&& expression) {
-        boss::ExpressionArguments libsArg;
-        for(auto it = librariesToTest.begin() + 1; it != librariesToTest.end(); ++it)
-          libsArg.emplace_back(*it);
-        auto libsExpr = boss::ComplexExpression("List"_, std::move(libsArg));
-        return boss::evaluate("DelegateBootstrapping"_(librariesToTest[0], std::move(libsExpr),
-                                                       std::move(expression)));
-      };
-    } else {
-      return [](auto&& expression) {
-        boss::expressions::ExpressionSpanArguments spans;
-        spans.emplace_back(boss::expressions::Span<std::string>(librariesToTest));
-        return boss::evaluate("EvaluateInEngines"_(
-            boss::ComplexExpression("List"_, {}, {}, std::move(spans)), std::move(expression)));
-      };
-    }
+    return [](auto&& expression) {
+      boss::expressions::ExpressionSpanArguments spans;
+      spans.emplace_back(boss::expressions::Span<std::string>(librariesToTest));
+      return boss::evaluate("EvaluateInEngines"_(
+          boss::ComplexExpression("List"_, {}, {}, std::move(spans)), std::move(expression)));
+    };
   }();
   return lambda;
 }
