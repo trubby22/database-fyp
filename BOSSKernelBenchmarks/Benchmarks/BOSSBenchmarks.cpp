@@ -3,6 +3,8 @@
 
 #include "config.hpp"
 #include "utilities.cpp"
+
+#include <benchmark/benchmark.h>
 #include <iostream>
 #include <set>
 #include <string>
@@ -43,6 +45,13 @@ int latestDataSize = -1;
 int latestBlockSize = -1;
 std::string latestDataSet;
 
+vector<string> scaling_factors = {
+  "1mb",
+  "10mb",
+  "100mb",
+  "1gb"
+};
+
 void print_elapsed_time(chrono::nanoseconds elapsed_time) {
   cout << "elapsed time = " << chrono::duration_cast<chrono::seconds>(elapsed_time).count() << "[s]" << endl;
   cout << "elapsed time = " << chrono::duration_cast<chrono::milliseconds>(elapsed_time).count() << "[ms]" << endl;
@@ -65,7 +74,20 @@ static void releaseBOSSEngines() {
   boss::evaluate("ReleaseEngines"_(boss::ComplexExpression("List"_, {}, {}, std::move(spans))));
 }
 
-void initStorageEngine_bixi() {
+ComplexExpression create_rand_table(string table_name) {
+  return "CreateTable"_(Symbol(table_name),
+  "c1"_, "As"_("DOUBLE"_),
+  "c2"_, "As"_("DOUBLE"_),
+  "c3"_, "As"_("DOUBLE"_),
+  "c4"_, "As"_("DOUBLE"_),
+  "c5"_, "As"_("DOUBLE"_),
+  "c6"_, "As"_("DOUBLE"_),
+  "c7"_, "As"_("DOUBLE"_),
+  "c8"_, "As"_("DOUBLE"_),
+  );
+}
+
+void initStorageEngine() {
   resetStorageEngine();
 
   auto evalStorage = getEvaluateStorageLambda();
@@ -85,9 +107,37 @@ void initStorageEngine_bixi() {
   "longitude_y"_, "As"_("DOUBLE"_)
   )));
 
+  for (auto &sf : scaling_factors) {
+    ostringstream oss;
+    oss << "sf-" << sf;
+    string col_name_str = oss.str();
+    auto table = create_rand_table(col_name_str);
+    checkForErrors(evalStorage(move(table)));
+  }
+
   std::string path = "/root/Documents/4-year/fyp-70011/bixi-data/bixi-no-index-yes-colnames.csv";
   Symbol table = "BIXI"_;
   checkForErrors(evalStorage("Load"_(table, path)));
+
+  string path_prefix = "/root/Documents/4-year/fyp-70011/rand-table-data/";
+  string path_suffix = ".csv";
+  for (auto &sf : scaling_factors) {
+    ostringstream path_oss;
+    path_oss << << path_prefix << "sf-" << sf << path_suffix;
+    string path = path_oss.str();
+
+    ostringstream table_name_oss;
+    table_name_oss << "sf-" << sf;
+    string table_name = table_name_oss.str();
+    Symbol table = Symbol(table_name);
+    checkForErrors(evalStorage("Load"_(table, path)));
+  }
+}
+
+#pragma region queries
+
+ComplexExpression data_in() {
+  return "Python"_(""_, "Where"_("rand_table"_, "rand_table"_))
 }
 
 ComplexExpression bixi_query() {
@@ -218,17 +268,20 @@ print(sq_err)
           );
 }
 
+#pragma endregion queries
+
 void initAndRunBenchmarks() {
   init_libraries();
   storageLibrary = USING_COORDINATOR_ENGINE ? librariesToTest[1] : librariesToTest[0];
 
-  initStorageEngine_bixi();
+  initStorageEngine();
   auto eval = getEvaluateLambda();
   Expression query = bixi_query();
 
   chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
 
   auto result = eval(move(query));
+  benchmark::DoNotOptimize(result);
 
   chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
   chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
