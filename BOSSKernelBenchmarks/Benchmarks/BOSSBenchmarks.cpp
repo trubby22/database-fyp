@@ -52,6 +52,10 @@ vector<string> scaling_factors = {
   "1gb"
 };
 
+vector<double_t> weights = {
+  8.41, 3.14, 5.29, -3.81, 0.03, -6.42, -8.37, 2.78,
+};
+
 void print_elapsed_time(chrono::nanoseconds elapsed_time) {
   cout << "elapsed time = " << chrono::duration_cast<chrono::seconds>(elapsed_time).count() << "[s]" << endl;
   cout << "elapsed time = " << chrono::duration_cast<chrono::milliseconds>(elapsed_time).count() << "[ms]" << endl;
@@ -134,10 +138,87 @@ void initStorageEngine() {
   }
 }
 
+ComplexExpression python_import_numpy() {
+  return "Python"_("import numpy as np"_, "Where"_());
+}
+
 #pragma region queries
 
 ComplexExpression data_in() {
   return "Python"_(""_, "Where"_("rand_table"_, "rand_table"_))
+}
+
+ComplexExpression round_trip() {
+  return "And"_(
+    "Python"_(""_, "Where"_("rand_table"_, "rand_table"_)),
+    "get_python_var"_("rand_table"_)
+  )
+}
+
+ComplexExpression materialise_columns() {
+  return "And"_(
+    "Python"_(R"(
+table = rand_table['table']
+table_cpy = dict()
+for k in table.keys():
+  spans = table[k]
+  table_cpy[k] = np.concatenate(spans)
+    )", "Where"_("rand_table"_, "rand_table"_)),
+    "get_python_var"_("rand_table"_)
+  )
+}
+
+ComplexExpression materialise_matrix() {
+  return "And"_(
+    "Python"_(R"(
+table = rand_table['table']
+table_cpy = dict()
+for k in table.keys():
+  spans = table[k]
+  table_cpy[k] = np.concatenate(spans)
+
+m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
+    )", "Where"_("rand_table"_, "rand_table"_)),
+    "get_python_var"_("rand_table"_)
+  )
+}
+
+// weighted sum
+ComplexExpression matrix_vector_product() {
+  return "And"_(
+    "Python"_(R"(
+table = rand_table['table']
+table_cpy = dict()
+for k in table.keys():
+  spans = table[k]
+  table_cpy[k] = np.concatenate(spans)
+
+m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
+w = np.array(
+  [8.41, 3.14, 5.29, -3.81, 0.03, -6.42, -8.37, 2.78], 
+  dtype=np.float64)
+res = m @ w
+
+    )", "Where"_("rand_table"_, "rand_table"_)),
+    "get_python_var"_("rand_table"_)
+  )
+}
+
+ComplexExpression matrix_matrix_product() {
+  return "And"_(
+    "Python"_(R"(
+table = rand_table['table']
+table_cpy = dict()
+for k in table.keys():
+  spans = table[k]
+  table_cpy[k] = np.concatenate(spans)
+
+m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
+res = m @ m.T
+
+    )", "Where"_("rand_table"_, "rand_table"_)),
+    "get_python_var"_("rand_table"_)
+  )
 }
 
 ComplexExpression bixi_query() {
@@ -273,21 +354,16 @@ print(sq_err)
 void initAndRunBenchmarks() {
   init_libraries();
   storageLibrary = USING_COORDINATOR_ENGINE ? librariesToTest[1] : librariesToTest[0];
-
   initStorageEngine();
   auto eval = getEvaluateLambda();
-  Expression query = bixi_query();
+  eval(python_import_numpy());
 
-  chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
+
 
   auto result = eval(move(query));
   benchmark::DoNotOptimize(result);
 
-  chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
-  chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
-  cout << "bixi" << endl;
-  print_elapsed_time(move(elapsed_time));
-  cout << endl;
+
 
   releaseBOSSEngines();
 }
