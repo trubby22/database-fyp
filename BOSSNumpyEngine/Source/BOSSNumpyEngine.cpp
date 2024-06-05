@@ -6,7 +6,7 @@
 
 // #define DEBUG
 
-const int ENGINE_SPAN_SIZE = reinterpret_cast<int>(pow(10, 6));
+const int ENGINE_SPAN_SIZE = 1000000; // 1 million = 1 mb
 
 namespace boss::engines::numpy {
 
@@ -403,9 +403,12 @@ Expression Engine::evaluate(Expression &&e) {
       boss::utilities::overload(
           [this](ComplexExpression &&expression) -> Expression {
 
-            if (expression.getHead() == "Table"_) {
+            if (expression.getHead() == "And"_) {
               cout << expression << endl;
+            } else {
+              cout << expression.getHead() << endl;
             }
+            cout << endl;
 
             // top-level
             auto [top_head, top_statics, top_dynamics, top_spans] =
@@ -500,8 +503,15 @@ Expression Engine::evaluate(Expression &&e) {
                 *(top_it + 1) = move(return_where);
               }
 
+              cout << "top_script" << endl;
+              cout << top_script << endl;
+
               PyObject *top_result = PyRun_String(top_script, Py_file_input,
                                                   global_dict, global_dict);
+
+              if (PyErr_Occurred()) {
+                PyErr_Print();
+              }
 
               string top_script_return = top_script;
               *top_it = Symbol(move(top_script_return));
