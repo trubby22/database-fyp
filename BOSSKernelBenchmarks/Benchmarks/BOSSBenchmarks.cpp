@@ -86,7 +86,7 @@ void print_elapsed_time(chrono::nanoseconds elapsed_time) {
 #pragma region loading
 
 ComplexExpression create_rand_table_expr() {
-  return "CreateTable"_("rand_table"_,
+  return "CreateTable"_("rand_table_boss"_,
     "c1"_, "As"_("DOUBLE"_),
     "c2"_, "As"_("DOUBLE"_),
     "c3"_, "As"_("DOUBLE"_),
@@ -129,7 +129,7 @@ void create_and_load_table(string name_str, string path) {
   if (name_str == "bixi") {
     checkForErrors(evalStorage("Load"_("bixi"_, path)));
   } else {
-    checkForErrors(evalStorage("Load"_("rand_table"_, path)));
+    checkForErrors(evalStorage("Load"_("rand_table_boss"_, path)));
   }
 }
 
@@ -190,81 +190,95 @@ auto& rand_table_queries() {
   static map<string, ComplexExpression> queries;
   if(queries.empty()) {
     queries.try_emplace(
-      "data_in", 
-      "Python"_(""_, "Where"_("rand_table"_, "rand_table"_))
+      "_1_data_in", 
+      "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_))
     );
     queries.try_emplace(
-      "round_trip", 
+      "_2_round_trip", 
       "And"_(
-        "Python"_(""_, "Where"_("rand_table"_, "rand_table"_)),
-        "get_python_var"_("rand_table"_)
+        "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+        "get_python_var"_("rand_table_python"_)
       )
     );
     queries.try_emplace(
-      "materialise_columns", 
+      "_3_materialise_columns", 
         "And"_(
           "Python"_(R"(
-table = rand_table['table']
+table = rand_table_python['table']
 table_cpy = dict()
 for k in table.keys():
   spans = table[k]
   table_cpy[k] = np.concatenate(spans)
 print(table_cpy)
-          )", "Where"_("rand_table"_, "rand_table"_)),
-          "get_python_var"_("rand_table"_)
+res_table_python = {'table': table_cpy, 'matrix': None}
+          )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+          "get_python_var"_("rand_table_python"_),
+          "get_python_var"_("res_table_python"_)
         )
     );
     queries.try_emplace(
-      "materialise_matrix", 
+      "_4_materialise_matrix", 
       "And"_(
         "Python"_(R"(
-table = rand_table['table']
+table = rand_table_python['table']
 table_cpy = dict()
 for k in table.keys():
   spans = table[k]
   table_cpy[k] = np.concatenate(spans)
 
-m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
+m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 print(m)
-        )", "Where"_("rand_table"_, "rand_table"_)),
-        "get_python_var"_("rand_table"_)
+
+m_wrapper = {'data': m, 'col_names': list(table.keys())}
+res_table_python = {'table': None, 'matrix': m_wrapper}
+        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+        "get_python_var"_("rand_table_python"_),
+        "get_python_var"_("res_table_python"_)
       )
     );
     queries.try_emplace(
-      "matrix_vector_product", 
+      "_5_matrix_vector_product", 
       "And"_(
         "Python"_(R"(
-table = rand_table['table']
+table = rand_table_python['table']
 table_cpy = dict()
 for k in table.keys():
   spans = table[k]
   table_cpy[k] = np.concatenate(spans)
 
-m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
+m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 w = np.array(
   [8.41, 3.14, 5.29, -3.81, 0.03, -6.42, -8.37, 2.78], 
   dtype=np.float64)
-res = m @ w
-print(res)
-        )", "Where"_("rand_table"_, "rand_table"_)),
-        "get_python_var"_("rand_table"_)
+res = m.T @ w
+print(res) # res has 1 boss column
+
+res_wrapper = {'data': res, 'col_names': ['aggregate_value']}
+res_table_python = {'table': None, 'matrix': res_wrapper}
+        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+        "get_python_var"_("rand_table_python"_),
+        "get_python_var"_("res_table_python"_)
       )
     );
     queries.try_emplace(
-      "matrix_matrix_product", 
+      "_6_matrix_matrix_product", 
       "And"_(
         "Python"_(R"(
-table = rand_table['table']
+table = rand_table_python['table']
 table_cpy = dict()
 for k in table.keys():
   spans = table[k]
   table_cpy[k] = np.concatenate(spans)
 
-m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
+m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 res = m @ m.T
 print(res)
-        )", "Where"_("rand_table"_, "rand_table"_)),
-        "get_python_var"_("rand_table"_)
+
+res_wrapper = {'data': res, 'col_names': list(table.keys())}
+res_table_python = {'table': None, 'matrix': res_wrapper}
+        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+        "get_python_var"_("rand_table_python"_),
+        "get_python_var"_("res_table_python"_)
       )
     );
   }
@@ -416,6 +430,7 @@ void init_and_run_benchmarks() {
     csv << table_name;
 
     for (const auto& [query_name, query_expr] : rand_table_queries()) {
+      cout << "start " << table_name << " " << query_name << endl;
 
       for (int i = 0; i < num_warmup; i++) {
         eval(shallowCopy(query_expr));
@@ -426,15 +441,18 @@ void init_and_run_benchmarks() {
       for (int i = 0; i < num_main; i++) {
         auto res = eval(shallowCopy(query_expr));
         benchmark::DoNotOptimize(res);
+        cout << "res" << endl;
+        cout << res << endl;
+        cout << endl;
       }
 
       chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
       chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
       chrono::nanoseconds avg_time = elapsed_time / num_main;
 
-      cout << table_name << " " << query_name << endl;
       // cout << query_expr << endl;
       print_elapsed_time(avg_time);
+      cout << "end " << table_name << " " << query_name << endl;
       cout << endl;
 
       csv << "," << avg_time.count();
