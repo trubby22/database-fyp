@@ -208,8 +208,9 @@ table = rand_table_python['table']
 table_cpy = dict()
 for k in table.keys():
   spans = table[k]
-  table_cpy[k] = np.concatenate(spans)
-print(table_cpy)
+  table_cpy[k] = [np.concatenate(spans)]
+
+# print('table_cpy', table_cpy, sep='\n')
 res_table_python = {'table': table_cpy, 'matrix': None}
           )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
           "get_python_var"_("rand_table_python"_),
@@ -227,7 +228,7 @@ for k in table.keys():
   table_cpy[k] = np.concatenate(spans)
 
 m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
-print(m)
+# print('m', m, sep='\n')
 
 m_wrapper = {'data': m, 'col_names': list(table.keys())}
 res_table_python = {'table': None, 'matrix': m_wrapper}
@@ -249,9 +250,9 @@ for k in table.keys():
 m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 w = np.array(
   [8.41, 3.14, 5.29, -3.81, 0.03, -6.42, -8.37, 2.78], 
-  dtype=np.float64)
+  dtype=np.float64).reshape((8, 1))
 res = m.T @ w
-print(res) # res has 1 boss column
+# print('res', res, sep='\n')
 
 res_wrapper = {'data': res, 'col_names': ['aggregate_value']}
 res_table_python = {'table': None, 'matrix': res_wrapper}
@@ -272,7 +273,7 @@ for k in table.keys():
 
 m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 res = m @ m.T
-print(res)
+# print('res', res, sep='\n')
 
 res_wrapper = {'data': res, 'col_names': list(table.keys())}
 res_table_python = {'table': None, 'matrix': res_wrapper}
@@ -424,13 +425,14 @@ void init_and_run_benchmarks() {
   ostringstream csv;
   csv << "table-name,data-in,round-trip,materialise-columns,materialise-matrix,matrix-vector-product,matrix-matrix-product" << endl;
 
+  cout << endl;
   for (const auto& [table_name, table_path] : rand_table_paths) {
     create_and_load_table(table_name, table_path);
 
     csv << table_name;
 
     for (const auto& [query_name, query_expr] : rand_table_queries()) {
-      cout << "start " << table_name << " " << query_name << endl;
+      cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
 
       for (int i = 0; i < num_warmup; i++) {
         eval(shallowCopy(query_expr));
@@ -441,9 +443,9 @@ void init_and_run_benchmarks() {
       for (int i = 0; i < num_main; i++) {
         auto res = eval(shallowCopy(query_expr));
         benchmark::DoNotOptimize(res);
-        cout << "res" << endl;
-        cout << res << endl;
-        cout << endl;
+        // cout << "res" << endl;
+        // cout << res << endl;
+        // cout << endl;
       }
 
       chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
@@ -452,6 +454,7 @@ void init_and_run_benchmarks() {
 
       // cout << query_expr << endl;
       print_elapsed_time(avg_time);
+      cout << endl;
       cout << "end " << table_name << " " << query_name << endl;
       cout << endl;
 
