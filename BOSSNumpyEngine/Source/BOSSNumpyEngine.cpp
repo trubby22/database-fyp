@@ -274,36 +274,37 @@ ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
                                                      PyObject *col_names) {
   Py_ssize_t col_names_size = PyList_Size(col_names);
   npy_intp *dims = PyArray_DIMS(npy_matrix);
-  auto mat_rows = static_cast<int>(*dims);
-  auto mat_cols = static_cast<ull>(*(dims + 1));
-  assert(col_names_size == mat_rows);
+  auto npy_rows = static_cast<int>(*dims);
+  auto npy_cols = static_cast<ull>(*(dims + 1));
+  assert(col_names_size == npy_rows);
   T *matrix_begin = static_cast<T *>(PyArray_DATA(npy_matrix));
 
   ExpressionArguments res_dynamics;
-  res_dynamics.reserve(mat_rows);
+  res_dynamics.reserve(npy_rows);
 
-  for (int i = 0; i < mat_rows; i++) {
+  for (int i = 0; i < npy_rows; i++) {
     auto col_name = PyList_GetItem(col_names, i);
     string col_name_str = PyObject_to_string(col_name);
     Symbol col_head(move(col_name_str));
 
     ExpressionSpanArguments col_list_spans;
-    ull num_spans_per_boss_col = mat_cols / span_size;
-    ull mod = mat_cols % span_size;
+    ull num_spans_per_boss_col = npy_cols / span_size;
+    ull mod = npy_cols % span_size;
     if (mod > 0) {
       num_spans_per_boss_col += 1;
     }
     col_list_spans.reserve(num_spans_per_boss_col);
-    for (ull j = 0; j < mat_cols; j += span_size) {
+    for (ull j = 0; j < npy_cols; j += span_size) {
       T *span_begin =
-          matrix_begin + i * mat_cols + j;
+          matrix_begin + i * npy_cols + j;
       T *span_end = min(span_begin + span_size,
-                        matrix_begin + (i + 1) * mat_cols);
+                        matrix_begin + (i + 1) * npy_cols);
 #ifdef DEBUG
-      cout << "actual size" << endl;
+      cout << "creating new boss span of size ";
       cout << distance(span_begin, span_end) << endl;
-      cout << "max size" << endl; 
-      cout << span_size << endl;
+      cout << "(i + 1) * npy_cols " << (i + 1) * npy_cols << endl;
+      cout << "npy_rows " << npy_rows << endl;
+      cout << "npy_cols " << npy_cols << endl;
       cout << endl;
 #endif
       vector<T> v;
@@ -403,12 +404,12 @@ Expression Engine::evaluate(Expression &&e) {
       boss::utilities::overload(
           [this](ComplexExpression &&expression) -> Expression {
 
-            if (expression.getHead() == "And"_) {
-              cout << expression << endl;
-            } else {
-              cout << expression.getHead() << endl;
-            }
-            cout << endl;
+            // if (expression.getHead() == "And"_) {
+            //   cout << expression << endl;
+            // } else {
+            //   cout << expression.getHead() << endl;
+            // }
+            // cout << endl;
 
             // top-level
             auto [top_head, top_statics, top_dynamics, top_spans] =
@@ -503,8 +504,8 @@ Expression Engine::evaluate(Expression &&e) {
                 *(top_it + 1) = move(return_where);
               }
 
-              cout << "top_script" << endl;
-              cout << top_script << endl;
+              // cout << "top_script" << endl;
+              // cout << top_script << endl;
 
               PyObject *top_result = PyRun_String(top_script, Py_file_input,
                                                   global_dict, global_dict);
@@ -540,8 +541,7 @@ Expression Engine::evaluate(Expression &&e) {
               auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
               auto matrix_dict = PyDict_GetItemString(wrapper_dict, "matrix");
 
-              Py_ssize_t table_dict_size = PyDict_Size(table_dict);
-              if (table_dict_size > 0) {
+              if (table_dict != Py_None) {
                 // boss table
                 ExpressionArguments res_dynamics;
                 res_dynamics.reserve(PyDict_Size(table_dict));
