@@ -1,3 +1,8 @@
+import pandas as pd
+import numpy as np
+import sqlite3
+import duckdb
+
 num_warmup = 0
 num_main = 1
 # paths to input csvs (map from name to path)
@@ -18,14 +23,61 @@ bixi_names_paths = {
 rand_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/competition-rand-results.csv"
 bixi_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/competition-bixi-results.csv"
 
-def data_in():
+# pandas table to store timings
+
+def data_in_rand():
   pass
 
+def round_trip():
+  pass
 
+def materialise_columns():
+  pass
+
+def materialise_matrix():
+  pass
+
+def matrix_vector_product():
+  pass
+
+def matrix_matrix_product():
+  pass
 
 # queries maps (map from name to query)
-rand_names_queries = {
+rand_queries = {
+  "_1_data_in": data_in_rand,
+  "_2_round_trip": round_trip,
+  "_3_materialise_columns": materialise_columns,
+  "_4_materialise_matrix": materialise_matrix,
+  "_5_matrix_vector_product": matrix_vector_product,
+  "_6_matrix_matrix_product": matrix_matrix_product
+}
 
+def data_in_bixi():
+  pass
+
+def predict_duration_from_distance():
+  pass
+
+bixi_queries = {
+  "_1_data_in": data_in_bixi,
+  "_2_predict_duration_from_distance": predict_duration_from_distance
+}
+
+def load_pandas():
+  pass
+
+def load_duckdb():
+  pass
+
+def load_sqlite():
+  pass
+
+# loader map
+loaders = {
+  'pandas': load_pandas,
+  'duckdb': load_duckdb,
+  'sqlite': load_sqltie
 }
 
 # print elapsed time function
@@ -33,6 +85,8 @@ rand_names_queries = {
 # benchmarking loop - function
 
 # main
+
+
 
 # rand table
 # bixi
