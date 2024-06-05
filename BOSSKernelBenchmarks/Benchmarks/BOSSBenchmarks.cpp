@@ -46,11 +46,11 @@ std::vector<std::string> librariesToTest = {};
 std::string storageLibrary = {};
 
 map<string, string> rand_table_paths = {
-  {"_64b", "/root/Documents/4-year/fyp-70011/data/random-data/_64b.csv"}
+  // {"_64b", "/root/Documents/4-year/fyp-70011/data/random-data/_64b.csv"}
   // {"_1mb", "/root/Documents/4-year/fyp-70011/data/random-data/_1mb.csv"}
-  // {"_10mb", "/root/Documents/4-year/fyp-70011/data/random-data/_10mb.csv"},
-  // {"_100mb", "/root/Documents/4-year/fyp-70011/data/random-data/_100mb.csv"},
-  // {"_1gb", "/root/Documents/4-year/fyp-70011/data/random-data/_1gb.csv"},
+  // {"_10mb", "/root/Documents/4-year/fyp-70011/data/random-data/_10mb.csv"}
+  {"_100mb", "/root/Documents/4-year/fyp-70011/data/random-data/_100mb.csv"}
+  // {"_1gb", "/root/Documents/4-year/fyp-70011/data/random-data/_1gb.csv"}
 };
 
 #pragma endregion globals
@@ -251,8 +251,10 @@ m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 w = np.array(
   [8.41, 3.14, 5.29, -3.81, 0.03, -6.42, -8.37, 2.78], 
   dtype=np.float64).reshape((8, 1))
-res = m.T @ w
-# print('res', res, sep='\n')
+res = w.T @ m
+#print('m.shape', m.shape)
+#print('res.shape', res.shape)
+#print('res', res, sep='\n')
 
 res_wrapper = {'data': res, 'col_names': ['aggregate_value']}
 res_table_python = {'table': None, 'matrix': res_wrapper}
