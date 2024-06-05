@@ -7,19 +7,21 @@ sizeof_dtype_bytes = 8
 sizeof_row_bytes = num_cols * sizeof_dtype_bytes
 columns = [f"c{i}" for i in range(1, num_cols + 1)]
 table_sizes_bytes = [
-    int(64),  # 64 b
+    # int(64),  # 64 b
     # int(1e6), # 1 mb
     # int(1e7), # 10 mb
     # int(1e8), # 100 mb
     # int(1e9), # 1 gb
+    int(2e9), # 2 gb
 ]
 
 table_sizes_names = [
-    '_64b',
+    # '_64b',
     # '_1mb',
     # '_10mb',
     # '_100mb',
     # '_1gb',
+    '_2gb',
 ]
 
 path_prefix = '/root/Documents/4-year/fyp-70011/data/random-data/'

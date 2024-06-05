@@ -153,8 +153,8 @@ auto getCheckForErrorsLambda() {
 void unload_all_tables() {
   auto evalStorage = getEvaluateStorageLambda();
   
-  evalStorage("DropTable"_("rand_table"_));
-  evalStorage("DropTable"_("bixi"_));
+  evalStorage("DropTable"_("rand_table_boss"_));
+  evalStorage("DropTable"_("bixi_boss"_));
 }
 
 size_t getNumberOfRowsInTable(std::string& filepath) {

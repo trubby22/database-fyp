@@ -17,6 +17,8 @@
 
 #pragma endregion includes
 
+// #define DEBUG
+
 #pragma region usings
 
 using namespace boss::utilities;
@@ -41,16 +43,23 @@ using utilities::shallowCopy;
 
 const int num_warmup = 0;
 const int num_main = 1;
+const string rand_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/rand-results.csv";
+const string bixi_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/bixi-results.csv";
 
 std::vector<std::string> librariesToTest = {};
 std::string storageLibrary = {};
 
-map<string, string> rand_table_paths = {
-  // {"_64b", "/root/Documents/4-year/fyp-70011/data/random-data/_64b.csv"}
-  // {"_1mb", "/root/Documents/4-year/fyp-70011/data/random-data/_1mb.csv"}
-  // {"_10mb", "/root/Documents/4-year/fyp-70011/data/random-data/_10mb.csv"}
-  {"_100mb", "/root/Documents/4-year/fyp-70011/data/random-data/_100mb.csv"}
-  // {"_1gb", "/root/Documents/4-year/fyp-70011/data/random-data/_1gb.csv"}
+map<string, string> rand_names_paths = {
+  {"_1_64b", "/root/Documents/4-year/fyp-70011/data/random-data/_64b.csv"},
+  {"_2_1mb", "/root/Documents/4-year/fyp-70011/data/random-data/_1mb.csv"},
+  {"_3_10mb", "/root/Documents/4-year/fyp-70011/data/random-data/_10mb.csv"},
+  {"_4_100mb", "/root/Documents/4-year/fyp-70011/data/random-data/_100mb.csv"},
+  {"_5_1gb", "/root/Documents/4-year/fyp-70011/data/random-data/_1gb.csv"},
+  {"_6_2gb", "/root/Documents/4-year/fyp-70011/data/random-data/_2gb.csv"},
+};
+
+map<string, string> bixi_names_paths = {
+  {"bixi", "/root/Documents/4-year/fyp-70011/data/bixi-data/bixi-no-index-yes-colnames.csv"}
 };
 
 #pragma endregion globals
@@ -99,7 +108,7 @@ ComplexExpression create_rand_table_expr() {
 }
 
 ComplexExpression create_bixi_table_expr() {
-  return "CreateTable"_("bixi"_, 
+  return "CreateTable"_("bixi_boss"_, 
     "duration_sec"_, "As"_("BIGINT"_),
     "latitude_x"_, "As"_("DOUBLE"_),
     "longitude_x"_, "As"_("DOUBLE"_),
@@ -127,7 +136,7 @@ void create_and_load_table(string name_str, string path) {
   checkForErrors(evalStorage(move(create_table)));
 
   if (name_str == "bixi") {
-    checkForErrors(evalStorage("Load"_("bixi"_, path)));
+    checkForErrors(evalStorage("Load"_("bixi_boss"_, path)));
   } else {
     checkForErrors(evalStorage("Load"_("rand_table_boss"_, path)));
   }
@@ -140,42 +149,6 @@ void init_storage_engine() {
 
   unload_all_tables();
   checkForErrors(eval("Set"_("LoadToMemoryMappedFiles"_, false)));
-
-  // auto evalStorage = getEvaluateStorageLambda();
-  // auto checkForErrors = getCheckForErrorsLambda();
-  // checkForErrors(evalStorage("CreateTable"_("bixi"_, 
-  // "duration_sec"_, "As"_("BIGINT"_),
-  // "latitude_x"_, "As"_("DOUBLE"_),
-  // "longitude_x"_, "As"_("DOUBLE"_),
-  // "latitude_y"_, "As"_("DOUBLE"_),
-  // "longitude_y"_, "As"_("DOUBLE"_)
-  // )));
-
-  // for (auto &sf : scaling_factors) {
-  //   ostringstream oss;
-  //   oss << "sf-" << sf;
-  //   string table_name_str = oss.str();
-  //   auto table = create_rand_table_expr(table_name_str);
-  //   checkForErrors(evalStorage(move(table)));
-  // }
-
-  // std::string path = "/root/Documents/4-year/fyp-70011/bixi-data/bixi-no-index-yes-colnames.csv";
-  // Symbol table = "bixi"_;
-  // checkForErrors(evalStorage("Load"_(table, path)));
-
-  // string path_prefix = "/root/Documents/4-year/fyp-70011/data/random-data/";
-  // string path_suffix = ".csv";
-  // for (auto &sf : scaling_factors) {
-  //   ostringstream path_oss;
-  //   path_oss << << path_prefix << "sf-" << sf << path_suffix;
-  //   string path = path_oss.str();
-
-  //   ostringstream table_name_oss;
-  //   table_name_oss << "sf-" << sf;
-  //   string table_name = table_name_oss.str();
-  //   Symbol table = Symbol(table_name);
-  //   checkForErrors(evalStorage("Load"_(table, path)));
-  // }
 }
 
 #pragma endregion loading
@@ -186,7 +159,7 @@ ComplexExpression python_import_numpy() {
   return "Python"_("import numpy as np"_, "Where"_());
 }
 
-auto& rand_table_queries() {
+auto& rand_queries() {
   static map<string, ComplexExpression> queries;
   if(queries.empty()) {
     queries.try_emplace(
@@ -288,152 +261,167 @@ res_table_python = {'table': None, 'matrix': res_wrapper}
   return queries;
 }
 
-// ComplexExpression bixi_query() {
-//   return "Python"_(
-//     R"(
-// import numpy as np
+auto& bixi_queries() {
+  static map<string, ComplexExpression> queries;
+  if(queries.empty()) {
+    queries.try_emplace(
+      "_1_data_in",
+      "Python"_(
+        R"(
+#print(bixi_python)
+    )"_,
+        "Where"_(
+                    "bixi_python"_, "bixi_boss"_
+                  )
+              )
+    );
+    queries.try_emplace(
+      "_2_predict_duration_from_distance",
+      "Python"_(
+        R"(
+#print(bixi_python)
+table = bixi_python['table']
 
-// print(bixi)
-// table = bixi['table']
+dur = table['duration_sec']
+lon_x = table['longitude_x']
+lat_x = table['latitude_x']
+lon_y = table['longitude_y']
+lat_y = table['latitude_y']
 
-// dur = table['duration_sec']
-// lon_x = table['longitude_x']
-// lat_x = table['latitude_x']
-// lon_y = table['longitude_y']
-// lat_y = table['latitude_y']
+dur = np.concatenate(dur)
+lon_x = np.concatenate(lon_x)
+lat_x = np.concatenate(lat_x)
+lon_y = np.concatenate(lon_y)
+lat_y = np.concatenate(lat_y)
 
-// dur = np.concatenate(dur)
-// lon_x = np.concatenate(lon_x)
-// lat_x = np.concatenate(lat_x)
-// lon_y = np.concatenate(lon_y)
-// lat_y = np.concatenate(lat_y)
-
-// def haversine_distance(longitude_x, latitude_x, longitude_y, latitude_y):
-//     # Convert latitude and longitude from degrees to radians
-//     longitude_x = np.radians(longitude_x)
-//     latitude_x = np.radians(latitude_x)
-//     longitude_y = np.radians(longitude_y)
-//     latitude_y = np.radians(latitude_y)
+def haversine_distance(longitude_x, latitude_x, longitude_y, latitude_y):
+    # Convert latitude and longitude from degrees to radians
+    longitude_x = np.radians(longitude_x)
+    latitude_x = np.radians(latitude_x)
+    longitude_y = np.radians(longitude_y)
+    latitude_y = np.radians(latitude_y)
     
-//     # Haversine formula
-//     dlon = longitude_y - longitude_x
-//     dlat = latitude_y - latitude_x
-//     a = np.sin(dlat / 2)**2 + np.cos(latitude_x) * np.cos(latitude_y) * np.sin(dlon / 2)**2
-//     c = 2 * np.arcsin(np.sqrt(a))
+    # Haversine formula
+    dlon = longitude_y - longitude_x
+    dlat = latitude_y - latitude_x
+    a = np.sin(dlat / 2)**2 + np.cos(latitude_x) * np.cos(latitude_y) * np.sin(dlon / 2)**2
+    c = 2 * np.arcsin(np.sqrt(a))
     
-//     # Radius of Earth in kilometers (mean radius)
-//     r = 6371.0
+    # Radius of Earth in kilometers (mean radius)
+    r = 6371.0
     
-//     # Distance in kilometers
-//     distance_km = r * c
+    # Distance in kilometers
+    distance_km = r * c
     
-//     # Convert distance to meters
-//     distance_m = distance_km * 1000
+    # Convert distance to meters
+    distance_m = distance_km * 1000
     
-//     return distance_m
+    return distance_m
 
-// table['distance'] = haversine_distance(lon_x, lat_x, lon_y, lat_y)
-// dist = table['distance']
-// print(dist)
+table['distance'] = haversine_distance(lon_x, lat_x, lon_y, lat_y)
+dist = table['distance']
+#print(dist)
 
-// shuffle_ixs = np.random.permutation(len(dist))
-// dist = dist[shuffle_ixs]
-// dur = dur[shuffle_ixs]
+shuffle_ixs = np.random.permutation(len(dist))
+dist = dist[shuffle_ixs]
+dur = dur[shuffle_ixs]
 
-// max_dist = np.max(dist)
-// max_dur = np.max(dur)
+max_dist = np.max(dist)
+max_dur = np.max(dur)
 
-// dist = dist / max_dist
-// dur = dur / max_dur
+dist = dist / max_dist
+dur = dur / max_dur
 
-// train_ratio = 0.7
-// test_ratio = 0.3
-// split_ix = int(len(dist) * 0.7)
+train_ratio = 0.7
+test_ratio = 0.3
+split_ix = int(len(dist) * 0.7)
 
-// dist_train = dist[ : split_ix]
-// dur_train = dur[ : split_ix]
+dist_train = dist[ : split_ix]
+dur_train = dur[ : split_ix]
 
-// dist_test = dist[split_ix : ]
-// dur_test = dur[split_ix : ]
+dist_test = dist[split_ix : ]
+dur_test = dur[split_ix : ]
 
-// ones_train = np.ones((len(dist_train),))
-// train_in = np.stack((ones_train, dist_train), axis=-1)
-// train_out = dur_train
-// params = np.ones((1, 2))
+ones_train = np.ones((len(dist_train),))
+train_in = np.stack((ones_train, dist_train), axis=-1)
+train_out = dur_train
+params = np.ones((1, 2))
 
-// ones_test = np.ones((len(dist_test),))
-// test_in = np.stack((ones_test, dist_test), axis=-1)
-// test_out = dur_test
+ones_test = np.ones((len(dist_test),))
+test_in = np.stack((ones_test, dist_test), axis=-1)
+test_out = dur_test
 
-// pred = train_in @ params.T
-// pred = np.reshape(pred, -1)
+pred = train_in @ params.T
+pred = np.reshape(pred, -1)
 
-// def squared_err(act, pred):
-//     errors = np.square(pred - act)
-//     sum_err = np.sum(errors)
-//     num_vals = act.shape[0]
-//     res = sum_err / (2 * num_vals)
-//     return res
+def squared_err(act, pred):
+    errors = np.square(pred - act)
+    sum_err = np.sum(errors)
+    num_vals = act.shape[0]
+    res = sum_err / (2 * num_vals)
+    return res
 
-// sq_err = squared_err(train_out, pred)
-// print(sq_err)
+sq_err = squared_err(train_out, pred)
+#print(sq_err)
 
-// def grad_desc(act, pred, indata):
-//     return (pred - act).T @ indata / act.shape[0]
+def grad_desc(act, pred, indata):
+    return (pred - act).T @ indata / act.shape[0]
 
-// alpha = 0.1
+alpha = 0.1
 
-// params = params - alpha * grad_desc(train_out, pred, train_in)
-// print(params)
+params = params - alpha * grad_desc(train_out, pred, train_in)
+#print(params)
 
-// pred = train_in @ params.T
-// pred = np.reshape(pred, -1)
-// sq_err = squared_err(train_out, pred)
-// print(sq_err)
+pred = train_in @ params.T
+pred = np.reshape(pred, -1)
+sq_err = squared_err(train_out, pred)
+#print(sq_err)
 
-// for i in range(500):
-//     pred = train_in @ params.T
-//     pred = np.reshape(pred, -1)
-//     params = params - alpha * grad_desc(train_out, pred, train_in)
-//     sq_err = squared_err(train_out, pred)
+for i in range(500):
+    pred = train_in @ params.T
+    pred = np.reshape(pred, -1)
+    params = params - alpha * grad_desc(train_out, pred, train_in)
+    sq_err = squared_err(train_out, pred)
     
-//     if( (i+1) % 100 == 0):
-//         print(f"Error rate after {i + 1} iterations is {sq_err}")
+    #if( (i+1) % 100 == 0):
+        #print(f"Error rate after {i + 1} iterations is {sq_err}")
     
-// print(params)
-// sq_err = squared_err(train_out, pred)
-// print(sq_err)
+#print(params)
+sq_err = squared_err(train_out, pred)
+#print(sq_err)
 
-// test_pred = test_in @ params.T
-// test_pred = np.reshape(test_pred, -1)
+test_pred = test_in @ params.T
+test_pred = np.reshape(test_pred, -1)
 
-// sq_err = squared_err(test_out * max_dur, test_pred * max_dur)
-// print(sq_err)
-// )"_,
-//     "Where"_(
-//                 "bixi"_, "bixi"_
-//               )
-//           );
-// }
+sq_err = squared_err(test_out * max_dur, test_pred * max_dur)
+#print(sq_err)
+    )"_,
+        "Where"_(
+                    "bixi_python"_, "bixi_boss"_
+                  )
+              )
+    );
+  }
+  return queries;
+}
 
 #pragma endregion queries
 
-void init_and_run_benchmarks() {
-  init_libraries();
-  storageLibrary = librariesToTest[0];
-  init_storage_engine();
+void benchmark_loop(
+  ostringstream &&csv, 
+  string csv_path, 
+  map<string, string> &table_names_paths,
+  map<string, ComplexExpression> &query_names_exprs
+) {
   auto eval = getEvaluateLambda();
-  eval(python_import_numpy());
-  ostringstream csv;
-  csv << "table-name,data-in,round-trip,materialise-columns,materialise-matrix,matrix-vector-product,matrix-matrix-product" << endl;
-
   cout << endl;
-  for (const auto& [table_name, table_path] : rand_table_paths) {
+
+  for (const auto& [table_name, table_path] : table_names_paths) {
     create_and_load_table(table_name, table_path);
 
     csv << table_name;
 
-    for (const auto& [query_name, query_expr] : rand_table_queries()) {
+    for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
 
       for (int i = 0; i < num_warmup; i++) {
@@ -445,16 +433,20 @@ void init_and_run_benchmarks() {
       for (int i = 0; i < num_main; i++) {
         auto res = eval(shallowCopy(query_expr));
         benchmark::DoNotOptimize(res);
-        // cout << "res" << endl;
-        // cout << res << endl;
-        // cout << endl;
+#ifdef DEBUG
+        cout << "res" << endl;
+        cout << res << endl;
+        cout << endl;
+#endif
       }
 
       chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
       chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
       chrono::nanoseconds avg_time = elapsed_time / num_main;
 
-      // cout << query_expr << endl;
+#ifdef DEBUG
+      cout << query_expr << endl;
+#endif
       print_elapsed_time(avg_time);
       cout << endl;
       cout << "end " << table_name << " " << query_name << endl;
@@ -467,25 +459,39 @@ void init_and_run_benchmarks() {
     unload_all_tables();
   }
 
+  string csv_str = csv.str();
+  ofstream outfile(csv_path);
+  outfile << csv_str;
+  outfile.close();
+}
 
-  // string csv_str = csv.str();
-  // csv_str.to_file(path/to/csv);
+void init_and_run_benchmarks() {
+  init_libraries();
+  storageLibrary = librariesToTest[0];
+  init_storage_engine();
+  auto eval = getEvaluateLambda();
+  eval(python_import_numpy());
 
-  // csv.str("");
-  // csv << "data-in,processing" << endl;
+  ostringstream csv;
+  csv << "table-name,data-in,round-trip,materialise-columns,materialise-matrix,matrix-vector-product,matrix-matrix-product" << endl;  
+  benchmark_loop(
+    move(csv),
+    rand_results_path,
+    rand_names_paths,
+    rand_queries()
+  );
 
-  // auto table = bixi_table;
-  // create_and_load_table(string &name_str, string &path)
-
-  // bixi_query();
+  csv.str("");
+  csv << "data-in,predict_duration_from_distance" << endl;
+  benchmark_loop(
+    move(csv),
+    bixi_results_path,
+    bixi_names_paths,
+    bixi_queries()
+  );
 
   unload_all_tables();
   release_boss_engines();
-
-  string csv_str = csv.str();
-  ofstream outfile("results.csv");
-  outfile << csv_str;
-  outfile.close();
 }
 
 int main(int argc, char** argv) {
