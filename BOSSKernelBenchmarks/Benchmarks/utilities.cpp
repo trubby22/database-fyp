@@ -150,7 +150,7 @@ auto getCheckForErrorsLambda() {
   return lambda;
 }
 
-void resetStorageEngine() {
+void unload_all_tables() {
   auto evalStorage = getEvaluateStorageLambda();
 
   evalStorage("DropTable"_("sf-1mb"_));
