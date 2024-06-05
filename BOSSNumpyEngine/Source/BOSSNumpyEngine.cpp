@@ -6,7 +6,7 @@
 
 // #define DEBUG
 
-const int ENGINE_SPAN_SIZE = 1000000; // 1 million = 1 mb
+const int ENGINE_SPAN_SIZE_BYTES = 1000000; // 1 million = 1 mb
 
 namespace boss::engines::numpy {
 
@@ -161,11 +161,33 @@ template <typename T> NPY_TYPES cpp_type_to_numpy() {
   }
 }
 
+int sizeof_dtype(PyArrayObject *npy_arr) {
+  int typenum = PyArray_TYPE(npy_arr);
+
+  switch (typenum) {
+    case NPY_INT32:
+      return NPY_SIZEOF_INT;
+      break;
+    case NPY_INT64:
+      return NPY_SIZEOF_LONG;
+      break;
+    case NPY_FLOAT:
+      return NPY_SIZEOF_FLOAT;
+      break;
+    case NPY_DOUBLE:
+      return NPY_SIZEOF_DOUBLE;
+      break;
+    default:
+      throw runtime_error("shouldn't happen");
+      break;
+  }
+}
+
 #pragma endregion type_conversion
 
 #pragma region benchmark
 
-ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size, vector<unique_ptr<vector<int>>> &span_ptrs) {
+ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs) {
   random_device rnd_device;
   mt19937 mersenne_engine {rnd_device()};
   uniform_int_distribution<int> dist {0, 100};
@@ -178,9 +200,9 @@ ComplexExpression create_random_table(int num_cols, ull table_size, ull span_siz
   ExpressionArguments table_dynamics;
   for (int i = 0; i < num_cols; i++) {
     ExpressionSpanArguments list_spans;
-    for (ull j = 0; j < col_size; j += span_size) {
+    for (ull j = 0; j < col_size; j += span_size_bytes) {
       
-      ull span_end = min(j + span_size, col_size);
+      ull span_end = min(j + span_size_bytes, col_size);
       ull size = span_end - j;
 
       // vector<int> vec(size);
@@ -278,6 +300,13 @@ ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
   auto npy_cols = static_cast<ull>(*(dims + 1));
   assert(col_names_size == npy_rows);
   T *matrix_begin = static_cast<T *>(PyArray_DATA(npy_matrix));
+  ull dtype_size = static_cast<ull>(sizeof_dtype(npy_matrix));
+  ull boss_col_size_bytes = npy_cols * dtype_size;
+  ull num_spans_per_boss_col = boss_col_size_bytes / span_size_bytes;
+  ull mod = boss_col_size_bytes % span_size_bytes;
+  if (mod > 0) {
+    num_spans_per_boss_col += 1;
+  }
 
   ExpressionArguments res_dynamics;
   res_dynamics.reserve(npy_rows);
@@ -288,23 +317,20 @@ ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
     Symbol col_head(move(col_name_str));
 
     ExpressionSpanArguments col_list_spans;
-    ull num_spans_per_boss_col = npy_cols / span_size;
-    ull mod = npy_cols % span_size;
-    if (mod > 0) {
-      num_spans_per_boss_col += 1;
-    }
     col_list_spans.reserve(num_spans_per_boss_col);
-    for (ull j = 0; j < npy_cols; j += span_size) {
+    for (ull j = 0; j < npy_cols; j += span_size_bytes) {
       T *span_begin =
           matrix_begin + i * npy_cols + j;
-      T *span_end = min(span_begin + span_size,
+      T *span_end = min(span_begin + span_size_bytes,
                         matrix_begin + (i + 1) * npy_cols);
 #ifdef DEBUG
-      cout << "creating new boss span of size ";
-      cout << distance(span_begin, span_end) << endl;
-      cout << "(i + 1) * npy_cols " << (i + 1) * npy_cols << endl;
-      cout << "npy_rows " << npy_rows << endl;
+      // cout << "creating new boss span of size ";
+      // cout << distance(span_begin, span_end) << endl;
+      // cout << "npy_rows " << npy_rows << endl;
+      cout << "num_spans_per_boss_col " << num_spans_per_boss_col << endl;
       cout << "npy_cols " << npy_cols << endl;
+      cout << "boss_col_size_bytes " << boss_col_size_bytes << endl;
+      cout << "span_size_bytes " << span_size_bytes << endl;
       cout << endl;
 #endif
       vector<T> v;
@@ -619,7 +645,7 @@ void Engine::init_python_and_numpy() {
   global_dict = PyDict_New();
 }
 
-Engine::Engine(ull span_size) : span_size(span_size) {
+Engine::Engine(ull span_size_bytes) : span_size_bytes(span_size_bytes) {
   init_python_and_numpy();
   PyDict_SetItemString(global_dict, "__builtins__", PyEval_GetBuiltins());
 }
@@ -633,7 +659,7 @@ Engine::Engine(ull span_size) : span_size(span_size) {
 static auto &enginePtr(bool initialise = true) {
   static auto engine = unique_ptr<boss::engines::numpy::Engine>();
   if (!engine && initialise) {
-    engine.reset(new boss::engines::numpy::Engine(ENGINE_SPAN_SIZE));
+    engine.reset(new boss::engines::numpy::Engine(ENGINE_SPAN_SIZE_BYTES));
   }
   return engine;
 }

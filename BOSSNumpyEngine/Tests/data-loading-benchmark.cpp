@@ -152,8 +152,8 @@ void print_elapsed_time(chrono::nanoseconds elapsed_time) {
   cout << "elapsed time = " << chrono::duration_cast<chrono::nanoseconds> (elapsed_time).count() << "[ns]" << endl;
 }
 
-void test_round_trip_move(Expression &&rand_table, ull span_size) {
-  Engine engine(span_size);
+void test_round_trip_move(Expression &&rand_table, ull span_size_bytes) {
+  Engine engine(span_size_bytes);
 
   chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
 
@@ -180,8 +180,8 @@ void test_round_trip_move(Expression &&rand_table, ull span_size) {
   cout << endl;
 }
 
-void test_boss_to_python(Expression &&rand_table, ull span_size) {
-  Engine engine(span_size);
+void test_boss_to_python(Expression &&rand_table, ull span_size_bytes) {
+  Engine engine(span_size_bytes);
 
   Expression query = boss_to_python(move(rand_table));
 
@@ -209,8 +209,8 @@ void test_boss_to_python(Expression &&rand_table, ull span_size) {
   cout << endl;
 }
 
-void test_python_to_boss(Expression &&rand_table, ull span_size) {
-  Engine engine(span_size);
+void test_python_to_boss(Expression &&rand_table, ull span_size_bytes) {
+  Engine engine(span_size_bytes);
 
   Expression boss_to_python_query = boss_to_python(move(rand_table));
   Expression boss_to_python_result = engine.evaluate(
@@ -251,8 +251,8 @@ void test_python_to_boss(Expression &&rand_table, ull span_size) {
   cout << endl;
 }
 
-void test_boss_to_python_matrix(Expression &&rand_table, ull span_size) {
-  Engine engine(span_size);
+void test_boss_to_python_matrix(Expression &&rand_table, ull span_size_bytes) {
+  Engine engine(span_size_bytes);
 
   Expression query = boss_to_python_matrix(move(rand_table));
 
@@ -280,8 +280,8 @@ void test_boss_to_python_matrix(Expression &&rand_table, ull span_size) {
   cout << endl;
 }
 
-void test_python_to_boss_matrix(Expression &&rand_table, ull span_size) {
-  Engine engine(span_size);
+void test_python_to_boss_matrix(Expression &&rand_table, ull span_size_bytes) {
+  Engine engine(span_size_bytes);
 
   Expression boss_to_python_query = boss_to_python_matrix(move(rand_table));
   Expression boss_to_python_result = engine.evaluate(
@@ -339,7 +339,7 @@ int main(int argc, char *argv[]) {
   // for(ull table_size : std::vector<ull>{1000 << 20, 10000 << 20}) {
   // for(ull table_size : std::vector<ull>{1 << 20, 10 << 20}) {
     // in B
-    for (ull span_size : std::vector<ull>{1ULL << 3 << 20}) {
+    for (ull span_size_bytes : std::vector<ull>{1ULL << 3 << 20}) {
       // in B
       if (table_size < (1ULL << 30)) {
         cout << "table size = " << (table_size >> 20) << " MB" << endl;
@@ -352,7 +352,7 @@ int main(int argc, char *argv[]) {
 
       chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
       Expression rand_table = create_random_table(
-        num_columns, table_size, span_size, span_ptrs);
+        num_columns, table_size, span_size_bytes, span_ptrs);
       chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
       auto elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
       cout << "create random table" << endl;
@@ -363,17 +363,17 @@ int main(int argc, char *argv[]) {
       cout << rand_table << endl;
 #endif
 
-      test_round_trip_move(move(rand_table), span_size);
+      test_round_trip_move(move(rand_table), span_size_bytes);
 
       // Expression rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
 
-      // test_boss_to_python(move(rand_table_clone), span_size);
+      // test_boss_to_python(move(rand_table_clone), span_size_bytes);
       // rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
-      // test_python_to_boss(move(rand_table_clone), span_size);
+      // test_python_to_boss(move(rand_table_clone), span_size_bytes);
       // rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
-      // test_boss_to_python_matrix(move(rand_table_clone), span_size);
+      // test_boss_to_python_matrix(move(rand_table_clone), span_size_bytes);
       // rand_table_clone = rand_table.clone(CloneReason::FOR_TESTING);
-      // test_python_to_boss_matrix(move(rand_table_clone), span_size);
+      // test_python_to_boss_matrix(move(rand_table_clone), span_size_bytes);
     }
   }
 

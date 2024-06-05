@@ -54,7 +54,7 @@ public:
 
   Engine &operator=(Engine &&) = delete;
 
-  Engine(ull span_size);
+  Engine(ull span_size_bytes);
 
   ~Engine() = default;
 
@@ -63,7 +63,7 @@ public:
 private:
   PyObject *global_dict;
   unordered_map<PyObject *, ExpressionSpanArgument> npy_arr_ptr_expr_span_map;
-  ull span_size;
+  ull span_size_bytes;
 
   void init_python_and_numpy();
 
@@ -82,6 +82,6 @@ private:
 
 };
 
-ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size, vector<unique_ptr<vector<int>>> &span_ptrs);
+ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs);
 
 } // namespace boss::engines::numpy
