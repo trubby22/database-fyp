@@ -152,12 +152,8 @@ auto getCheckForErrorsLambda() {
 
 void unload_all_tables() {
   auto evalStorage = getEvaluateStorageLambda();
-
-  evalStorage("DropTable"_("sf-1mb"_));
-  evalStorage("DropTable"_("sf-10mb"_));
-  evalStorage("DropTable"_("sf-100mb"_));
-  evalStorage("DropTable"_("sf-1gb"_));
-
+  
+  evalStorage("DropTable"_("rand_table"_));
   evalStorage("DropTable"_("bixi"_));
 }
 

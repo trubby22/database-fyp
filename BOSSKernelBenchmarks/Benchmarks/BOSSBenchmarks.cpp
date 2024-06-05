@@ -39,98 +39,19 @@ using utilities::shallowCopy;
 
 #pragma region globals
 
-const int num_warmup = 1;
-const int num_main = 3;
+const int num_warmup = 0;
+const int num_main = 1;
 
 std::vector<std::string> librariesToTest = {};
 std::string storageLibrary = {};
 
 map<string, string> rand_table_paths = {
-  {"_1mb", "/root/Documents/4-year/fyp-70011/data/random-data/_1mb.csv"},
+  {"_64b", "/root/Documents/4-year/fyp-70011/data/random-data/_64b.csv"}
+  // {"_1mb", "/root/Documents/4-year/fyp-70011/data/random-data/_1mb.csv"}
   // {"_10mb", "/root/Documents/4-year/fyp-70011/data/random-data/_10mb.csv"},
   // {"_100mb", "/root/Documents/4-year/fyp-70011/data/random-data/_100mb.csv"},
   // {"_1gb", "/root/Documents/4-year/fyp-70011/data/random-data/_1gb.csv"},
 };
-
-map<string, ComplexExpression> rand_table_queries;
-//  = {
-  // {
-  //   "data_in", 
-  //   "Python"_(""_, "Where"_("rand_table"_, "rand_table"_))
-  // },
-//   {
-//     "round_trip", 
-//     "And"_(
-//       "Python"_(""_, "Where"_("rand_table"_, "rand_table"_)),
-//       "get_python_var"_("rand_table"_)
-//     )
-//   },
-//   {
-//     "materialise_columns", 
-//     "And"_(
-//       "Python"_(R"(
-// table = rand_table['table']
-// table_cpy = dict()
-// for k in table.keys():
-//   spans = table[k]
-//   table_cpy[k] = np.concatenate(spans)
-//       )", "Where"_("rand_table"_, "rand_table"_)),
-//       "get_python_var"_("rand_table"_)
-//     )
-//   },
-//   {
-//     "materialise_matrix", 
-//     "And"_(
-//       "Python"_(R"(
-// table = rand_table['table']
-// table_cpy = dict()
-// for k in table.keys():
-//   spans = table[k]
-//   table_cpy[k] = np.concatenate(spans)
-
-// m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
-//       )", "Where"_("rand_table"_, "rand_table"_)),
-//       "get_python_var"_("rand_table"_)
-//     )
-//   },
-//   {
-//     "matrix_vector_product", 
-//     "And"_(
-//       "Python"_(R"(
-// table = rand_table['table']
-// table_cpy = dict()
-// for k in table.keys():
-//   spans = table[k]
-//   table_cpy[k] = np.concatenate(spans)
-
-// m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
-// w = np.array(
-//   [8.41, 3.14, 5.29, -3.81, 0.03, -6.42, -8.37, 2.78], 
-//   dtype=np.float64)
-// res = m @ w
-
-//       )", "Where"_("rand_table"_, "rand_table"_)),
-//       "get_python_var"_("rand_table"_)
-//     )
-//   },
-//   {
-//     "matrix_matrix_product", 
-//     "And"_(
-//       "Python"_(R"(
-// table = rand_table['table']
-// table_cpy = dict()
-// for k in table.keys():
-//   spans = table[k]
-//   table_cpy[k] = np.concatenate(spans)
-
-// m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
-// res = m @ m.T
-
-//       )", "Where"_("rand_table"_, "rand_table"_)),
-//       "get_python_var"_("rand_table"_)
-//     )
-//   }
-// };
 
 #pragma endregion globals
 
@@ -164,8 +85,8 @@ void print_elapsed_time(chrono::nanoseconds elapsed_time) {
 
 #pragma region loading
 
-ComplexExpression create_rand_table(string table_name) {
-  return "CreateTable"_(Symbol(table_name),
+ComplexExpression create_rand_table_expr() {
+  return "CreateTable"_("rand_table"_,
     "c1"_, "As"_("DOUBLE"_),
     "c2"_, "As"_("DOUBLE"_),
     "c3"_, "As"_("DOUBLE"_),
@@ -177,7 +98,7 @@ ComplexExpression create_rand_table(string table_name) {
   );
 }
 
-ComplexExpression create_bixi_table() {
+ComplexExpression create_bixi_table_expr() {
   return "CreateTable"_("bixi"_, 
     "duration_sec"_, "As"_("BIGINT"_),
     "latitude_x"_, "As"_("DOUBLE"_),
@@ -187,24 +108,29 @@ ComplexExpression create_bixi_table() {
   );
 }
 
-ComplexExpression create_table(string name) {
+ComplexExpression create_table_expr(string name) {
   if (name == "bixi") {
-    return create_bixi_table();
+    return create_bixi_table_expr();
   } else {
-    return create_rand_table(name);
+    return create_rand_table_expr();
   }
 }
 
 void create_and_load_table(string name_str, string path) {
   Symbol name = Symbol(name_str);
-  ComplexExpression create_table_expr = create_table(name_str);
+  ComplexExpression create_table = create_table_expr(name_str);
 
   auto checkForErrors = getCheckForErrorsLambda();
   auto evalStorage = getEvaluateStorageLambda();
   auto eval = getEvaluateLambda();
 
-  checkForErrors(evalStorage(move(create_table_expr)));
-  checkForErrors(evalStorage("Load"_(move(name), path)));
+  checkForErrors(evalStorage(move(create_table)));
+
+  if (name_str == "bixi") {
+    checkForErrors(evalStorage("Load"_("bixi"_, path)));
+  } else {
+    checkForErrors(evalStorage("Load"_("rand_table"_, path)));
+  }
 }
 
 void init_storage_engine() {
@@ -229,7 +155,7 @@ void init_storage_engine() {
   //   ostringstream oss;
   //   oss << "sf-" << sf;
   //   string table_name_str = oss.str();
-  //   auto table = create_rand_table(table_name_str);
+  //   auto table = create_rand_table_expr(table_name_str);
   //   checkForErrors(evalStorage(move(table)));
   // }
 
@@ -260,8 +186,89 @@ ComplexExpression python_import_numpy() {
   return "Python"_("import numpy as np"_, "Where"_());
 }
 
-void rand_table_queries() {
+auto& rand_table_queries() {
+  static map<string, ComplexExpression> queries;
+  if(queries.empty()) {
+    queries.try_emplace(
+      "data_in", 
+      "Python"_(""_, "Where"_("rand_table"_, "rand_table"_))
+    );
+    queries.try_emplace(
+      "round_trip", 
+      "And"_(
+        "Python"_(""_, "Where"_("rand_table"_, "rand_table"_)),
+        "get_python_var"_("rand_table"_)
+      )
+    );
+    queries.try_emplace(
+      "materialise_columns", 
+        "And"_(
+          "Python"_(R"(
+table = rand_table['table']
+table_cpy = dict()
+for k in table.keys():
+  spans = table[k]
+  table_cpy[k] = np.concatenate(spans)
+print(table_cpy)
+          )", "Where"_("rand_table"_, "rand_table"_)),
+          "get_python_var"_("rand_table"_)
+        )
+    );
+    queries.try_emplace(
+      "materialise_matrix", 
+      "And"_(
+        "Python"_(R"(
+table = rand_table['table']
+table_cpy = dict()
+for k in table.keys():
+  spans = table[k]
+  table_cpy[k] = np.concatenate(spans)
 
+m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
+print(m)
+        )", "Where"_("rand_table"_, "rand_table"_)),
+        "get_python_var"_("rand_table"_)
+      )
+    );
+    queries.try_emplace(
+      "matrix_vector_product", 
+      "And"_(
+        "Python"_(R"(
+table = rand_table['table']
+table_cpy = dict()
+for k in table.keys():
+  spans = table[k]
+  table_cpy[k] = np.concatenate(spans)
+
+m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
+w = np.array(
+  [8.41, 3.14, 5.29, -3.81, 0.03, -6.42, -8.37, 2.78], 
+  dtype=np.float64)
+res = m @ w
+print(res)
+        )", "Where"_("rand_table"_, "rand_table"_)),
+        "get_python_var"_("rand_table"_)
+      )
+    );
+    queries.try_emplace(
+      "matrix_matrix_product", 
+      "And"_(
+        "Python"_(R"(
+table = rand_table['table']
+table_cpy = dict()
+for k in table.keys():
+  spans = table[k]
+  table_cpy[k] = np.concatenate(spans)
+
+m = np.stack(table_cpy.values(), axis=0) # matrix row = table column
+res = m @ m.T
+print(res)
+        )", "Where"_("rand_table"_, "rand_table"_)),
+        "get_python_var"_("rand_table"_)
+      )
+    );
+  }
+  return queries;
 }
 
 // ComplexExpression bixi_query() {
@@ -408,7 +415,7 @@ void init_and_run_benchmarks() {
 
     csv << table_name;
 
-    for (const auto& [query_name, query_expr] : rand_table_queries) {
+    for (const auto& [query_name, query_expr] : rand_table_queries()) {
 
       for (int i = 0; i < num_warmup; i++) {
         eval(shallowCopy(query_expr));
@@ -426,6 +433,7 @@ void init_and_run_benchmarks() {
       chrono::nanoseconds avg_time = elapsed_time / num_main;
 
       cout << table_name << " " << query_name << endl;
+      // cout << query_expr << endl;
       print_elapsed_time(avg_time);
       cout << endl;
 
