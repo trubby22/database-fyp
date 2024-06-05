@@ -1,1 +1,1 @@
-.import /root/Documents/4-year/fyp-70011/bixi-data/bixi-no-index-no-colnames.csv bixi
+.import /root/Documents/4-year/fyp-70011/data/bixi-data/bixi-no-index-no-colnames.csv bixi
