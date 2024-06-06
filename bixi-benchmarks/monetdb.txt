@@ -1,0 +1,11 @@
+CREATE TABLE bixi (
+    duration_sec BIGINT,
+    latitude_x DOUBLE,
+    longitude_x DOUBLE,
+    latitude_y DOUBLE,
+    longitude_y DOUBLE
+);
+
+mclient -u monetdb -d mydatabase -s "CREATE TABLE bixi ( duration_sec BIGINT, latitude_x DOUBLE, longitude_x DOUBLE, latitude_y DOUBLE, longitude_y DOUBLE );"
+
+COPY INTO bixi FROM '/Users/piotrblaszyk/Documents/university/4-year/fyp-70011/bixi/bixi-clean-no-index.csv' USING DELIMITERS ',',E'\n','"';
