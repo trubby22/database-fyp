@@ -14,6 +14,7 @@
 #include <chrono>
 #include <fstream>
 #include <map>
+#include <unordered_map>
 
 #pragma endregion includes
 
@@ -39,10 +40,10 @@ using utilities::shallowCopy;
 
 #pragma endregion usings
 
+typedef unsigned long long ull;
+
 #pragma region globals
 
-const int num_warmup = 0;
-const int num_main = 1;
 const string rand_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/rand-results.csv";
 const string bixi_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/bixi-results.csv";
 
@@ -50,16 +51,29 @@ std::vector<std::string> librariesToTest = {};
 std::string storageLibrary = {};
 
 map<string, string> rand_names_paths = {
-  {"_1_64b", "/root/Documents/4-year/fyp-70011/data/random-data/_64b.csv"},
-  {"_2_1mb", "/root/Documents/4-year/fyp-70011/data/random-data/_1mb.csv"},
-  {"_3_10mb", "/root/Documents/4-year/fyp-70011/data/random-data/_10mb.csv"},
-  {"_4_100mb", "/root/Documents/4-year/fyp-70011/data/random-data/_100mb.csv"},
-  {"_5_1gb", "/root/Documents/4-year/fyp-70011/data/random-data/_1gb.csv"},
-  {"_6_2gb", "/root/Documents/4-year/fyp-70011/data/random-data/_2gb.csv"},
+  {"_1_64b", "/root/Documents/4-year/fyp-70011/data/csv/_64b.csv"},
+  {"_2_1mb", "/root/Documents/4-year/fyp-70011/data/csv/_1mb.csv"},
+  {"_3_10mb", "/root/Documents/4-year/fyp-70011/data/csv/_10mb.csv"},
+  {"_4_100mb", "/root/Documents/4-year/fyp-70011/data/csv/_100mb.csv"},
+  {"_5_1gb", "/root/Documents/4-year/fyp-70011/data/csv/_1gb.csv"},
+  {"_6_2gb", "/root/Documents/4-year/fyp-70011/data/csv/_2gb.csv"},
+};
+
+unordered_map<string, string> rand_names = {
+  {"_1_64b", "64 b"},
+  {"_2_1mb", "1 mb"},
+  {"_3_10mb", "10 mb"},
+  {"_4_100mb", "100 mb"},
+  {"_5_1gb", "1 gb"},
+  {"_6_2gb", "2 gb"},
 };
 
 map<string, string> bixi_names_paths = {
   {"bixi", "/root/Documents/4-year/fyp-70011/data/bixi-data/bixi-no-index-yes-colnames.csv"}
+};
+
+unordered_map<string, string> bixi_names = {
+  {"bixi", "bixi"},
 };
 
 #pragma endregion globals
@@ -377,7 +391,7 @@ pred = np.reshape(pred, -1)
 sq_err = squared_err(train_out, pred)
 #print(sq_err)
 
-for i in range(500):
+for i in range(50):
     pred = train_in @ params.T
     pred = np.reshape(pred, -1)
     params = params - alpha * grad_desc(train_out, pred, train_in)
@@ -411,6 +425,7 @@ void benchmark_loop(
   ostringstream &&csv, 
   string csv_path, 
   map<string, string> &table_names_paths,
+  unordered_map<string, string> &table_names,
   map<string, ComplexExpression> &query_names_exprs
 ) {
   auto eval = getEvaluateLambda();
@@ -419,20 +434,32 @@ void benchmark_loop(
   for (const auto& [table_name, table_path] : table_names_paths) {
     create_and_load_table(table_name, table_path);
 
-    csv << table_name;
+    csv << table_names[table_name];
 
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
 
-      for (int i = 0; i < num_warmup; i++) {
-        eval(shallowCopy(query_expr));
-      }
-
-      chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
-
-      for (int i = 0; i < num_main; i++) {
+      const chrono::seconds time_warmup = 3s;
+      const int warmup_iters = 1;
+      chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
+      chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
+      chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
+      for (ull i = 0; i < warmup_iters || warmup_timestamp < warmup_end_time; i++) {
         auto res = eval(shallowCopy(query_expr));
         benchmark::DoNotOptimize(res);
+        warmup_timestamp = chrono::high_resolution_clock::now();
+      }
+
+      const chrono::seconds time_test = 10s;
+      const int test_iters = 3;
+      chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
+      chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
+      chrono::high_resolution_clock::time_point test_timestamp = test_start;
+      ull completed_iters = 0;
+      for (completed_iters = 0; completed_iters < test_iters || test_timestamp < test_end_time; completed_iters++) {
+        auto res = eval(shallowCopy(query_expr));
+        benchmark::DoNotOptimize(res);
+        test_timestamp = chrono::high_resolution_clock::now();
 #ifdef DEBUG
         cout << "res" << endl;
         cout << res << endl;
@@ -440,9 +467,9 @@ void benchmark_loop(
 #endif
       }
 
-      chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
-      chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(end - begin);
-      chrono::nanoseconds avg_time = elapsed_time / num_main;
+      chrono::high_resolution_clock::time_point test_end = chrono::high_resolution_clock::now();
+      chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(test_end - test_start);
+      chrono::nanoseconds avg_time = elapsed_time / completed_iters;
 
 #ifdef DEBUG
       cout << query_expr << endl;
@@ -473,20 +500,22 @@ void init_and_run_benchmarks() {
   eval(python_import_numpy());
 
   ostringstream csv;
-  csv << "table-name,data-in,round-trip,materialise-columns,materialise-matrix,matrix-vector-product,matrix-matrix-product" << endl;  
+  csv << "table name,boss data in,boss round trip,boss materialise columns,boss materialise matrix,boss matrix vector product,boss matrix matrix product" << endl;  
   benchmark_loop(
     move(csv),
     rand_results_path,
     rand_names_paths,
+    rand_names,
     rand_queries()
   );
 
   csv.str("");
-  csv << "data-in,predict_duration_from_distance" << endl;
+  csv << "table name,boss data in,boss predict duration from distance" << endl;
   benchmark_loop(
     move(csv),
     bixi_results_path,
     bixi_names_paths,
+    bixi_names,
     bixi_queries()
   );
 
