@@ -8,24 +8,34 @@ from bixi_pandas import go
 num_warmup = 0
 num_main = 1
 # paths to input csvs (map from name to path)
+vendors = [
+  'pandas',
+  'duckdb',
+  'sqlite',
+]
+
 vendor_input_file_paths = {
-  'pandas': ...,
-  'duckdb': ...,
-  'sqlite': ...,
+  'pandas': '/root/Documents/4-year/fyp-70011/data/csv/',
+  'duckdb': '/root/Documents/4-year/fyp-70011/data/duckdb/',
+  'sqlite': '/root/Documents/4-year/fyp-70011/data/sqlite/',
 }
 
-rand_names_paths = {
-  "_1_64b": "/root/Documents/4-year/fyp-70011/data/random-data/_64b.csv",
-  "_2_1mb": "/root/Documents/4-year/fyp-70011/data/random-data/_1mb.csv",
-  "_3_10mb": "/root/Documents/4-year/fyp-70011/data/random-data/_10mb.csv",
-  "_4_100mb": "/root/Documents/4-year/fyp-70011/data/random-data/_100mb.csv",
-  "_5_1gb": "/root/Documents/4-year/fyp-70011/data/random-data/_1gb.csv",
-  "_6_2gb": "/root/Documents/4-year/fyp-70011/data/random-data/_2gb.csv",
+vendor_input_file_suffix = {
+  'pandas': '.csv',
+  'duckdb': '.db',
+  'sqlite': '.db',
 }
 
-bixi_names_paths = {
-  "bixi": "/root/Documents/4-year/fyp-70011/data/bixi-data/bixi-no-index-yes-colnames.csv",
-}
+rand_names = [
+  '_64b',
+  '_1mb',
+  '_10mb',
+  '_100mb',
+  '_1gb',
+  '_2gb',
+]
+
+bixi_name = 'bixi-no-index-yes-colnames'
 
 # paths to output csvs
 rand_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/competition-rand-results.csv"
@@ -91,7 +101,19 @@ def print_elapsed_time(duration_ns):
 
 # main
 
-
+for vendor in vendors:
+  for table_name in rand_names:
+    for query in rand_queries:
+      vendor_path = vendor_input_file_paths[vendor]
+      vendor_suffix = vendor_input_file_suffix[vendor]
+      table_path = f'{vendor_path}{table_name}{vendor_suffix}'
+      start = time_ns()
+      query(vendor, table_path, table_name)
+      stop = time_ns()
+      delta = stop - start
+      print(vendor, table_name, query)
+      print_elapsed_time(delta)
+      print()
 
 # rand table
 # bixi
