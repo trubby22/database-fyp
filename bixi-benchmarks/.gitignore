@@ -1,3 +1,7 @@
+*.db
 *.csv
 *.tbl
-__pycache__
+bixi-data/
+__pycache__/
+.ipynb_checkpoints/
+experiment-results/
