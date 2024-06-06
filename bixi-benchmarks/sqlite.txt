@@ -1,5 +1,8 @@
 .open /root/Documents/4-year/fyp-70011/data/sqlite.db
 
+.mode csv
+.header on
+
 CREATE TABLE bixi (
     duration_sec INTEGER,
     latitude_x REAL,
@@ -19,9 +22,7 @@ CREATE TABLE  (
     c8 REAL
 );
 
-.mode csv
-
-.import /root/Documents/4-year/fyp-70011/data/csv/bixi-no-index-yes-colnames.csv bixi
+.import /root/Documents/4-year/fyp-70011/data/csv/bixi.csv bixi
 
 .import /root/Documents/4-year/fyp-70011/data/csv/_64b.csv _64b
 .import /root/Documents/4-year/fyp-70011/data/csv/_1mb.csv _1mb

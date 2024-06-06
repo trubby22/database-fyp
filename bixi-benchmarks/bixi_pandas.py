@@ -102,7 +102,7 @@ def go(trips: pd.DataFrame):
     sq_err = squared_err(train_out, pred)
     #print(sq_err)
 
-    for i in range(100):
+    for i in range(500):
         pred = train_in @ params.T
         pred = np.reshape(pred, -1)
         params = params - alpha * grad_desc(train_out, pred, train_in)

@@ -7,10 +7,9 @@ from bixi_pandas import go
 
 num_warmup = 0
 num_main = 1
-# paths to input csvs (map from name to path)
 vendors = [
-  # 'pandas',
-  # 'duckdb',
+  'pandas',
+  'duckdb',
   'sqlite',
 ]
 
@@ -23,21 +22,19 @@ vendor_input_paths = {
 rand_names = [
   '_64b',
   '_1mb',
-  # '_10mb',
-  # '_100mb',
-  # '_1gb',
-  # '_2gb',
+  '_10mb',
+  '_100mb',
+  '_1gb',
+  '_2gb',
 ]
 
 bixi_names = [
   'bixi'
 ]
 
-# paths to output csvs
 rand_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/competition-rand-results.csv"
 bixi_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/competition-bixi-results.csv"
 
-# queries maps (map from name to query
 def data_in(vendor, table_name):
   if vendor == 'pandas':
     return load_pandas(table_name)
@@ -52,12 +49,10 @@ rand_queries = {
 
 def predict_duration_from_distance(vendor, table_name):
   df = data_in(vendor, table_name)
-  print(df)
-  print(df.dtypes)
-  # go(df)
+  go(df)
 
 bixi_queries = {
-  # "data_in": data_in,
+  "data_in": data_in,
   "predict_duration_from_distance": predict_duration_from_distance,
 }
 
@@ -74,15 +69,12 @@ def load_sqlite(table_name):
   with sqlite3.connect(vendor_input_paths['sqlite']) as con:
     df = pd.read_sql(f"SELECT * FROM {table_name}", con)
     return df
-
-# loader map
+    
 loaders = {
   'pandas': load_pandas,
   'duckdb': load_duckdb,
   'sqlite': load_sqlite,
 }
-
-# print elapsed time function
 
 def print_elapsed_time(duration_ns):
   ns = duration_ns
@@ -94,12 +86,6 @@ def print_elapsed_time(duration_ns):
   print(f'{us} [µs]')
   print(f'{ns} [ns]')
 
-# pandas table to store timings
-
-
-
-# main
-# benchmarking loop - function
 def bench_loop(table_names, queries, results_path):
   vendor_query = []
   for vendor in vendors:
@@ -124,8 +110,5 @@ def bench_loop(table_names, queries, results_path):
 
   timings.to_csv(results_path, index=False)
 
-# bench_loop(rand_names, rand_queries, rand_results_path)
+bench_loop(rand_names, rand_queries, rand_results_path)
 bench_loop(bixi_names, bixi_queries, bixi_results_path)
-
-# rand table
-# bixi
