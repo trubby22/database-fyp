@@ -1,1 +1,31 @@
-.import /root/Documents/4-year/fyp-70011/data/bixi-data/bixi-no-index-no-colnames.csv bixi
+.open /root/Documents/4-year/fyp-70011/data/sqlite.db
+
+CREATE TABLE bixi (
+    duration_sec INTEGER,
+    latitude_x REAL,
+    longitude_x REAL,
+    latitude_y REAL,
+    longitude_y REAL
+);
+
+CREATE TABLE  (
+    c1 REAL,
+    c2 REAL,
+    c3 REAL,
+    c4 REAL,
+    c5 REAL,
+    c6 REAL,
+    c7 REAL,
+    c8 REAL
+);
+
+.mode csv
+
+.import /root/Documents/4-year/fyp-70011/data/csv/bixi-no-index-yes-colnames.csv bixi
+
+.import /root/Documents/4-year/fyp-70011/data/csv/_64b.csv _64b
+.import /root/Documents/4-year/fyp-70011/data/csv/_1mb.csv _1mb
+.import /root/Documents/4-year/fyp-70011/data/csv/_10mb.csv _10mb
+.import /root/Documents/4-year/fyp-70011/data/csv/_100mb.csv _100mb
+.import /root/Documents/4-year/fyp-70011/data/csv/_0b.csv _1gb
+.import /root/Documents/4-year/fyp-70011/data/csv/_0b.csv _2gb

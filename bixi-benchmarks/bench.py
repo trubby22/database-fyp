@@ -14,25 +14,19 @@ vendors = [
   'sqlite',
 ]
 
-vendor_input_file_paths = {
+vendor_input_paths = {
   'pandas': '/root/Documents/4-year/fyp-70011/data/csv/',
-  'duckdb': '/root/Documents/4-year/fyp-70011/data/duckdb/',
-  'sqlite': '/root/Documents/4-year/fyp-70011/data/sqlite/',
-}
-
-vendor_input_file_suffix = {
-  'pandas': '.csv',
-  'duckdb': '.db',
-  'sqlite': '.db',
+  'duckdb': '/root/Documents/4-year/fyp-70011/data/duckdb.db',
+  'sqlite': '/root/Documents/4-year/fyp-70011/data/sqlite.db',
 }
 
 rand_names = [
   '_64b',
-  '_1mb',
-  '_10mb',
-  '_100mb',
-  '_1gb',
-  '_2gb',
+  # '_1mb',
+  # '_10mb',
+  # '_100mb',
+  # '_1gb',
+  # '_2gb',
 ]
 
 bixi_name = 'bixi-no-index-yes-colnames'
@@ -44,20 +38,20 @@ bixi_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/competi
 # pandas table to store timings
 
 # queries maps (map from name to query
-def data_in(vendor, path, table_name):
+def data_in(vendor, table_name):
   if vendor == 'pandas':
     return load_pandas(table_name)
   elif vendor == 'duckdb':
-    return load_duckdb(path, table_name)
+    return load_duckdb(table_name)
   elif vendor == 'sqlite':
-    return load_sqlite(path, table_name)
+    return load_sqlite(table_name)
 
 rand_queries = {
   "_1_data_in": data_in
 }
 
-def predict_duration_from_distance(vendor, path, table_name):
-  df = data_in(vendor, path, table_name)
+def predict_duration_from_distance(vendor, table_name):
+  df = data_in(vendor, table_name)
   go(df)
 
 bixi_queries = {
@@ -65,16 +59,17 @@ bixi_queries = {
   "_2_predict_duration_from_distance": predict_duration_from_distance
 }
 
-def load_pandas(path):
-  return pd.read_csv(path)
+def load_pandas(table_name):
+  path_prefix = vendor_input_paths['pandas']
+  return pd.read_csv(f'{path_prefix}{table_name}.csv')
 
-def load_duckdb(path, table_name):
-  with duckdb.connect(path) as con:
+def load_duckdb(table_name):
+  with duckdb.connect(vendor_input_paths['duckdb']) as con:
     df = con.execute(f"SELECT * FROM {table_name}").fetchdf()
     return df
 
-def load_sqlite(path, table_name):
-  with sqlite3.connect(path) as con:
+def load_sqlite(table_name):
+  with sqlite3.connect(vendor_input_paths['sqlite']) as con:
     df = pd.read_sql(f"SELECT * FROM {table_name}", con)
     return df
 
@@ -82,7 +77,7 @@ def load_sqlite(path, table_name):
 loaders = {
   'pandas': load_pandas,
   'duckdb': load_duckdb,
-  'sqlite': load_sqltie
+  'sqlite': load_sqlite,
 }
 
 # print elapsed time function
@@ -104,11 +99,8 @@ def print_elapsed_time(duration_ns):
 for vendor in vendors:
   for table_name in rand_names:
     for query in rand_queries:
-      vendor_path = vendor_input_file_paths[vendor]
-      vendor_suffix = vendor_input_file_suffix[vendor]
-      table_path = f'{vendor_path}{table_name}{vendor_suffix}'
       start = time_ns()
-      query(vendor, table_path, table_name)
+      query(vendor, table_name)
       stop = time_ns()
       delta = stop - start
       print(vendor, table_name, query)
