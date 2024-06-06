@@ -1,0 +1,10 @@
+apt-get update && apt-get install -y git g++ cmake ninja-build libssl-dev
+
+CREATE TABLE bixi AS SELECT * FROM read_csv_auto('~/Documents/4-year/fyp-70011/data/bixi-data/bixi-no-index-yes-colnames.csv');
+
+CREATE TABLE _64b AS SELECT * FROM read_csv_auto('~/Documents/4-year/fyp-70011/data/csv/_64b.csv');
+CREATE TABLE _1mb AS SELECT * FROM read_csv_auto('~/Documents/4-year/fyp-70011/data/csv/_1mb.csv');
+CREATE TABLE _10mb AS SELECT * FROM read_csv_auto('~/Documents/4-year/fyp-70011/data/csv/_10mb.csv');
+CREATE TABLE _100mb AS SELECT * FROM read_csv_auto('~/Documents/4-year/fyp-70011/data/csv/_100mb.csv');
+CREATE TABLE _1gb AS SELECT * FROM read_csv_auto('~/Documents/4-year/fyp-70011/data/csv/_1gb.csv');
+CREATE TABLE _2gb AS SELECT * FROM read_csv_auto('~/Documents/4-year/fyp-70011/data/csv/_2gb.csv');

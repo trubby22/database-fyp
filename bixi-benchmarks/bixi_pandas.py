@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 
 def go(trips: pd.DataFrame):
-    print(trips)
-    print(trips.dtypes)
+    #print(trips)
+    #print(trips.dtypes)
 
     table = dict()
     table['duration_sec'] = trips['duration_sec'].to_numpy()
@@ -12,7 +12,7 @@ def go(trips: pd.DataFrame):
     table['longitude_y'] = trips['longitude_y'].to_numpy()
     table['latitude_y'] = trips['latitude_y'].to_numpy()
     bixi = {'table': table, 'matrix': None}
-    print(bixi)
+    #print(bixi)
     dur = table['duration_sec']
     lon_x = table['longitude_x']
     lat_x = table['latitude_x']
@@ -45,7 +45,7 @@ def go(trips: pd.DataFrame):
 
     table['distance'] = haversine_distance(lon_x, lat_x, lon_y, lat_y)
     dist = table['distance']
-    print(dist)
+    #print(dist)
 
     shuffle_ixs = np.random.permutation(len(dist))
     dist = dist[shuffle_ixs]
@@ -87,7 +87,7 @@ def go(trips: pd.DataFrame):
         return res
 
     sq_err = squared_err(train_out, pred)
-    print(sq_err)
+    #print(sq_err)
 
     def grad_desc(act, pred, indata):
         return (pred - act).T @ indata / act.shape[0]
@@ -95,12 +95,12 @@ def go(trips: pd.DataFrame):
     alpha = 0.1
 
     params = params - alpha * grad_desc(train_out, pred, train_in)
-    print(params)
+    #print(params)
 
     pred = train_in @ params.T
     pred = np.reshape(pred, -1)
     sq_err = squared_err(train_out, pred)
-    print(sq_err)
+    #print(sq_err)
 
     for i in range(500):
         pred = train_in @ params.T
@@ -108,15 +108,15 @@ def go(trips: pd.DataFrame):
         params = params - alpha * grad_desc(train_out, pred, train_in)
         sq_err = squared_err(train_out, pred)
         
-        if( (i+1) % 100 == 0):
-            print(f"Error rate after {i + 1} iterations is {sq_err}")
+        #if( (i+1) % 100 == 0):
+            #print(f"Error rate after {i + 1} iterations is {sq_err}")
         
-    print(params)
+    #print(params)
     sq_err = squared_err(train_out, pred)
-    print(sq_err)
+    #print(sq_err)
 
     test_pred = test_in @ params.T
     test_pred = np.reshape(test_pred, -1)
 
     sq_err = squared_err(test_out * max_dur, test_pred * max_dur)
-    print(sq_err)
+    #print(sq_err)
