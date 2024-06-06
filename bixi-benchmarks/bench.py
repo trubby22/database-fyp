@@ -2,10 +2,18 @@ import pandas as pd
 import numpy as np
 import sqlite3
 import duckdb
+from time import time_ns
+from bixi_pandas import go
 
 num_warmup = 0
 num_main = 1
 # paths to input csvs (map from name to path)
+vendor_input_file_paths = {
+  'pandas': ...,
+  'duckdb': ...,
+  'sqlite': ...,
+}
+
 rand_names_paths = {
   "_1_64b": "/root/Documents/4-year/fyp-70011/data/random-data/_64b.csv",
   "_2_1mb": "/root/Documents/4-year/fyp-70011/data/random-data/_1mb.csv",
@@ -25,53 +33,40 @@ bixi_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/competi
 
 # pandas table to store timings
 
-def data_in_rand():
-  pass
+# queries maps (map from name to query
+def data_in(vendor, path, table_name):
+  if vendor == 'pandas':
+    return load_pandas(table_name)
+  elif vendor == 'duckdb':
+    return load_duckdb(path, table_name)
+  elif vendor == 'sqlite':
+    return load_sqlite(path, table_name)
 
-def round_trip():
-  pass
-
-def materialise_columns():
-  pass
-
-def materialise_matrix():
-  pass
-
-def matrix_vector_product():
-  pass
-
-def matrix_matrix_product():
-  pass
-
-# queries maps (map from name to query)
 rand_queries = {
-  "_1_data_in": data_in_rand,
-  "_2_round_trip": round_trip,
-  "_3_materialise_columns": materialise_columns,
-  "_4_materialise_matrix": materialise_matrix,
-  "_5_matrix_vector_product": matrix_vector_product,
-  "_6_matrix_matrix_product": matrix_matrix_product
+  "_1_data_in": data_in
 }
 
-def data_in_bixi():
-  pass
-
-def predict_duration_from_distance():
-  pass
+def predict_duration_from_distance(vendor, path, table_name):
+  df = data_in(vendor, path, table_name)
+  go(df)
 
 bixi_queries = {
-  "_1_data_in": data_in_bixi,
+  "_1_data_in": data_in,
   "_2_predict_duration_from_distance": predict_duration_from_distance
 }
 
-def load_pandas():
-  pass
+def load_pandas(path):
+  return pd.read_csv(path)
 
-def load_duckdb():
-  pass
+def load_duckdb(path, table_name):
+  with duckdb.connect(path) as con:
+    df = con.execute(f"SELECT * FROM {table_name}").fetchdf()
+    return df
 
-def load_sqlite():
-  pass
+def load_sqlite(path, table_name):
+  with sqlite3.connect(path) as con:
+    df = pd.read_sql(f"SELECT * FROM {table_name}", con)
+    return df
 
 # loader map
 loaders = {
@@ -81,6 +76,16 @@ loaders = {
 }
 
 # print elapsed time function
+
+def print_elapsed_time(duration_ns):
+  ns = duration_ns
+  us = ns / (10 ** 3)
+  ms = ns / (10 ** 6)
+  s = ns / (10 ** 9)
+  print(f'{s} [s]')
+  print(f'{ms} [ms]')
+  print(f'{us} [µs]')
+  print(f'{ns} [ns]')
 
 # benchmarking loop - function
 
