@@ -44,8 +44,8 @@ typedef unsigned long long ull;
 
 #pragma region globals
 
-const string rand_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/rand-results.csv";
-const string bixi_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/bixi-results.csv";
+const string rand_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/boss-rand-results.csv";
+const string bixi_results_path = "/root/Documents/4-year/fyp-70011/experiment-results/boss-bixi-results.csv";
 
 std::vector<std::string> librariesToTest = {};
 std::string storageLibrary = {};
@@ -176,34 +176,34 @@ ComplexExpression python_import_numpy() {
 auto& rand_queries() {
   static map<string, ComplexExpression> queries;
   if(queries.empty()) {
-    queries.try_emplace(
-      "_1_data_in", 
-      "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_))
-    );
-    queries.try_emplace(
-      "_2_round_trip", 
-      "And"_(
-        "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-        "get_python_var"_("rand_table_python"_)
-      )
-    );
-    queries.try_emplace(
-      "_3_materialise_columns", 
-        "And"_(
-          "Python"_(R"(
-table = rand_table_python['table']
-table_cpy = dict()
-for k in table.keys():
-  spans = table[k]
-  table_cpy[k] = [np.concatenate(spans)]
+//     queries.try_emplace(
+//       "_1_data_in", 
+//       "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+//     );
+//     queries.try_emplace(
+//       "_2_round_trip", 
+//       "And"_(
+//         "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+//         "get_python_var"_("rand_table_python"_)
+//       )
+//     );
+//     queries.try_emplace(
+//       "_3_materialise_columns", 
+//         "And"_(
+//           "Python"_(R"(
+// table = rand_table_python['table']
+// table_cpy = dict()
+// for k in table.keys():
+//   spans = table[k]
+//   table_cpy[k] = [np.concatenate(spans)]
 
-# print('table_cpy', table_cpy, sep='\n')
-res_table_python = {'table': table_cpy, 'matrix': None}
-          )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-          "get_python_var"_("rand_table_python"_),
-          "get_python_var"_("res_table_python"_)
-        )
-    );
+// # print('table_cpy', table_cpy, sep='\n')
+// res_table_python = {'table': table_cpy, 'matrix': None}
+//           )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+//           "get_python_var"_("rand_table_python"_),
+//           "get_python_var"_("res_table_python"_)
+//         )
+//     );
     queries.try_emplace(
       "_4_materialise_matrix", 
       "And"_(
