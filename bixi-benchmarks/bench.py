@@ -103,7 +103,7 @@ def bench_loop(table_names, queries, results_path):
   vendor_query = []
   for vendor in vendors:
     for query_name in queries:
-      vendor_query.append(f'{vendor}-{query_name}')
+      vendor_query.append(f'{vendor} {query_name}')
   timings = pd.DataFrame(index=range(len(table_names)), columns=['table name', *vendor_query])
 
   for vendor in vendors:
