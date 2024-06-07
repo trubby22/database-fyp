@@ -158,7 +158,6 @@ void create_and_load_table(string name_str, string path) {
 
 void init_storage_engine() {
   auto checkForErrors = getCheckForErrorsLambda();
-  auto evalStorage = getEvaluateStorageLambda();
   auto eval = getEvaluateLambda();
 
   unload_all_tables();
@@ -439,8 +438,8 @@ void benchmark_loop(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
 
-      // const chrono::seconds time_warmup = 3s;
-      const chrono::seconds time_warmup = 0s;
+      const chrono::seconds time_warmup = 3s;
+      // const chrono::seconds time_warmup = 0s;
       const int warmup_iters = 1;
       chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
       chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
@@ -451,8 +450,8 @@ void benchmark_loop(
         warmup_timestamp = chrono::high_resolution_clock::now();
       }
 
-      const chrono::seconds time_test = 1s;
-      // const chrono::seconds time_test = 30s;
+      const chrono::seconds time_test = 10s;
+      // const chrono::seconds time_test = 1s;
       const int test_iters = 3;
       chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
       chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
@@ -525,7 +524,7 @@ void init_and_run_benchmarks() {
   release_boss_engines();
 }
 
-int main(int argc, char** argv) {
+int main() {
   try {
     init_and_run_benchmarks();
   } catch(std::exception& e) {
