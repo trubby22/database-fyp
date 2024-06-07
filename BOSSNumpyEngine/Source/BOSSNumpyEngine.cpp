@@ -444,6 +444,7 @@ Engine::span_to_numpy_arr(ExpressionSpanArgument &&arg) {
           if (PyArray_SetBaseObject(reinterpret_cast<PyArrayObject *>(result), capsule) == -1) {
             Py_DECREF(result);
             PyErr_Print();
+            throw runtime_error("can't convert span to npy_arr - problems /w capsule");
           }
         } else {
           throw runtime_error("unsupported span type: " +
@@ -485,6 +486,34 @@ Expression Engine::evaluate(Expression &&e) {
             // top-level
             auto [top_head, top_statics, top_dynamics, top_spans] =
                 forward<decltype(expression)>(expression).decompose();
+
+            if (top_head == "Python_globals"_) {
+              auto top_dynamics_size = top_dynamics.size();
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto top_script_str = get<Symbol>(*top_it).getName();
+              auto top_script = move(top_script_str).c_str();
+
+              PyObject *top_result = PyRun_String(top_script, Py_file_input,
+                                                  global_dict, global_dict);
+
+              if (PyErr_Occurred()) {
+                PyErr_Print();
+                throw runtime_error("error in provided python code");
+              }
+
+              string top_script_return = top_script;
+              *top_it = Symbol(move(top_script_return));
+
+              if (top_result != nullptr) {
+                Py_DECREF(top_result);
+              }
+
+              auto result =
+                  ComplexExpression(move(top_head), move(top_statics),
+                                    move(top_dynamics), move(top_spans));
+
+              return result;
+            }
 
             if (top_head == "Python"_) {
               // head = Python
@@ -562,7 +591,7 @@ Expression Engine::evaluate(Expression &&e) {
 
                   PyDict_SetItemString(wrapper_dict, "table", table_dict);
                   PyDict_SetItemString(wrapper_dict, "matrix", matrix_dict);
-                  PyDict_SetItemString(global_dict, where_table_name,
+                  PyDict_SetItemString(local_dict, where_table_name,
                                        wrapper_dict);
 
                   string where_table_name_str_return = where_table_name;
@@ -579,10 +608,11 @@ Expression Engine::evaluate(Expression &&e) {
               // cout << top_script << endl;
 
               PyObject *top_result = PyRun_String(top_script, Py_file_input,
-                                                  global_dict, global_dict);
+                                                  global_dict, local_dict);
 
               if (PyErr_Occurred()) {
                 PyErr_Print();
+                throw runtime_error("error in provided python code");
               }
 
               string top_script_return = top_script;
@@ -606,7 +636,7 @@ Expression Engine::evaluate(Expression &&e) {
               auto var_name = move(var_name_str).c_str();
 
               auto wrapper_dict =
-                  PyDict_GetItemString(global_dict, move(var_name));
+                  PyDict_GetItemString(local_dict, move(var_name));
               Py_INCREF(wrapper_dict);
               auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
               Py_INCREF(table_dict);
@@ -673,8 +703,12 @@ Expression Engine::evaluate(Expression &&e) {
             return ComplexExpression(move(top_head), {}, move(top_dynamics),
                                      move(top_spans));
           },
-          [](Symbol &&symbol) -> Expression {
+          [this](Symbol &&symbol) -> Expression {
             auto name = symbol.getName();
+
+            if (symbol == "reset_python_dict"_) {
+              reset_python_dict();
+            }
 
             return forward<decltype(symbol)>(symbol);
           },
@@ -698,6 +732,12 @@ void Engine::init_python_and_numpy() {
   assert(PyArray_API);
 
   global_dict = PyDict_New();
+  local_dict = PyDict_New();
+}
+
+void Engine::reset_python_dict() {
+  Py_DECREF(local_dict);
+  local_dict = PyDict_New();
 }
 
 Engine::Engine(ull span_size_bytes) : span_size_bytes(span_size_bytes) {
@@ -706,7 +746,7 @@ Engine::Engine(ull span_size_bytes) : span_size_bytes(span_size_bytes) {
 }
 
 Engine::~Engine() {
-  Py_DECREF(global_dict);
+  Py_DECREF(local_dict);
 }
 
 #pragma endregion boilerplate

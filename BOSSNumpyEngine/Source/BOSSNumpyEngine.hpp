@@ -62,6 +62,8 @@ public:
 
 private:
   PyObject *global_dict;
+  PyObject *local_dict;
+
   ull span_size_bytes;
 
   void init_python_and_numpy();
@@ -78,7 +80,7 @@ private:
   PyObject *span_to_numpy_arr(ExpressionSpanArgument &&arg);
   ExpressionSpanArguments py_list_to_spans(PyObject *list);
   PyObject *spans_to_py_list(ExpressionSpanArguments &&args);
-
+  void reset_python_dict();
 };
 
 ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs);
