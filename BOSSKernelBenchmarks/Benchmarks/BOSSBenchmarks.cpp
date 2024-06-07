@@ -52,8 +52,8 @@ std::string storageLibrary = {};
 
 map<string, string> rand_names_paths = {
   // {"_1_64b", "/root/Documents/4-year/fyp-70011/data/csv/_64b.csv"},
-  {"_2_1mb", "/root/Documents/4-year/fyp-70011/data/csv/_1mb.csv"},
-  // {"_3_10mb", "/root/Documents/4-year/fyp-70011/data/csv/_10mb.csv"},
+  // {"_2_1mb", "/root/Documents/4-year/fyp-70011/data/csv/_1mb.csv"},
+  {"_3_10mb", "/root/Documents/4-year/fyp-70011/data/csv/_10mb.csv"},
   // {"_4_100mb", "/root/Documents/4-year/fyp-70011/data/csv/_100mb.csv"},
   // {"_5_1gb", "/root/Documents/4-year/fyp-70011/data/csv/_1gb.csv"},
   // {"_6_2gb", "/root/Documents/4-year/fyp-70011/data/csv/_2gb.csv"},
@@ -169,7 +169,10 @@ void init_storage_engine() {
 #pragma region queries
 
 ComplexExpression python_import_numpy() {
-  return "Python_globals"_("import numpy as np"_);
+  return "Python_globals"_(R"(
+import numpy as np
+import copy
+)"_);
 }
 
 auto& rand_queries() {
@@ -186,6 +189,13 @@ auto& rand_queries() {
     //     "get_python_var"_("rand_table_python"_)
     //   )
     // );
+    queries.try_emplace(
+      "_2_5_round_trip_w_copy", 
+      "And"_(
+        "Python"_("foo = copy.deepcopy(rand_table_python)"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+        // "get_python_var"_("foo"_)
+      )
+    );
 //     queries.try_emplace(
 //       "_3_materialise_columns", 
 //         "And"_(
@@ -203,26 +213,26 @@ auto& rand_queries() {
 //           "get_python_var"_("res_table_python"_)
 //         )
 //     );
-    queries.try_emplace(
-      "_4_materialise_matrix", 
-      "And"_(
-        "Python"_(R"(
-table = rand_table_python['table']
-table_cpy = dict()
-for k in table.keys():
-  spans = table[k]
-  table_cpy[k] = np.concatenate(spans)
+//     queries.try_emplace(
+//       "_4_materialise_matrix", 
+//       "And"_(
+//         "Python"_(R"(
+// table = rand_table_python['table']
+// table_cpy = dict()
+// for k in table.keys():
+//   spans = table[k]
+//   table_cpy[k] = np.concatenate(spans)
 
-m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
-# print('m', m, sep='\n')
+// m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
+// # print('m', m, sep='\n')
 
-m_wrapper = {'data': m, 'col_names': list(table.keys())}
-res_table_python = {'table': None, 'matrix': m_wrapper}
-        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-        "get_python_var"_("rand_table_python"_),
-        "get_python_var"_("res_table_python"_)
-      )
-    );
+// m_wrapper = {'data': m, 'col_names': list(table.keys())}
+// res_table_python = {'table': None, 'matrix': m_wrapper}
+//         )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+//         "get_python_var"_("rand_table_python"_),
+//         "get_python_var"_("res_table_python"_)
+//       )
+//     );
 //     queries.try_emplace(
 //       "_5_matrix_vector_product", 
 //       "And"_(
@@ -437,55 +447,59 @@ void benchmark_loop(
     csv << table_names[table_name];
 
     for (const auto& [query_name, query_expr] : query_names_exprs) {
-      cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
+      for (int j = 0; j < 1; j++) {
+        cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
 
-      eval_numpy("reset_python_dict"_);
+        eval_numpy("reset_python_dict"_);
 
-      const chrono::seconds time_warmup = 0s;
-      const ull warmup_iters = 0;
-      // const chrono::seconds time_warmup = 0s;
-      // const int warmup_iters = 0;
-      chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
-      chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
-      chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
-      for (ull i = 0; i < warmup_iters || warmup_timestamp < warmup_end_time; i++) {
-        auto res = eval(shallowCopy(query_expr));
-        benchmark::DoNotOptimize(res);
-        warmup_timestamp = chrono::high_resolution_clock::now();
-      }
+        const chrono::seconds time_warmup = 0s;
+        const ull warmup_iters = 0;
+        // const chrono::seconds time_warmup = 0s;
+        // const int warmup_iters = 0;
+        chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
+        chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
+        chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
+        for (ull i = 0; i < warmup_iters || warmup_timestamp < warmup_end_time; i++) {
+          auto res = eval(shallowCopy(query_expr));
+          benchmark::DoNotOptimize(res);
+          warmup_timestamp = chrono::high_resolution_clock::now();
+        }
 
-      const chrono::seconds time_test = 0s;
-      const ull test_iters = 1;
-      // const chrono::seconds time_test = 0s;
-      // const int test_iters = 1;
-      chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
-      chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
-      chrono::high_resolution_clock::time_point test_timestamp = test_start;
-      ull completed_iters = 0;
-      for (completed_iters = 0; completed_iters < test_iters || test_timestamp < test_end_time; completed_iters++) {
-        auto res = eval(shallowCopy(query_expr));
-        benchmark::DoNotOptimize(res);
-        test_timestamp = chrono::high_resolution_clock::now();
-#ifdef DEBUG
-        cout << "res" << endl;
-        cout << res << endl;
+        const chrono::seconds time_test = 60s;
+        const ull test_iters = 0;
+        // const chrono::seconds time_test = 0s;
+        // const int test_iters = 1;
+        chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
+        chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
+        chrono::high_resolution_clock::time_point test_timestamp = test_start;
+        ull completed_iters = 0;
+        for (completed_iters = 0; completed_iters < test_iters || test_timestamp < test_end_time; completed_iters++) {
+          auto res = eval(shallowCopy(query_expr));
+          benchmark::DoNotOptimize(res);
+          test_timestamp = chrono::high_resolution_clock::now();
+  #ifdef DEBUG
+          cout << "res" << endl;
+          cout << res << endl;
+          cout << endl;
+  #endif
+        }
+
+        chrono::high_resolution_clock::time_point test_end = chrono::high_resolution_clock::now();
+        chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(test_end - test_start);
+        chrono::nanoseconds avg_time = elapsed_time / completed_iters;
+
+  #ifdef DEBUG
+        cout << query_expr << endl;
+  #endif
+        print_elapsed_time(avg_time);
         cout << endl;
-#endif
+        cout << "end " << table_name << " " << query_name << endl;
+        cout << endl;
+
+        csv << "," << avg_time.count();
+
       }
 
-      chrono::high_resolution_clock::time_point test_end = chrono::high_resolution_clock::now();
-      chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(test_end - test_start);
-      chrono::nanoseconds avg_time = elapsed_time / completed_iters;
-
-#ifdef DEBUG
-      cout << query_expr << endl;
-#endif
-      print_elapsed_time(avg_time);
-      cout << endl;
-      cout << "end " << table_name << " " << query_name << endl;
-      cout << endl;
-
-      csv << "," << avg_time.count();
     }
     csv << endl;
 
