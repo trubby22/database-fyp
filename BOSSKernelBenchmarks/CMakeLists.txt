@@ -24,11 +24,11 @@ endif()
 set(COMMON_FLAGS "-Wall -Wextra -Wpedantic")
 
 # Debug build type
-set(CMAKE_CXX_FLAGS_DEBUG "${COMMON_FLAGS} -Og -g"
+set(CMAKE_CXX_FLAGS_DEBUG "${COMMON_FLAGS} -Og"
         CACHE STRING
         "Flags used by the C++ compiler during Debug builds."
         FORCE)
-set(CMAKE_C_FLAGS_DEBUG "${COMMON_FLAGS} -Og -g"
+set(CMAKE_C_FLAGS_DEBUG "${COMMON_FLAGS} -Og"
         CACHE STRING
         "Flags used by the C compiler during Debug builds."
         FORCE)

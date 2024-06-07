@@ -52,11 +52,11 @@ std::string storageLibrary = {};
 
 map<string, string> rand_names_paths = {
   {"_1_64b", "/root/Documents/4-year/fyp-70011/data/csv/_64b.csv"},
-  {"_2_1mb", "/root/Documents/4-year/fyp-70011/data/csv/_1mb.csv"},
-  {"_3_10mb", "/root/Documents/4-year/fyp-70011/data/csv/_10mb.csv"},
-  {"_4_100mb", "/root/Documents/4-year/fyp-70011/data/csv/_100mb.csv"},
-  {"_5_1gb", "/root/Documents/4-year/fyp-70011/data/csv/_1gb.csv"},
-  {"_6_2gb", "/root/Documents/4-year/fyp-70011/data/csv/_2gb.csv"},
+  // {"_2_1mb", "/root/Documents/4-year/fyp-70011/data/csv/_1mb.csv"},
+  // {"_3_10mb", "/root/Documents/4-year/fyp-70011/data/csv/_10mb.csv"},
+  // {"_4_100mb", "/root/Documents/4-year/fyp-70011/data/csv/_100mb.csv"},
+  // {"_5_1gb", "/root/Documents/4-year/fyp-70011/data/csv/_1gb.csv"},
+  // {"_6_2gb", "/root/Documents/4-year/fyp-70011/data/csv/_2gb.csv"},
 };
 
 unordered_map<string, string> rand_names = {
@@ -176,34 +176,34 @@ ComplexExpression python_import_numpy() {
 auto& rand_queries() {
   static map<string, ComplexExpression> queries;
   if(queries.empty()) {
-//     queries.try_emplace(
-//       "_1_data_in", 
-//       "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_))
-//     );
-//     queries.try_emplace(
-//       "_2_round_trip", 
-//       "And"_(
-//         "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-//         "get_python_var"_("rand_table_python"_)
-//       )
-//     );
-//     queries.try_emplace(
-//       "_3_materialise_columns", 
-//         "And"_(
-//           "Python"_(R"(
-// table = rand_table_python['table']
-// table_cpy = dict()
-// for k in table.keys():
-//   spans = table[k]
-//   table_cpy[k] = [np.concatenate(spans)]
+    queries.try_emplace(
+      "_1_data_in", 
+      "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+    );
+    queries.try_emplace(
+      "_2_round_trip", 
+      "And"_(
+        "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+        "get_python_var"_("rand_table_python"_)
+      )
+    );
+    queries.try_emplace(
+      "_3_materialise_columns", 
+        "And"_(
+          "Python"_(R"(
+table = rand_table_python['table']
+table_cpy = dict()
+for k in table.keys():
+  spans = table[k]
+  table_cpy[k] = [np.concatenate(spans)]
 
-// # print('table_cpy', table_cpy, sep='\n')
-// res_table_python = {'table': table_cpy, 'matrix': None}
-//           )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-//           "get_python_var"_("rand_table_python"_),
-//           "get_python_var"_("res_table_python"_)
-//         )
-//     );
+# print('table_cpy', table_cpy, sep='\n')
+res_table_python = {'table': table_cpy, 'matrix': None}
+          )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+          "get_python_var"_("rand_table_python"_),
+          "get_python_var"_("res_table_python"_)
+        )
+    );
     queries.try_emplace(
       "_4_materialise_matrix", 
       "And"_(
@@ -439,7 +439,8 @@ void benchmark_loop(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
 
-      const chrono::seconds time_warmup = 3s;
+      // const chrono::seconds time_warmup = 3s;
+      const chrono::seconds time_warmup = 0s;
       const int warmup_iters = 1;
       chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
       chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
@@ -450,7 +451,8 @@ void benchmark_loop(
         warmup_timestamp = chrono::high_resolution_clock::now();
       }
 
-      const chrono::seconds time_test = 10s;
+      const chrono::seconds time_test = 1s;
+      // const chrono::seconds time_test = 30s;
       const int test_iters = 3;
       chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
       chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
@@ -509,15 +511,15 @@ void init_and_run_benchmarks() {
     rand_queries()
   );
 
-  csv.str("");
-  csv << "table name,boss data in,boss predict duration from distance" << endl;
-  benchmark_loop(
-    move(csv),
-    bixi_results_path,
-    bixi_names_paths,
-    bixi_names,
-    bixi_queries()
-  );
+  // csv.str("");
+  // csv << "table name,boss data in,boss predict duration from distance" << endl;
+  // benchmark_loop(
+  //   move(csv),
+  //   bixi_results_path,
+  //   bixi_names_paths,
+  //   bixi_names,
+  //   bixi_queries()
+  // );
 
   unload_all_tables();
   release_boss_engines();
