@@ -26,6 +26,7 @@
 #include <functional>
 #include <memory>
 #include <cmath>
+#include <stdio.h>
 
 using namespace std;
 using string_literals::operator"" s;

@@ -18,31 +18,32 @@ Span<T> *transfer_ownership(Span<T> &&span) {
 
 extern "C" {
   void print_destroy_msg() {
-    printf("destroyed span\n");
+    // assert(false);
+    // printf("destroying span...\n");
   }
 
   void destroy_span_int32(PyObject *capsule) {
+    print_destroy_msg();
     void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
     delete static_cast<Span<int32_t>*>(span_ptr);
-    print_destroy_msg();
   };
 
   void destroy_span_int64(PyObject *capsule) {
+    print_destroy_msg();
     void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
     delete static_cast<Span<int64_t>*>(span_ptr);
-    print_destroy_msg();
   };
 
   void destroy_span_float(PyObject *capsule) {
+    print_destroy_msg();
     void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
     delete static_cast<Span<float_t>*>(span_ptr);
-    print_destroy_msg();
   };
 
   void destroy_span_double(PyObject *capsule) {
+    print_destroy_msg();
     void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
     delete static_cast<Span<double_t>*>(span_ptr);
-    print_destroy_msg();
   };
 }
 
@@ -230,9 +231,7 @@ template <typename T> Span<T> numpy_arr_to_span_helper(PyObject *py_npy_arr) {
   T *data = static_cast<T *>(PyArray_DATA(npy_arr));
   auto length = PyArray_SIZE(npy_arr);
   auto span = boss::Span<T>(data, length, [npy_arr]() {
-#ifdef DEBUG
-    cout << "deleting span" << endl;
-#endif
+    // cout << "deleting span" << endl;
     Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
   });
   return span;
@@ -526,6 +525,7 @@ Expression Engine::evaluate(Expression &&e) {
                     auto list_py_list = spans_to_py_list(move(list_spans));
                     PyDict_SetItemString(table_dict, colname_column_name,
                                           list_py_list);
+                    Py_DECREF(list_py_list);
 
                     auto return_list =
                         ComplexExpression("List"_, {}, {}, {});
@@ -547,9 +547,12 @@ Expression Engine::evaluate(Expression &&e) {
                   *(where_it + 1) = move(return_table);
 
                   PyDict_SetItemString(wrapper_dict, "table", table_dict);
+                  Py_DECREF(table_dict);
                   PyDict_SetItemString(wrapper_dict, "matrix", matrix_dict);
+                  Py_DECREF(matrix_dict);
                   PyDict_SetItemString(local_dict, where_table_name,
                                        wrapper_dict);
+                  Py_DECREF(wrapper_dict);
 
                   string where_table_name_str_return = where_table_name;
                   *where_it = Symbol(move(where_table_name_str_return));
@@ -599,8 +602,8 @@ Expression Engine::evaluate(Expression &&e) {
               Py_INCREF(table_dict);
               auto matrix_dict = PyDict_GetItemString(wrapper_dict, "matrix");
               Py_INCREF(matrix_dict);
-              Py_DECREF(wrapper_dict);
 
+              Expression table;
               if (table_dict != Py_None) {
                 // boss table
                 ExpressionArguments res_dynamics;
@@ -632,23 +635,23 @@ Expression Engine::evaluate(Expression &&e) {
 
                   res_dynamics.emplace_back(move(boss_column));
                 }
+                Py_DECREF(table_dict);
 
-                auto table =
-                    ComplexExpression("Table"_, {}, move(res_dynamics), {});
-
-                return table;
+                table = ComplexExpression("Table"_, {}, move(res_dynamics), {});
               } else {
                 // matrix
                 auto matrix = PyDict_GetItemString(matrix_dict, "data");
                 Py_INCREF(matrix);
                 auto col_names = PyDict_GetItemString(matrix_dict, "col_names");
                 Py_INCREF(col_names);
-                auto table = npy_matrix_to_table(
-                    reinterpret_cast<PyArrayObject *>(matrix), col_names);
+                Py_DECREF(matrix_dict);
+                table = npy_matrix_to_table(reinterpret_cast<PyArrayObject *>(matrix), col_names);
                 Py_DECREF(col_names);
                 Py_DECREF(matrix);
-                return table;
               }
+              Py_DECREF(wrapper_dict);
+
+              return table;
             }
 
             transform(make_move_iterator(top_dynamics.begin()),
@@ -693,6 +696,11 @@ void Engine::init_python_and_numpy() {
 }
 
 void Engine::reset_python_dict() {
+  // Py_ssize_t size = PyDict_Size(local_dict);
+  // cout << "local_dict size " << size << endl;
+  // Py_ssize_t ref_count = Py_REFCNT(local_dict);
+  // cout << "local_dict reference count " << ref_count << endl;
+
   Py_DECREF(local_dict);
   local_dict = PyDict_New();
 }
