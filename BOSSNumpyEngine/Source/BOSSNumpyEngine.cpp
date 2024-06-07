@@ -8,7 +8,45 @@
 
 const int ENGINE_SPAN_SIZE_BYTES = 1000000; // 1 million = 1 mb
 
+
 namespace boss::engines::numpy {
+// int32_t
+// int64_t
+// float_t
+// double_t
+
+extern "C" {
+  void destroy_span_int32(void* span_ptr) {
+    delete static_cast<Span<int32_t>*>(span_ptr);
+  }
+
+  void destroy_span_int64(void* span_ptr) {
+    delete static_cast<Span<int64_t>*>(span_ptr);
+  }
+
+  void destroy_span_float(void* span_ptr) {
+    delete static_cast<Span<float_t>*>(span_ptr);
+  }
+
+  void destroy_span_double(void* span_ptr) {
+    delete static_cast<Span<double_t>*>(span_ptr);
+  }
+}
+
+template <typename T>
+void *destroy_span_ptr() {
+  if constexpr (is_same_v<T, int32_t>) {
+    return &destroy_span_int32;
+  } else if constexpr (is_same_v<T, int64_t>) {
+    return &destroy_span_int64;
+  } else if constexpr (is_same_v<T, float_t>) {
+    return &destroy_span_float;
+  } else if constexpr (is_same_v<T, double_t>) {
+    return &destroy_span_double;
+  } else {
+    throw runtime_error("unsupported type: " + string(typeid(T).name()));
+  }
+}
 
 #pragma region python_helpers
 
@@ -93,8 +131,10 @@ void print_py_list(PyObject *list) {
   cout << "printing py list" << endl;
   Py_ssize_t size = PyList_Size(list);
   for (Py_ssize_t i = 0; i < size; i++) {
-    auto npy_arr = reinterpret_cast<PyArrayObject *>(PyList_GetItem(list, i));
-    print_1d_numpy_array(npy_arr);
+    auto npy_arr = PyList_GetItem(list, i);
+    Py_INCREF(npy_arr);
+    print_1d_numpy_array(reinterpret_cast<PyArrayObject *>(npy_arr));
+    Py_DECREF(npy_arr);
   }
   cout << "end of py list" << endl;
 }
@@ -252,31 +292,31 @@ template <typename T> Span<T> numpy_arr_to_span_helper(PyObject *py_npy_arr) {
 }
 
 ExpressionSpanArgument Engine::numpy_arr_to_span(PyObject *npy_arr) {
-  if (auto search = npy_arr_ptr_expr_span_map.find(npy_arr); search != npy_arr_ptr_expr_span_map.end()) {
-    auto result = move(search->second);
-    npy_arr_ptr_expr_span_map.erase(search->first);
-    return result;
-  } else {
-    int typenum = PyArray_TYPE(npy_arr);
+  // if (auto search = npy_arr_ptr_expr_span_map.find(npy_arr); search != npy_arr_ptr_expr_span_map.end()) {
+  //   auto result = move(search->second);
+  //   npy_arr_ptr_expr_span_map.erase(search->first);
+  //   return result;
+  // } else {
+  int typenum = PyArray_TYPE(npy_arr);
 
-    switch (typenum) {
-    case NPY_INT32:
-      return numpy_arr_to_span_helper<int32_t>(npy_arr);
-      break;
-    case NPY_INT64:
-      return numpy_arr_to_span_helper<int64_t>(npy_arr);
-      break;
-    case NPY_FLOAT:
-      return numpy_arr_to_span_helper<float_t>(npy_arr);
-      break;
-    case NPY_DOUBLE:
-      return numpy_arr_to_span_helper<double_t>(npy_arr);
-      break;
-    default:
-      throw runtime_error("shouldn't happen");
-      break;
-    }
+  switch (typenum) {
+  case NPY_INT32:
+    return numpy_arr_to_span_helper<int32_t>(npy_arr);
+    break;
+  case NPY_INT64:
+    return numpy_arr_to_span_helper<int64_t>(npy_arr);
+    break;
+  case NPY_FLOAT:
+    return numpy_arr_to_span_helper<float_t>(npy_arr);
+    break;
+  case NPY_DOUBLE:
+    return numpy_arr_to_span_helper<double_t>(npy_arr);
+    break;
+  default:
+    throw runtime_error("shouldn't happen");
+    break;
   }
+  // }
 }
 
 ExpressionSpanArguments Engine::py_list_to_spans(PyObject *list) {
@@ -285,6 +325,7 @@ ExpressionSpanArguments Engine::py_list_to_spans(PyObject *list) {
   result.reserve(size);
   for (int i = 0; i < size; i++) {
     auto npy_arr = PyList_GetItem(list, i);
+    Py_INCREF(npy_arr);
     auto span_arg = numpy_arr_to_span(npy_arr);
     result.emplace_back(move(span_arg));
   }
@@ -313,7 +354,9 @@ ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
 
   for (int i = 0; i < npy_rows; i++) {
     auto col_name = PyList_GetItem(col_names, i);
+    Py_INCREF(col_name);
     string col_name_str = PyObject_to_string(col_name);
+    Py_DECREF(col_name);
     Symbol col_head(move(col_name_str));
 
     ExpressionSpanArguments col_list_spans;
@@ -396,10 +439,25 @@ Engine::span_to_numpy_arr(ExpressionSpanArgument &&arg) {
           auto end = typed_span.end();
           auto size = typed_span.size();
           npy_intp dims[] = {static_cast<npy_intp>(size)};
+
+          void (*destroy_span_ptr)(void* span_ptr) = destroy_span_ptr<T>();
+
+          void span_destructor(void *capsule) {
+            void *span = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
+            destroy_span_ptr(span);
+          };
   
           result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
 
-          npy_arr_ptr_expr_span_map[result] = move(typed_span);
+          capsule = PyCapsule_New(move(typed_span).get(), "backing_span",
+                                  (PyCapsule_Destructor)&span_destructor);
+
+          if (PyArray_SetBaseObject(arr, capsule) == -1) {
+            Py_DECREF(arr);
+            return NULL;
+          }
+
+          // npy_arr_ptr_expr_span_map[result] = move(typed_span);
         } else {
           throw runtime_error("unsupported span type: " +
                               string(typeid(decltype(typed_span)).name()));
@@ -494,7 +552,7 @@ Expression Engine::evaluate(Expression &&e) {
 
                     auto list_py_list = spans_to_py_list(move(list_spans));
                     PyDict_SetItemString(table_dict, colname_column_name,
-                                         move(list_py_list));
+                                          list_py_list);
 
                     auto return_list =
                         ComplexExpression("List"_, {}, {}, {});
@@ -543,9 +601,7 @@ Expression Engine::evaluate(Expression &&e) {
               string top_script_return = top_script;
               *top_it = Symbol(move(top_script_return));
 
-              if (top_result == nullptr) {
-                PyErr_Print();
-              } else {
+              if (top_result != nullptr) {
                 Py_DECREF(top_result);
               }
 
@@ -564,8 +620,12 @@ Expression Engine::evaluate(Expression &&e) {
 
               auto wrapper_dict =
                   PyDict_GetItemString(global_dict, move(var_name));
+              Py_INCREF(wrapper_dict);
               auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
+              Py_INCREF(table_dict);
               auto matrix_dict = PyDict_GetItemString(wrapper_dict, "matrix");
+              Py_INCREF(matrix_dict);
+              Py_DECREF(wrapper_dict);
 
               if (table_dict != Py_None) {
                 // boss table
@@ -576,10 +636,14 @@ Expression Engine::evaluate(Expression &&e) {
                 Py_ssize_t pos = 0;
 
                 while (PyDict_Next(table_dict, &pos, &col_name, &col_py_list)) {
+                  Py_INCREF(col_name);
+                  Py_INCREF(col_py_list);
                   string col_name_str = PyObject_to_string(col_name);
+                  Py_DECREF(col_name);
                   Symbol col_head(move(col_name_str));
 
                   auto col_list_spans = py_list_to_spans(col_py_list);
+                  Py_DECREF(col_py_list);
                   auto boss_list =
                       ComplexExpression("List"_, {}, {}, move(col_list_spans));
                   // head = List
@@ -602,9 +666,13 @@ Expression Engine::evaluate(Expression &&e) {
               } else {
                 // matrix
                 auto matrix = PyDict_GetItemString(matrix_dict, "data");
+                Py_INCREF(matrix);
                 auto col_names = PyDict_GetItemString(matrix_dict, "col_names");
+                Py_INCREF(col_names);
                 auto table = npy_matrix_to_table(
                     reinterpret_cast<PyArrayObject *>(matrix), col_names);
+                Py_DECREF(col_names);
+                Py_DECREF(matrix);
                 return table;
               }
             }
@@ -648,6 +716,10 @@ void Engine::init_python_and_numpy() {
 Engine::Engine(ull span_size_bytes) : span_size_bytes(span_size_bytes) {
   init_python_and_numpy();
   PyDict_SetItemString(global_dict, "__builtins__", PyEval_GetBuiltins());
+}
+
+Engine::~Engine() {
+  Py_DECREF(global_dict);
 }
 
 #pragma endregion boilerplate
