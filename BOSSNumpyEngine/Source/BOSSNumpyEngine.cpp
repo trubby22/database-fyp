@@ -10,42 +10,32 @@ const int ENGINE_SPAN_SIZE_BYTES = 1000000; // 1 million = 1 mb
 
 
 namespace boss::engines::numpy {
-// int32_t
-// int64_t
-// float_t
-// double_t
-
-extern "C" {
-  void destroy_span_int32(void* span_ptr) {
-    delete static_cast<Span<int32_t>*>(span_ptr);
-  }
-
-  void destroy_span_int64(void* span_ptr) {
-    delete static_cast<Span<int64_t>*>(span_ptr);
-  }
-
-  void destroy_span_float(void* span_ptr) {
-    delete static_cast<Span<float_t>*>(span_ptr);
-  }
-
-  void destroy_span_double(void* span_ptr) {
-    delete static_cast<Span<double_t>*>(span_ptr);
-  }
-}
 
 template <typename T>
-void *destroy_span_ptr() {
-  if constexpr (is_same_v<T, int32_t>) {
-    return &destroy_span_int32;
-  } else if constexpr (is_same_v<T, int64_t>) {
-    return &destroy_span_int64;
-  } else if constexpr (is_same_v<T, float_t>) {
-    return &destroy_span_float;
-  } else if constexpr (is_same_v<T, double_t>) {
-    return &destroy_span_double;
-  } else {
-    throw runtime_error("unsupported type: " + string(typeid(T).name()));
-  }
+Span<T> *transfer_ownership(Span<T> &&span) {
+  return new Span<T>(move(span));
+}
+
+extern "C" {
+  void destroy_span_int32(PyObject *capsule) {
+    void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
+    delete static_cast<Span<int32_t>*>(span_ptr);
+  };
+
+  void destroy_span_int64(PyObject *capsule) {
+    void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
+    delete static_cast<Span<int64_t>*>(span_ptr);
+  };
+
+  void destroy_span_float(PyObject *capsule) {
+    void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
+    delete static_cast<Span<float_t>*>(span_ptr);
+  };
+
+  void destroy_span_double(PyObject *capsule) {
+    void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
+    delete static_cast<Span<double_t>*>(span_ptr);
+  };
 }
 
 #pragma region python_helpers
@@ -292,11 +282,6 @@ template <typename T> Span<T> numpy_arr_to_span_helper(PyObject *py_npy_arr) {
 }
 
 ExpressionSpanArgument Engine::numpy_arr_to_span(PyObject *npy_arr) {
-  // if (auto search = npy_arr_ptr_expr_span_map.find(npy_arr); search != npy_arr_ptr_expr_span_map.end()) {
-  //   auto result = move(search->second);
-  //   npy_arr_ptr_expr_span_map.erase(search->first);
-  //   return result;
-  // } else {
   int typenum = PyArray_TYPE(npy_arr);
 
   switch (typenum) {
@@ -316,7 +301,6 @@ ExpressionSpanArgument Engine::numpy_arr_to_span(PyObject *npy_arr) {
     throw runtime_error("shouldn't happen");
     break;
   }
-  // }
 }
 
 ExpressionSpanArguments Engine::py_list_to_spans(PyObject *list) {
@@ -430,34 +414,37 @@ PyObject *
 Engine::span_to_numpy_arr(ExpressionSpanArgument &&arg) {
   PyObject *result;
   visit(
-      [&result, this]<typename T>(Span<T> &&typed_span) -> void {
+      [&result]<typename T>(Span<T> &&typed_span) -> void {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
                       is_same_v<T, float_t> || is_same_v<T, double_t>) {
 
           auto typenum = cpp_type_to_numpy<T>();
           auto begin = typed_span.begin();
-          auto end = typed_span.end();
           auto size = typed_span.size();
           npy_intp dims[] = {static_cast<npy_intp>(size)};
 
-          void (*destroy_span_ptr)(void* span_ptr) = destroy_span_ptr<T>();
-
-          void span_destructor(void *capsule) {
-            void *span = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
-            destroy_span_ptr(span);
-          };
-  
           result = PyArray_SimpleNewFromData(1, dims, typenum, begin);
 
-          capsule = PyCapsule_New(move(typed_span).get(), "backing_span",
-                                  (PyCapsule_Destructor)&span_destructor);
-
-          if (PyArray_SetBaseObject(arr, capsule) == -1) {
-            Py_DECREF(arr);
-            return NULL;
+          void (*destroy_span)(PyObject *capsule_ptr);
+          if constexpr (is_same_v<T, int32_t>) {
+            destroy_span = &destroy_span_int32;
+          } else if constexpr (is_same_v<T, int64_t>) {
+            destroy_span = &destroy_span_int64;
+          } else if constexpr (is_same_v<T, float_t>) {
+            destroy_span = &destroy_span_float;
+          } else if constexpr (is_same_v<T, double_t>) {
+            destroy_span = &destroy_span_double;
+          } else {
+            throw runtime_error("unsupported type: " + string(typeid(T).name()));
           }
 
-          // npy_arr_ptr_expr_span_map[result] = move(typed_span);
+          Span<T> *span_ptr = transfer_ownership(move(typed_span));
+          PyObject *capsule = PyCapsule_New(span_ptr, "backing_span",
+                                  (PyCapsule_Destructor)destroy_span);
+          if (PyArray_SetBaseObject(reinterpret_cast<PyArrayObject *>(result), capsule) == -1) {
+            Py_DECREF(result);
+            PyErr_Print();
+          }
         } else {
           throw runtime_error("unsupported span type: " +
                               string(typeid(decltype(typed_span)).name()));
@@ -686,7 +673,7 @@ Expression Engine::evaluate(Expression &&e) {
             return ComplexExpression(move(top_head), {}, move(top_dynamics),
                                      move(top_spans));
           },
-          [this](Symbol &&symbol) -> Expression {
+          [](Symbol &&symbol) -> Expression {
             auto name = symbol.getName();
 
             return forward<decltype(symbol)>(symbol);

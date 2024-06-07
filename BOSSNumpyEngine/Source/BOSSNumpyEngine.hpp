@@ -62,7 +62,6 @@ public:
 
 private:
   PyObject *global_dict;
-  // unordered_map<PyObject *, ExpressionSpanArgument> npy_arr_ptr_expr_span_map;
   ull span_size_bytes;
 
   void init_python_and_numpy();
