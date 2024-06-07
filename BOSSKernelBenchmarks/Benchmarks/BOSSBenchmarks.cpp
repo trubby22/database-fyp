@@ -69,7 +69,7 @@ unordered_map<string, string> rand_names = {
 };
 
 map<string, string> bixi_names_paths = {
-  {"bixi", "/root/Documents/4-year/fyp-70011/data/bixi-data/bixi-no-index-yes-colnames.csv"}
+  {"bixi", "/root/Documents/4-year/fyp-70011/data/csv/bixi.csv"}
 };
 
 unordered_map<string, string> bixi_names = {
@@ -169,7 +169,7 @@ void init_storage_engine() {
 #pragma region queries
 
 ComplexExpression python_import_numpy() {
-  return "Python"_("import numpy as np"_, "Where"_());
+  return "Python_globals"_("import numpy as np"_);
 }
 
 auto& rand_queries() {
@@ -428,6 +428,7 @@ void benchmark_loop(
   map<string, ComplexExpression> &query_names_exprs
 ) {
   auto eval = getEvaluateLambda();
+  auto eval_numpy = getEvaluateBaselineLambda();
   cout << endl;
 
   for (const auto& [table_name, table_path] : table_names_paths) {
@@ -438,9 +439,12 @@ void benchmark_loop(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
 
-      const chrono::seconds time_warmup = 3s;
-      // const chrono::seconds time_warmup = 0s;
-      const int warmup_iters = 1;
+      eval_numpy("reset_python_dict"_);
+
+      // const chrono::seconds time_warmup = 3s;
+      // const int warmup_iters = 1;
+      const chrono::seconds time_warmup = 0s;
+      const int warmup_iters = 0;
       chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
       chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
       chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
@@ -450,9 +454,10 @@ void benchmark_loop(
         warmup_timestamp = chrono::high_resolution_clock::now();
       }
 
-      const chrono::seconds time_test = 10s;
-      // const chrono::seconds time_test = 1s;
-      const int test_iters = 3;
+      // const chrono::seconds time_test = 10s;
+      // const int test_iters = 3;
+      const chrono::seconds time_test = 0s;
+      const int test_iters = 1;
       chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
       chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
       chrono::high_resolution_clock::time_point test_timestamp = test_start;
