@@ -17,24 +17,32 @@ Span<T> *transfer_ownership(Span<T> &&span) {
 }
 
 extern "C" {
+  void print_destroy_msg() {
+    printf("destroyed span\n");
+  }
+
   void destroy_span_int32(PyObject *capsule) {
     void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
     delete static_cast<Span<int32_t>*>(span_ptr);
+    print_destroy_msg();
   };
 
   void destroy_span_int64(PyObject *capsule) {
     void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
     delete static_cast<Span<int64_t>*>(span_ptr);
+    print_destroy_msg();
   };
 
   void destroy_span_float(PyObject *capsule) {
     void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
     delete static_cast<Span<float_t>*>(span_ptr);
+    print_destroy_msg();
   };
 
   void destroy_span_double(PyObject *capsule) {
     void *span_ptr = PyCapsule_GetPointer(capsule, PyCapsule_GetName(capsule));
     delete static_cast<Span<double_t>*>(span_ptr);
+    print_destroy_msg();
   };
 }
 
@@ -214,57 +222,6 @@ int sizeof_dtype(PyArrayObject *npy_arr) {
 }
 
 #pragma endregion type_conversion
-
-#pragma region benchmark
-
-ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs) {
-  random_device rnd_device;
-  mt19937 mersenne_engine {rnd_device()};
-  uniform_int_distribution<int> dist {0, 100};
-  auto gen = [&dist, &mersenne_engine](){
-                  return dist(mersenne_engine);
-              };
-
-  ull col_size = table_size / num_cols;
-
-  ExpressionArguments table_dynamics;
-  for (int i = 0; i < num_cols; i++) {
-    ExpressionSpanArguments list_spans;
-    for (ull j = 0; j < col_size; j += span_size_bytes) {
-      
-      ull span_end = min(j + span_size_bytes, col_size);
-      ull size = span_end - j;
-
-      // vector<int> vec(size);
-      unique_ptr<vector<int>> vec_ptr = make_unique<vector<int>>(size);
-      vector<int> &vec = *vec_ptr;
-
-      generate(begin(vec), end(vec), gen);
-      auto span = Span<int>(move(vec));
-
-      span_ptrs.emplace_back(move(vec_ptr));
-      list_spans.emplace_back(move(span));
-    }
-    auto list = ComplexExpression("List"_, {}, {}, move(list_spans));
-    // List
-
-    ExpressionArguments column_dynamics;
-    column_dynamics.emplace_back(move(list));
-
-    ostringstream oss;
-    oss << "col_" << i;
-    string col_name_str = oss.str();
-    Symbol col_name(move(col_name_str));
-
-    auto column = ComplexExpression(move(col_name), {}, move(column_dynamics));
-    // Column
-    table_dynamics.emplace_back(move(column));
-  }
-
-  return ComplexExpression("Table"_, {}, move(table_dynamics), {});
-}
-
-#pragma endregion benchmark
 
 #pragma region python_to_boss
 
@@ -636,7 +593,7 @@ Expression Engine::evaluate(Expression &&e) {
               auto var_name = move(var_name_str).c_str();
 
               auto wrapper_dict =
-                  PyDict_GetItemString(local_dict, move(var_name));
+                  PyDict_GetItemString(local_dict, var_name);
               Py_INCREF(wrapper_dict);
               auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
               Py_INCREF(table_dict);
