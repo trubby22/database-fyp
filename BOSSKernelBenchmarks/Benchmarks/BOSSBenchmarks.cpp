@@ -51,8 +51,8 @@ std::vector<std::string> librariesToTest = {};
 std::string storageLibrary = {};
 
 map<string, string> rand_names_paths = {
-  {"_1_64b", "/root/Documents/4-year/fyp-70011/data/csv/_64b.csv"},
-  // {"_2_1mb", "/root/Documents/4-year/fyp-70011/data/csv/_1mb.csv"},
+  // {"_1_64b", "/root/Documents/4-year/fyp-70011/data/csv/_64b.csv"},
+  {"_2_1mb", "/root/Documents/4-year/fyp-70011/data/csv/_1mb.csv"},
   // {"_3_10mb", "/root/Documents/4-year/fyp-70011/data/csv/_10mb.csv"},
   // {"_4_100mb", "/root/Documents/4-year/fyp-70011/data/csv/_100mb.csv"},
   // {"_5_1gb", "/root/Documents/4-year/fyp-70011/data/csv/_1gb.csv"},
@@ -175,34 +175,34 @@ ComplexExpression python_import_numpy() {
 auto& rand_queries() {
   static map<string, ComplexExpression> queries;
   if(queries.empty()) {
-    queries.try_emplace(
-      "_1_data_in", 
-      "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_))
-    );
-    queries.try_emplace(
-      "_2_round_trip", 
-      "And"_(
-        "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-        "get_python_var"_("rand_table_python"_)
-      )
-    );
-    queries.try_emplace(
-      "_3_materialise_columns", 
-        "And"_(
-          "Python"_(R"(
-table = rand_table_python['table']
-table_cpy = dict()
-for k in table.keys():
-  spans = table[k]
-  table_cpy[k] = [np.concatenate(spans)]
+//     queries.try_emplace(
+//       "_1_data_in", 
+//       "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+//     );
+    // queries.try_emplace(
+    //   "_2_round_trip", 
+    //   "And"_(
+    //     "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+    //     "get_python_var"_("rand_table_python"_)
+    //   )
+    // );
+//     queries.try_emplace(
+//       "_3_materialise_columns", 
+//         "And"_(
+//           "Python"_(R"(
+// table = rand_table_python['table']
+// table_cpy = dict()
+// for k in table.keys():
+//   spans = table[k]
+//   table_cpy[k] = [np.concatenate(spans)]
 
-# print('table_cpy', table_cpy, sep='\n')
-res_table_python = {'table': table_cpy, 'matrix': None}
-          )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-          "get_python_var"_("rand_table_python"_),
-          "get_python_var"_("res_table_python"_)
-        )
-    );
+// # print('table_cpy', table_cpy, sep='\n')
+// res_table_python = {'table': table_cpy, 'matrix': None}
+//           )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+//           "get_python_var"_("rand_table_python"_),
+//           "get_python_var"_("res_table_python"_)
+//         )
+//     );
     queries.try_emplace(
       "_4_materialise_matrix", 
       "And"_(
@@ -223,53 +223,53 @@ res_table_python = {'table': None, 'matrix': m_wrapper}
         "get_python_var"_("res_table_python"_)
       )
     );
-    queries.try_emplace(
-      "_5_matrix_vector_product", 
-      "And"_(
-        "Python"_(R"(
-table = rand_table_python['table']
-table_cpy = dict()
-for k in table.keys():
-  spans = table[k]
-  table_cpy[k] = np.concatenate(spans)
+//     queries.try_emplace(
+//       "_5_matrix_vector_product", 
+//       "And"_(
+//         "Python"_(R"(
+// table = rand_table_python['table']
+// table_cpy = dict()
+// for k in table.keys():
+//   spans = table[k]
+//   table_cpy[k] = np.concatenate(spans)
 
-m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
-w = np.array(
-  [8.41, 3.14, 5.29, -3.81, 0.03, -6.42, -8.37, 2.78], 
-  dtype=np.float64).reshape((8, 1))
-res = w.T @ m
-#print('m.shape', m.shape)
-#print('res.shape', res.shape)
-#print('res', res, sep='\n')
+// m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
+// w = np.array(
+//   [8.41, 3.14, 5.29, -3.81, 0.03, -6.42, -8.37, 2.78], 
+//   dtype=np.float64).reshape((8, 1))
+// res = w.T @ m
+// #print('m.shape', m.shape)
+// #print('res.shape', res.shape)
+// #print('res', res, sep='\n')
 
-res_wrapper = {'data': res, 'col_names': ['aggregate_value']}
-res_table_python = {'table': None, 'matrix': res_wrapper}
-        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-        "get_python_var"_("rand_table_python"_),
-        "get_python_var"_("res_table_python"_)
-      )
-    );
-    queries.try_emplace(
-      "_6_matrix_matrix_product", 
-      "And"_(
-        "Python"_(R"(
-table = rand_table_python['table']
-table_cpy = dict()
-for k in table.keys():
-  spans = table[k]
-  table_cpy[k] = np.concatenate(spans)
+// res_wrapper = {'data': res, 'col_names': ['aggregate_value']}
+// res_table_python = {'table': None, 'matrix': res_wrapper}
+//         )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+//         "get_python_var"_("rand_table_python"_),
+//         "get_python_var"_("res_table_python"_)
+//       )
+//     );
+//     queries.try_emplace(
+//       "_6_matrix_matrix_product", 
+//       "And"_(
+//         "Python"_(R"(
+// table = rand_table_python['table']
+// table_cpy = dict()
+// for k in table.keys():
+//   spans = table[k]
+//   table_cpy[k] = np.concatenate(spans)
 
-m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
-res = m @ m.T
-# print('res', res, sep='\n')
+// m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
+// res = m @ m.T
+// # print('res', res, sep='\n')
 
-res_wrapper = {'data': res, 'col_names': list(table.keys())}
-res_table_python = {'table': None, 'matrix': res_wrapper}
-        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-        "get_python_var"_("rand_table_python"_),
-        "get_python_var"_("res_table_python"_)
-      )
-    );
+// res_wrapper = {'data': res, 'col_names': list(table.keys())}
+// res_table_python = {'table': None, 'matrix': res_wrapper}
+//         )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
+//         "get_python_var"_("rand_table_python"_),
+//         "get_python_var"_("res_table_python"_)
+//       )
+//     );
   }
   return queries;
 }
@@ -441,10 +441,10 @@ void benchmark_loop(
 
       eval_numpy("reset_python_dict"_);
 
-      // const chrono::seconds time_warmup = 3s;
-      // const int warmup_iters = 1;
       const chrono::seconds time_warmup = 0s;
-      const int warmup_iters = 0;
+      const ull warmup_iters = 0;
+      // const chrono::seconds time_warmup = 0s;
+      // const int warmup_iters = 0;
       chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
       chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
       chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
@@ -454,10 +454,10 @@ void benchmark_loop(
         warmup_timestamp = chrono::high_resolution_clock::now();
       }
 
-      // const chrono::seconds time_test = 10s;
-      // const int test_iters = 3;
       const chrono::seconds time_test = 0s;
-      const int test_iters = 1;
+      const ull test_iters = 1;
+      // const chrono::seconds time_test = 0s;
+      // const int test_iters = 1;
       chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
       chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
       chrono::high_resolution_clock::time_point test_timestamp = test_start;
