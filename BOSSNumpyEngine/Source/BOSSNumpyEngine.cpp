@@ -6,10 +6,23 @@
 
 // #define DEBUG
 
-const int ENGINE_SPAN_SIZE_BYTES = 1000000; // 1 million = 1 mb
-
-
 namespace boss::engines::numpy {
+
+// class ComplexExpressionWrapper : public ComplexExpression {
+// private:
+//   PyObject *npy_matrix;
+// public:
+//   void steal_ref(PyObject *obj) {
+//     npy_matrix = obj;
+//   }
+
+//   ~ComplexExpressionWrapper() {
+//     // if (npy_matrix != nullptr) {
+//     //   PyDECREF(npy_matrix);
+//     // }
+//     ComplexExpression::~ComplexExpression();
+//   }
+// };
 
 template <typename T>
 Span<T> *transfer_ownership(Span<T> &&span) {
@@ -336,6 +349,7 @@ ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
     res_dynamics.emplace_back(move(boss_column));
   }
   auto table = ComplexExpression("Table"_, {}, move(res_dynamics), {});
+  // table.steal_ref(reinterpret_cast<PyObject *>(npy_matrix));
   return table;
 }
 
@@ -408,15 +422,18 @@ Engine::spans_to_py_list(ExpressionSpanArguments &&args) {
 
 // returns new reference to wrapper_dict
 PyObject *
-Engine::table_to_pywrapper(Expression &&table_expr) {
-  auto [table_unused_0, table_unused_1, table_dynamics,
-        table_unused_3] = move(table_expr).decompose();
-  // head = Table
-
+Engine::table_to_pywrapper(ComplexExpression &&table_expr) {
   PyObject *wrapper_dict = PyDict_New();
   PyObject *table_dict = PyDict_New();
   PyObject *matrix_dict = PyDict_New();
 
+  // Expression table_expr = std_move(table_expr_arg);
+  // if (dynamic_cast<ComplexExpressionWrapper *>(&table_expr)) {
+  // }
+
+  auto [table_unused_0, table_unused_1, table_dynamics,
+        table_unused_3] = move(table_expr).decompose();
+  // head = Table
   auto table_it = make_move_iterator(table_dynamics.begin());
   auto table_it_end = make_move_iterator(table_dynamics.end());
   for (; table_it < table_it_end; table_it++) {
@@ -520,7 +537,7 @@ ComplexExpression Engine::pymatrix_to_table(PyObject *matrix_dict) {
 
   Py_DECREF(col_names);
   Py_DECREF(matrix);
-  return result;
+  return get<ComplexExpression>(move(result));
 }
 
 // steals reference to wrapper_dict
@@ -562,20 +579,20 @@ Expression Engine::evaluate(Expression &&e) {
 
             if (top_head == "Project"_) {
               // head = Project
-              auto top_dynamics_size = top_dynamics.size();
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto table = get<ComplexExpression>(*top_it);
-              PyObject *table_pyobject = table_to_pywrapper(table);
+              PyObject *table_pywrapper = table_to_pywrapper(move(table));
+
               auto as_expr = get<ComplexExpression>(*(top_it + 1));
               auto [as_unused_0, as_unused_1, as_dynamics, as_unused_2] =
                 forward<decltype(as_expr)>(as_expr).decompose();
-
               auto it = make_move_iterator(as_dynamics.begin());
               auto it_end = make_move_iterator(as_dynamics.end());
               PyObject *col_names = PyList_New(as_dynamics.size());
               Py_ssize_t i = 0;
               for (; it < it_end; it += 1) {
-                auto col_name_c = get<Symbol>(*it).getName().c_str();
+                auto col_name_str = get<Symbol>(*it).getName();
+                auto col_name_c = col_name_str.c_str();
                 PyObject* col_name = PyUnicode_FromString(col_name_c);
                 PyList_SET_ITEM(col_names, i, col_name);
                 i++;
@@ -588,20 +605,24 @@ Expression Engine::evaluate(Expression &&e) {
 
               PyObject* result;
               if (PyCallable_Check(project)) {
-                result = PyObject_CallFunction(project, "OO", table_pyobject, col_names);
+                // borrows references to args
+                // returns new reference
+                result = PyObject_CallFunction(project, "OO", table_pywrapper, col_names);
                 if (result == NULL) {
                   PyErr_Print();
                 }
               } else {
                 PyErr_SetString(PyExc_TypeError, "Y is not a callable object");
                 PyErr_Print();
+                throw runtime_error("Y is not a callable object");
               }
+              Py_DECREF(col_names);
+              Py_DECREF(table_pywrapper);
 
-              
+              return pywrapper_to_table(result);
             }
 
             if (top_head == "Python_globals"_) {
-              auto top_dynamics_size = top_dynamics.size();
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto top_script_str = get<Symbol>(*top_it).getName();
               auto top_script = move(top_script_str).c_str();
@@ -648,7 +669,7 @@ Expression Engine::evaluate(Expression &&e) {
                   auto where_table_name = move(where_table_name_str).c_str();
                   auto where_table_expr =
                       get<ComplexExpression>(*(where_it + 1));
-                  PyObject *wrapper_dict = table_to_pywrapper(where_table_expr);
+                  PyObject *wrapper_dict = table_to_pywrapper(move(where_table_expr));
                   PyDict_SetItemString(local_dict, where_table_name,
                                        wrapper_dict);
                   Py_DECREF(wrapper_dict);
@@ -665,7 +686,7 @@ Expression Engine::evaluate(Expression &&e) {
                 Py_DECREF(top_result);
               }
 
-              return ComplexExpression({}, {}, {}, {});
+              return ComplexExpression("Python"_, {}, {}, {});
             }
 
             if (top_head == "get_python_var"_) {

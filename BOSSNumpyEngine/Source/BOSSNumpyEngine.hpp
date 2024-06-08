@@ -41,6 +41,7 @@ using boss::expressions::ExpressionSpanArgument;
 using boss::expressions::ExpressionSpanArguments;
 
 typedef unsigned long long ull;
+const int ENGINE_SPAN_SIZE_BYTES = 1000000; // 1 million = 1 mb
 
 namespace boss::engines::numpy {
 
@@ -84,6 +85,11 @@ private:
   ExpressionSpanArguments py_list_to_spans(PyObject *list);
   PyObject *spans_to_py_list(ExpressionSpanArguments &&args);
   void reset_python_dict();
+
+  PyObject *table_to_pywrapper(ComplexExpression &&table_expr);
+  Expression pytable_to_table(PyObject *table_dict);
+  ComplexExpression pymatrix_to_table(PyObject *matrix_dict);
+  Expression pywrapper_to_table(PyObject *wrapper_dict);
 };
 
 ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs);

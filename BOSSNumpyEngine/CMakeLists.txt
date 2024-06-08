@@ -130,7 +130,7 @@ set(TestFiles Tests/BOSSTests.cpp)
 
 add_library(BOSSNumpyEngine MODULE ${ImplementationFiles})
 
-# add_executable(gdb-test ${ImplementationFiles} Tests/gdb-test.cpp)
+add_executable(rel-alg-tests ${ImplementationFiles} Tests/rel-alg-tests.cpp)
 # add_executable(npy-to-span ${ImplementationFiles} Tests/npy-to-span.cpp)
 # add_executable(NPTests ${ImplementationFiles} ${TestFiles})
 # add_dependencies(NPTests catch2)
@@ -143,7 +143,7 @@ set_property(TARGET BOSSNumpyEngine PROPERTY CXX_STANDARD 20) ## the core is c++
 list(APPEND AllTargets 
   BOSSNumpyEngine 
   # NPTests 
-  # gdb-test 
+  rel-alg-tests 
   # npy-to-span
 )
 
@@ -190,8 +190,8 @@ install(TARGETS BOSSNumpyEngine LIBRARY DESTINATION lib)
 # set_target_properties(NPTests PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 # install(TARGETS NPTests RUNTIME DESTINATION bin)
 
-# set_target_properties(gdb-test PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
-# install(TARGETS gdb-test RUNTIME DESTINATION bin)
+set_target_properties(rel-alg-tests PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+install(TARGETS rel-alg-tests RUNTIME DESTINATION bin)
 
 # set_target_properties(npy-to-span PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 # install(TARGETS npy-to-span RUNTIME DESTINATION bin)
