@@ -55,13 +55,13 @@ void foo() {
   Engine engine(ENGINE_SPAN_SIZE_BYTES);
   auto lineitem = create_lineitem();
 
-  auto query = "Project"_(
-    move(lineitem),
-    "As"_(
+  auto query = "to_boss"_("project"_(
+    "to_python"_(move(lineitem)),
+    "as"_(
        "l_partkey"_,
        "l_quantity"_
     )
-  );
+  ));
 
   auto const result = engine.evaluate(move(query));
   cout << "result " << endl << result << endl << endl;

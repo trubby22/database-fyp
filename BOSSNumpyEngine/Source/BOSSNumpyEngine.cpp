@@ -24,7 +24,6 @@ namespace boss::engines::numpy {
 //   }
 // };
 
-typedef variant<Expression, PyObject *> MyExpression;
 
 template <typename T>
 Span<T> *transfer_ownership(Span<T> &&span) {
@@ -336,8 +335,8 @@ ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
       auto result = Span<T>(move(v));
       col_list_spans.emplace_back(move(result));
     }
-
-    auto boss_list = ComplexExpression("List"_, {}, {}, move(col_list_spans));
+    // PythonExpressionSystem::ComplexExpression boss_list = ComplexExpression("List"_, {}, {}, move(col_list_spans));
+    PythonExpressionSystem::ComplexExpression boss_list = boss::expressions::generic::ComplexExpressionWithAdditionalCustomAtoms<std::tuple<>, PyObject *>("List"_, {}, {}, move(col_list_spans));
     // head = List
 
     ExpressionArguments col_dynamics;
@@ -587,11 +586,28 @@ Expression Engine::evaluate(Expression &&e) {
             auto [top_head, top_statics, top_dynamics, top_spans] =
                 forward<decltype(expression)>(expression).decompose();
 
-            if (top_head == "project"_) {
-              // head = Project
+            if (top_head == "to_boss"_) {
+              // head = to_boss
               auto top_it = make_move_iterator(top_dynamics.begin());
-              auto table = get<ComplexExpression>(*top_it);
-              PyObject *table_pywrapper = table_to_pywrapper(move(table));
+              auto expr = get<Expression>(*top_it);
+              auto result = get<PyObject *>(evaluate(move(expr)));
+              return pydict_to_table(result);
+            }
+
+            if (top_head == "to_python"_) {
+              // head = to_python
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto expr = get<Expression>(*top_it);
+              auto result = get<ComplexExpression>(evaluate(move(expr)));
+              // return table_to_pydict(move(result));
+              return ComplexExpression("python"_, {}, {}, {});
+            }
+
+            if (top_head == "project"_) {
+              // head = project
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto expr = get<Expression>(*top_it);
+              auto table_pydict = get<PyObject *>(evaluate(move(expr)));
 
               auto as_expr = get<ComplexExpression>(*(top_it + 1));
               auto [as_unused_0, as_unused_1, as_dynamics, as_unused_2] =
@@ -617,7 +633,7 @@ Expression Engine::evaluate(Expression &&e) {
               if (PyCallable_Check(project)) {
                 // borrows references to args
                 // returns new reference
-                result = PyObject_CallFunction(project, "OO", table_pywrapper, col_names);
+                result = PyObject_CallFunction(project, "OO", table_pydict, col_names);
                 if (result == NULL) {
                   PyErr_Print();
                 }
@@ -627,9 +643,9 @@ Expression Engine::evaluate(Expression &&e) {
                 throw runtime_error("Y is not a callable object");
               }
               Py_DECREF(col_names);
-              Py_DECREF(table_pywrapper);
+              Py_DECREF(table_pydict);
 
-              return pywrapper_to_table(result);
+              return result;
             }
 
             if (top_head == "python_globals"_) {
@@ -714,7 +730,8 @@ Expression Engine::evaluate(Expression &&e) {
             transform(make_move_iterator(top_dynamics.begin()),
                       make_move_iterator(top_dynamics.end()),
                       top_dynamics.begin(), [this](auto &&arg) {
-                        return evaluate(forward<decltype(arg)>(arg));
+                        auto result = evaluate(forward<decltype(arg)>(arg));
+                        return get<Expression>(move(result));
                       });
 
             return ComplexExpression(move(top_head), {}, move(top_dynamics),
@@ -728,32 +745,6 @@ Expression Engine::evaluate(Expression &&e) {
             }
 
             return forward<decltype(symbol)>(symbol);
-          },
-          [](auto &&arg) -> Expression { return forward<decltype(arg)>(arg); }),
-      forward<decltype(e)>(e));
-};
-
-PyObject *Engine::evaluate_python(PythonObject *) {
-  return visit(
-      boss::utilities::overload(
-          [this](Expression &&expression) -> MyExpression {
-            return evaluate(move(e));
-          },
-          [this](PyObject *expression) -> MyExpression {
-
-          },
-          [](auto &&arg) -> Expression { return forward<decltype(arg)>(arg); }),
-      forward<decltype(e)>(e));
-};
-
-MyExpression Engine::my_evaluate(MyExpression &&e) {
-  return visit(
-      boss::utilities::overload(
-          [this](Expression &&expression) -> MyExpression {
-            return evaluate(move(e));
-          },
-          [this](PyObject *expression) -> MyExpression {
-
           },
           [](auto &&arg) -> Expression { return forward<decltype(arg)>(arg); }),
       forward<decltype(e)>(e));

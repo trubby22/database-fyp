@@ -30,19 +30,27 @@
 #include <variant>
 
 using namespace std;
-using string_literals::operator"" s;
-using boss::utilities::operator""_;
-using boss::ComplexExpression;
-using boss::Expression;
+
+using PythonExpressionSystem = boss::expressions::generic::ExtensibleExpressionSystem<PyObject *>;
+using AtomicExpression = PythonExpressionSystem::AtomicExpression;
+using ComplexExpression = PythonExpressionSystem::ComplexExpression;
+template <typename... T>
+using ComplexExpressionWithStaticArguments =
+    PythonExpressionSystem::ComplexExpressionWithStaticArguments<T...>;
+using Expression = PythonExpressionSystem::Expression;
+using ExpressionArguments = PythonExpressionSystem::ExpressionArguments;
+using ExpressionSpanArguments = PythonExpressionSystem::ExpressionSpanArguments;
+using ExpressionSpanArgument = PythonExpressionSystem::ExpressionSpanArgument;
+using ExpressionBuilder = boss::utilities::ExtensibleExpressionBuilder<PythonExpressionSystem>;
+static ExpressionBuilder operator""_(const char* name, size_t /*unused*/) {
+  return ExpressionBuilder(name);
+};
 using boss::Span;
 using boss::Symbol;
-using boss::expressions::ComplexExpressionWithStaticArguments;
-using boss::expressions::ExpressionArguments;
-using boss::expressions::ExpressionSpanArgument;
-using boss::expressions::ExpressionSpanArguments;
 
 typedef unsigned long long ull;
 const int ENGINE_SPAN_SIZE_BYTES = 1000000; // 1 million = 1 mb
+// using MyExpression = std::variant<Expression, PyObject *>;
 
 namespace boss::engines::numpy {
 
@@ -61,7 +69,7 @@ public:
 
   ~Engine();
 
-  boss::Expression evaluate(boss::Expression &&e);
+  Expression evaluate(Expression &&e);
 
 private:
   PyObject *global_dict;
@@ -91,6 +99,8 @@ private:
   Expression pytable_to_table(PyObject *table_dict);
   ComplexExpression pymatrix_to_table(PyObject *matrix_dict);
   Expression pywrapper_to_table(PyObject *wrapper_dict);
+  PyObject *table_to_pydict(ComplexExpression &&table_expr);
+  Expression pydict_to_table(PyObject *table_dict);
 };
 
 ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs);
