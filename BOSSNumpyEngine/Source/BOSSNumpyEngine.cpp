@@ -339,29 +339,6 @@ ComplexExpression Engine::npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
   return table;
 }
 
-ComplexExpression Engine::npy_matrix_to_table(PyArrayObject *npy_matrix,
-                                              PyObject *col_names) {
-  int typenum = PyArray_TYPE(npy_matrix);
-
-  switch (typenum) {
-  case NPY_INT32:
-    return npy_matrix_to_table_helper<int32_t>(npy_matrix, col_names);
-    break;
-  case NPY_INT64:
-    return npy_matrix_to_table_helper<int64_t>(npy_matrix, col_names);
-    break;
-  case NPY_FLOAT:
-    return npy_matrix_to_table_helper<float_t>(npy_matrix, col_names);
-    break;
-  case NPY_DOUBLE:
-    return npy_matrix_to_table_helper<double_t>(npy_matrix, col_names);
-    break;
-  default:
-    throw runtime_error("shouldn't happen");
-    break;
-  }
-}
-
 #pragma endregion python_to_boss
 
 #pragma region boss_to_python
@@ -427,6 +404,146 @@ Engine::spans_to_py_list(ExpressionSpanArguments &&args) {
 
 #pragma endregion boss_to_python
 
+#pragma region conversion_new
+
+// returns new reference to wrapper_dict
+PyObject *
+Engine::table_to_pywrapper(Expression &&table_expr) {
+  auto [table_unused_0, table_unused_1, table_dynamics,
+        table_unused_3] = move(table_expr).decompose();
+  // head = Table
+
+  PyObject *wrapper_dict = PyDict_New();
+  PyObject *table_dict = PyDict_New();
+  PyObject *matrix_dict = PyDict_New();
+
+  auto table_it = make_move_iterator(table_dynamics.begin());
+  auto table_it_end = make_move_iterator(table_dynamics.end());
+  for (; table_it < table_it_end; table_it++) {
+    auto table_column_expr =
+        get<ComplexExpression>(*(table_it));
+
+    auto [colname_head, colname_unused_1, colname_dynamics,
+          colname_unused_3] =
+        move(table_column_expr).decompose();
+    // head = <column_name>
+    auto colname_column_name_str = colname_head.getName();
+    auto colname_column_name =
+        move(colname_column_name_str).c_str();
+    auto colname_it =
+        make_move_iterator(colname_dynamics.begin());
+    auto colname_list_expr =
+        get<ComplexExpression>(*colname_it);
+
+    auto [list_head, list_unused_1, list_unused_2, list_spans] =
+        move(colname_list_expr).decompose();
+    // head = List
+
+    auto list_py_list = spans_to_py_list(move(list_spans));
+    PyDict_SetItemString(table_dict, colname_column_name,
+                          list_py_list);
+    Py_DECREF(list_py_list);
+  }
+
+  PyDict_SetItemString(wrapper_dict, "table", table_dict);
+  Py_DECREF(table_dict);
+  PyDict_SetItemString(wrapper_dict, "matrix", matrix_dict);
+  Py_DECREF(matrix_dict);
+
+  return wrapper_dict;
+}
+
+// steals reference to table_dict
+Expression
+Engine::pytable_to_table(PyObject *table_dict) {
+  ExpressionArguments res_dynamics;
+  res_dynamics.reserve(PyDict_Size(table_dict));
+
+  PyObject *col_name, *col_py_list;
+  Py_ssize_t pos = 0;
+  while (PyDict_Next(table_dict, &pos, &col_name, &col_py_list)) {
+    Py_INCREF(col_name);
+    Py_INCREF(col_py_list);
+    string col_name_str = PyObject_to_string(col_name);
+    Py_DECREF(col_name);
+    Symbol col_head(move(col_name_str));
+
+    auto col_list_spans = py_list_to_spans(col_py_list);
+    Py_DECREF(col_py_list);
+    auto boss_list =
+        ComplexExpression("List"_, {}, {}, move(col_list_spans));
+    // head = List
+
+    ExpressionArguments col_dynamics;
+    col_dynamics.reserve(1);
+    col_dynamics.emplace_back(move(boss_list));
+
+    auto boss_column = ComplexExpression(move(col_head), {},
+                                          move(col_dynamics), {});
+    // head = <col_name>
+
+    res_dynamics.emplace_back(move(boss_column));
+  }
+  Py_DECREF(table_dict);
+
+  return ComplexExpression("Table"_, {}, move(res_dynamics), {});
+}
+
+// steals reference to matrix_dict
+ComplexExpression Engine::pymatrix_to_table(PyObject *matrix_dict) {
+  auto matrix = PyDict_GetItemString(matrix_dict, "data");
+  Py_INCREF(matrix);
+  auto npy_matrix = reinterpret_cast<PyArrayObject *>(matrix);
+  auto col_names = PyDict_GetItemString(matrix_dict, "col_names");
+  Py_INCREF(col_names);
+  Py_DECREF(matrix_dict);
+  int typenum = PyArray_TYPE(npy_matrix);
+
+  Expression result;
+  switch (typenum) {
+  case NPY_INT32:
+    result = npy_matrix_to_table_helper<int32_t>(npy_matrix, col_names);
+    break;
+  case NPY_INT64:
+    result = npy_matrix_to_table_helper<int64_t>(npy_matrix, col_names);
+    break;
+  case NPY_FLOAT:
+    result = npy_matrix_to_table_helper<float_t>(npy_matrix, col_names);
+    break;
+  case NPY_DOUBLE:
+    result = npy_matrix_to_table_helper<double_t>(npy_matrix, col_names);
+    break;
+  default:
+    throw runtime_error("shouldn't happen");
+    break;
+  }
+
+  Py_DECREF(col_names);
+  Py_DECREF(matrix);
+  return result;
+}
+
+// steals reference to wrapper_dict
+Expression
+Engine::pywrapper_to_table(PyObject *wrapper_dict) {
+  auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
+  Py_INCREF(table_dict);
+  auto matrix_dict = PyDict_GetItemString(wrapper_dict, "matrix");
+  Py_INCREF(matrix_dict);
+
+  Expression table;
+  if (table_dict != Py_None) {
+    table = pytable_to_table(table_dict);
+  } else {
+    table = pymatrix_to_table(matrix_dict);
+  }
+  Py_DECREF(wrapper_dict);
+
+  return table;
+}
+
+#pragma endregion conversion_new
+
 Expression Engine::evaluate(Expression &&e) {
   return visit(
       boss::utilities::overload(
@@ -442,6 +559,46 @@ Expression Engine::evaluate(Expression &&e) {
             // top-level
             auto [top_head, top_statics, top_dynamics, top_spans] =
                 forward<decltype(expression)>(expression).decompose();
+
+            if (top_head == "Project"_) {
+              // head = Project
+              auto top_dynamics_size = top_dynamics.size();
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto table = get<ComplexExpression>(*top_it);
+              PyObject *table_pyobject = table_to_pywrapper(table);
+              auto as_expr = get<ComplexExpression>(*(top_it + 1));
+              auto [as_unused_0, as_unused_1, as_dynamics, as_unused_2] =
+                forward<decltype(as_expr)>(as_expr).decompose();
+
+              auto it = make_move_iterator(as_dynamics.begin());
+              auto it_end = make_move_iterator(as_dynamics.end());
+              PyObject *col_names = PyList_New(as_dynamics.size());
+              Py_ssize_t i = 0;
+              for (; it < it_end; it += 1) {
+                auto col_name_c = get<Symbol>(*it).getName().c_str();
+                PyObject* col_name = PyUnicode_FromString(col_name_c);
+                PyList_SET_ITEM(col_names, i, col_name);
+                i++;
+              }
+
+              PyObject* project = PyObject_GetAttrString(rel_alg, "project");
+              if (project == NULL) {
+                PyErr_Print();
+              }
+
+              PyObject* result;
+              if (PyCallable_Check(project)) {
+                result = PyObject_CallFunction(project, "OO", table_pyobject, col_names);
+                if (result == NULL) {
+                  PyErr_Print();
+                }
+              } else {
+                PyErr_SetString(PyExc_TypeError, "Y is not a callable object");
+                PyErr_Print();
+              }
+
+              
+            }
 
             if (top_head == "Python_globals"_) {
               auto top_dynamics_size = top_dynamics.size();
@@ -491,102 +648,24 @@ Expression Engine::evaluate(Expression &&e) {
                   auto where_table_name = move(where_table_name_str).c_str();
                   auto where_table_expr =
                       get<ComplexExpression>(*(where_it + 1));
-
-                  auto [table_unused_0, table_unused_1, table_dynamics,
-                        table_unused_3] = move(where_table_expr).decompose();
-                  // head = Table
-
-                  PyObject *wrapper_dict = PyDict_New();
-                  PyObject *table_dict = PyDict_New();
-                  PyObject *matrix_dict = PyDict_New();
-
-                  auto table_it = make_move_iterator(table_dynamics.begin());
-                  auto table_it_end = make_move_iterator(table_dynamics.end());
-                  for (; table_it < table_it_end; table_it++) {
-                    auto table_column_expr =
-                        get<ComplexExpression>(*(table_it));
-
-                    auto [colname_head, colname_unused_1, colname_dynamics,
-                          colname_unused_3] =
-                        move(table_column_expr).decompose();
-                    // head = <column_name>
-                    auto colname_column_name_str = colname_head.getName();
-                    auto colname_column_name =
-                        move(colname_column_name_str).c_str();
-                    auto colname_it =
-                        make_move_iterator(colname_dynamics.begin());
-                    auto colname_list_expr =
-                        get<ComplexExpression>(*colname_it);
-
-                    auto [list_head, list_unused_1, list_unused_2, list_spans] =
-                        move(colname_list_expr).decompose();
-                    // head = List
-
-                    auto list_py_list = spans_to_py_list(move(list_spans));
-                    PyDict_SetItemString(table_dict, colname_column_name,
-                                          list_py_list);
-                    Py_DECREF(list_py_list);
-
-                    auto return_list =
-                        ComplexExpression("List"_, {}, {}, {});
-
-                    *colname_it = move(return_list);
-                    string colname_column_name_str_return = colname_column_name;
-                    Symbol colname_column_name_return =
-                        Symbol(move(colname_column_name));
-                    auto return_col =
-                        ComplexExpression(move(colname_column_name_return), {},
-                                          move(colname_dynamics), {});
-
-                    *table_it = move(return_col);
-                  }
-
-                  auto return_table =
-                      ComplexExpression("Table"_, {}, move(table_dynamics), {});
-
-                  *(where_it + 1) = move(return_table);
-
-                  PyDict_SetItemString(wrapper_dict, "table", table_dict);
-                  Py_DECREF(table_dict);
-                  PyDict_SetItemString(wrapper_dict, "matrix", matrix_dict);
-                  Py_DECREF(matrix_dict);
+                  PyObject *wrapper_dict = table_to_pywrapper(where_table_expr);
                   PyDict_SetItemString(local_dict, where_table_name,
                                        wrapper_dict);
                   Py_DECREF(wrapper_dict);
-
-                  string where_table_name_str_return = where_table_name;
-                  *where_it = Symbol(move(where_table_name_str_return));
                 }
-
-                auto return_where =
-                    ComplexExpression("Where"_, {}, move(where_dynamics), {});
-
-                *(top_it + 1) = move(return_where);
               }
-
-              // cout << "top_script" << endl;
-              // cout << top_script << endl;
 
               PyObject *top_result = PyRun_String(top_script, Py_file_input,
                                                   global_dict, local_dict);
-
               if (PyErr_Occurred()) {
                 PyErr_Print();
                 throw runtime_error("error in provided python code");
               }
-
-              string top_script_return = top_script;
-              *top_it = Symbol(move(top_script_return));
-
               if (top_result != nullptr) {
                 Py_DECREF(top_result);
               }
 
-              auto result =
-                  ComplexExpression(move(top_head), move(top_statics),
-                                    move(top_dynamics), move(top_spans));
-
-              return result;
+              return ComplexExpression({}, {}, {}, {});
             }
 
             if (top_head == "get_python_var"_) {
@@ -598,60 +677,7 @@ Expression Engine::evaluate(Expression &&e) {
               auto wrapper_dict =
                   PyDict_GetItemString(local_dict, var_name);
               Py_INCREF(wrapper_dict);
-              auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
-              Py_INCREF(table_dict);
-              auto matrix_dict = PyDict_GetItemString(wrapper_dict, "matrix");
-              Py_INCREF(matrix_dict);
-
-              Expression table;
-              if (table_dict != Py_None) {
-                // boss table
-                ExpressionArguments res_dynamics;
-                res_dynamics.reserve(PyDict_Size(table_dict));
-
-                PyObject *col_name, *col_py_list;
-                Py_ssize_t pos = 0;
-
-                while (PyDict_Next(table_dict, &pos, &col_name, &col_py_list)) {
-                  Py_INCREF(col_name);
-                  Py_INCREF(col_py_list);
-                  string col_name_str = PyObject_to_string(col_name);
-                  Py_DECREF(col_name);
-                  Symbol col_head(move(col_name_str));
-
-                  auto col_list_spans = py_list_to_spans(col_py_list);
-                  Py_DECREF(col_py_list);
-                  auto boss_list =
-                      ComplexExpression("List"_, {}, {}, move(col_list_spans));
-                  // head = List
-
-                  ExpressionArguments col_dynamics;
-                  col_dynamics.reserve(1);
-                  col_dynamics.emplace_back(move(boss_list));
-
-                  auto boss_column = ComplexExpression(move(col_head), {},
-                                                       move(col_dynamics), {});
-                  // head = <col_name>
-
-                  res_dynamics.emplace_back(move(boss_column));
-                }
-                Py_DECREF(table_dict);
-
-                table = ComplexExpression("Table"_, {}, move(res_dynamics), {});
-              } else {
-                // matrix
-                auto matrix = PyDict_GetItemString(matrix_dict, "data");
-                Py_INCREF(matrix);
-                auto col_names = PyDict_GetItemString(matrix_dict, "col_names");
-                Py_INCREF(col_names);
-                Py_DECREF(matrix_dict);
-                table = npy_matrix_to_table(reinterpret_cast<PyArrayObject *>(matrix), col_names);
-                Py_DECREF(col_names);
-                Py_DECREF(matrix);
-              }
-              Py_DECREF(wrapper_dict);
-
-              return table;
+              return pywrapper_to_table(wrapper_dict);
             }
 
             transform(make_move_iterator(top_dynamics.begin()),
@@ -680,8 +706,6 @@ Expression Engine::evaluate(Expression &&e) {
 
 void Engine::init_python_and_numpy() {
   Py_Initialize();
-  PyRun_SimpleString("import sys");
-  PyRun_SimpleString("sys.path.append(\".\")");
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type"
   import_array();
@@ -693,6 +717,19 @@ void Engine::init_python_and_numpy() {
 
   global_dict = PyDict_New();
   local_dict = PyDict_New();
+  PyRun_String(R"(
+import sys
+sys.path.append("/mnt/ubuntu-image-repos/mvp")
+import numpy as np
+  )", Py_file_input, global_dict, local_dict);
+
+  main_module = PyImport_AddModule("__main__");
+  rel_alg = PyImport_ImportModule("rel_alg");
+  if (rel_alg == NULL) {
+    PyErr_Print();
+    Py_Finalize();
+    throw runtime_error("error when importing rel_alg module");
+  }
 }
 
 void Engine::reset_python_dict() {
