@@ -30,8 +30,16 @@ import numpy as np
 # print(x[np.array(ix)])
 
 foo = {
-    'bar': lambda x: np.sum(x)
+    'bar': lambda x: np.sum(x),
+    'baz': lambda x, y: x < y,
 }
 
 xs = np.array([1, 2, 3])
-print(foo['bar'](xs))
+# print(xs[foo['baz'](xs, 2)])
+
+# a = np.array([True, True, False])
+# b = np.array([True, False, True])
+# c = a & b
+# print(c)
+
+print(xs[np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])])

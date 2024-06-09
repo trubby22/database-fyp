@@ -5,40 +5,25 @@ import math
 def say_hello_to(name):
     print(f"Hello {name}!")
 
-def project(dict[str, list[np.ndarray]] table, list[str] col_names):
+def project(table, col_names):
     return {col_name : table[col_name] for col_name in col_names}
 
 # works on materialised columns
-def select(table, col_names, boolean_ops, vals):
-    res_table = {}
-    for i in range(len(col_names)):
-        col_name = col_names[i]
+def select(table, key_col_names, boolean_ops, vals):
+    col_names = list(table.keys())
+    bools = np.full(len(table[col_names[0]]), True)
+    for i in range(len(key_col_names)):
+        col_name = key_col_names[i]
         op = boolean_ops[i]
         val = vals[i]
         npy_arr = table[col_name]
-        res_table[col_name] = boolean_op[op](npy_arr, val)
-    return res_table
-
-# works on spans
-def select_spans(table, col_names, boolean_ops, vals):
-    res_table = {}
-    for i in range(len(col_names)):
-        col_name = col_names[i]
-        op = boolean_ops[i]
-        val = vals[i]
-        list_of_npy_arrs = table[col_name]
-        res_col = []
-        for j in range(len(list_of_npy_arrs)):
-            npy_arr = list_of_npy_arrs[j]
-            res_span = boolean_op[op](npy_arr, val)
-            res_col.append(res_span)
-        res_table[col_name] = res_col
-    return res_table
+        bools &= boolean_op[op](npy_arr, val)
+    return {col_name: table[col_name][bools] for col_name in col_names}
 
 # accepts and returns tables /w materialised columns
-def equi_join(table_1, table_2, col_names_1, col_names_2):
-    keys_1 = [table_1[col_name] for col_name in col_names_1]
-    keys_2 = [table_2[col_name] for col_name in col_names_2]
+def equi_join(table_1, table_2, key_col_names_1, key_col_names_2):
+    keys_1 = [table_1[col_name] for col_name in key_col_names_1]
+    keys_2 = [table_2[col_name] for col_name in key_col_names_2]
     ixs_1 = np.lexsort(keys_1)
     ixs_2 = np.lexsort(keys_2)
     table_1_sorted = table_1[ixs_1]
@@ -53,9 +38,9 @@ def equi_join(table_1, table_2, col_names_1, col_names_2):
         first = True
         while j < len(table_2_sorted):
             same = True
-            for k in range(len(col_names_1)):
-                col_name_1 = col_names_1[k]
-                col_name_2 = col_names_2[k]
+            for k in range(len(key_col_names_1)):
+                col_name_1 = key_col_names_1[k]
+                col_name_2 = key_col_names_2[k]
                 elem_1 = table_1_sorted[col_name_1][i]
                 elem_2 = table_2_sorted[col_name_2][j]
                 if elem_1 != elem_2:
@@ -74,15 +59,15 @@ def equi_join(table_1, table_2, col_names_1, col_names_2):
     
     res_ix_1_npy = np.array(res_ix_1)
     res_ix_2_npy = np.array(res_ix_2)
-    table_2_joined = {col_name: table_2[col_name][res_ix_2_npy] for col_name in col_names_2}
-    table_2_joined = {col_name: table_2[col_name][res_ix_2_npy] for col_name in col_names_2}
+    table_1_joined = {col_name: table_1[col_name][res_ix_1_npy] for col_name in key_col_names_1}
+    table_2_joined = {col_name: table_2[col_name][res_ix_2_npy] for col_name in key_col_names_2}
     return table_1_joined | table_2_joined
 
 # accepts and returns tables /w materialised columns
 def aggregate(table, key_col_names, reduction_func, reduction_col_name):
-    keys = [table[col_name] for col_name in key_col_names]
-    ixs = np.lexsort(keys)
-    table_sorted = table[ixs]
+    key_cols = [table[col_name] for col_name in key_col_names]
+    sort_ixs = np.lexsort(key_cols)
+    table_sorted = table[sort_ixs]
     splits = []
     i = 0
     j = 0
@@ -106,19 +91,21 @@ def aggregate(table, key_col_names, reduction_func, reduction_col_name):
         i = j
     
     col_names = list(table.keys())
-    table_split_up = {col_name: [x for x in np.split(table[col_name], splits) if len(x) > 0] for col_name in col_names}
-    reduced_cols = [reduction_functions[reduction_func](x) for x in table[reduction_col_name]]
-    table_reduced = {reduction_col_name: np.array(reduced_cols)}
-    table_key = {col_name: np.array([x[0] for x in table_split_up[col_name][0]]) for col_name in key_col_names}
+    table_split_up = {
+        col_name: [x for x in np.split(table[col_name], splits) if len(x) > 0] 
+        for col_name in col_names
+    }
+    reduced_col = [reduction_functions[reduction_func](x) for x in table_split_up[reduction_col_name]]
+    table_reduced = {reduction_col_name: np.array(reduced_col)}
+    table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
     return table_reduced | table_key
 
 def materialise_into_columns(table):
-    return {col_name: np.concatenate(table[col_name]) for col_name in table}
+    return {col_name: np.concatenate(table[col_name]) for col_name in table.keys()}
 
 def split_into_spans(table, span_size):
     col_names = list(table.keys())
-    col_name = col_names[0]
-    num_splits = math.ceil(len(table[col_name]) / chunk_size)
+    num_splits = math.ceil(len(table[col_names[0]]) / chunk_size)
     splits = np.array([(i + 1) * chunk_size for i in range(num_splits)])
     return {col_name: [x for x in np.split(table[col_name], splits) if len(x) > 0] for col_name in col_names}
 
