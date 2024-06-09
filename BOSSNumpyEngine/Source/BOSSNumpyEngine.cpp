@@ -677,7 +677,7 @@ PyObject *single_span_list_to_pylist(PythonExpressionSystem::ComplexExpression &
     []<typename T>(Span<T> &&typed_span) -> void {
       auto size = typed_span.size();
       for (int i = 0; i < size; i++) {
-        PyObject *pyobject = primitive_to_pyobject(move(typed_span[i]));
+        PyObject *pyobject = primitive_to_pyobject<T>(move(typed_span[i]));
         PyList_SET_ITEM(py_list, i, pyobject);
         Py_DECREF(pyobject);
         i++;
@@ -723,6 +723,39 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               // return PythonExpressionSystem::ComplexExpression("python"_, {}, {}, {});
             }
 
+            if (top_head == "project"_) {
+              // head = project
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto expr = get<PythonExpressionSystem::Expression>(*top_it);
+              auto table_pydict = get<PyObject *>(evaluate(move(expr)));
+
+              auto col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
+              PyObject *col_names = single_span_list_to_pylist(move(key_col_names_expr));
+
+              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project");
+              if (py_operator == NULL) {
+                PyErr_Print();
+              }
+
+              PyObject* result;
+              if (PyCallable_Check(py_operator)) {
+                // borrows references to args
+                // returns new reference
+                result = PyObject_CallFunction(py_operator, "OO", table_pydict, col_names);
+                if (result == NULL) {
+                  PyErr_Print();
+                }
+              } else {
+                PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
+                PyErr_Print();
+                throw runtime_error("py_operator is not a callable object");
+              }
+              Py_DECREF(table_pydict);
+              Py_DECREF(col_names);
+
+              return result;
+            }
+
             if (top_head == "select"_) {
               // head = select
               auto top_it = make_move_iterator(top_dynamics.begin());
@@ -762,16 +795,19 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               return result;
             }
 
-            if (top_head == "project"_) {
+            if (top_head == "equi_join"_) {
               // head = project
               auto top_it = make_move_iterator(top_dynamics.begin());
-              auto expr = get<PythonExpressionSystem::Expression>(*top_it);
-              auto table_pydict = get<PyObject *>(evaluate(move(expr)));
+              auto expr_1 = get<PythonExpressionSystem::Expression>(*top_it);
+              auto expr_2 = get<PythonExpressionSystem::Expression>(*(top_it + 1));
+              auto key_col_names_expr_1 = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 2));
+              auto key_col_names_expr_2 = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 3));
+              PyObject *table_pydict_1 = get<PyObject *>(evaluate(move(expr_1)));
+              PyObject *table_pydict_2 = get<PyObject *>(evaluate(move(expr_2)));
+              PyObject *key_col_names_1 = single_span_list_to_pylist(move(key_col_names_expr_1));
+              PyObject *key_col_names_2 = single_span_list_to_pylist(move(key_col_names_expr_2));
 
-              auto col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
-              PyObject *col_names = single_span_list_to_pylist(move(key_col_names_expr));
-
-              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project");
+              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "equi_join");
               if (py_operator == NULL) {
                 PyErr_Print();
               }
@@ -780,7 +816,49 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               if (PyCallable_Check(py_operator)) {
                 // borrows references to args
                 // returns new reference
-                result = PyObject_CallFunction(py_operator, "OO", table_pydict, col_names);
+                result = PyObject_CallFunction(
+                  py_operator, "OOOO", table_pydict_1, table_pydict_2, key_col_names_1, key_col_names_2);
+                if (result == NULL) {
+                  PyErr_Print();
+                }
+              } else {
+                PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
+                PyErr_Print();
+                throw runtime_error("py_operator is not a callable object");
+              }
+              Py_DECREF(table_pydict_1);
+              Py_DECREF(table_pydict_2);
+              Py_DECREF(key_col_names_1);
+              Py_DECREF(key_col_names_2);
+
+              return result;
+            }
+
+            if (top_head == "aggregate"_) {
+              // head = project
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto expr = get<PythonExpressionSystem::Expression>(*top_it);
+              auto key_col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
+              auto reduction_func_expr = get<Symbol>(*(top_it + 2));
+              auto reduction_col_name_expr = get<Symbol>(*(top_it + 3));
+              PyObject *table_pydict = get<PyObject *>(evaluate(move(expr)));
+              PyObject *key_col_names = single_span_list_to_pylist(move(key_col_names_expr));
+              string reduction_func_str = reduction_func_expr.getName();
+              string reduction_col_name_str = reductino_col_name_expr.getName();
+              PyObject *reduction_func = primitive_to_pyobject<string>(move(reduction_func_str));
+              PyObject *reduction_func_col_name = primitive_to_pyobject<string>(move(reduction_func_col_name_str));
+
+              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "aggregate");
+              if (py_operator == NULL) {
+                PyErr_Print();
+              }
+
+              PyObject* result;
+              if (PyCallable_Check(py_operator)) {
+                // borrows references to args
+                // returns new reference
+                result = PyObject_CallFunction(
+                  py_operator, "OOOO", table_pydict, key_col_names, reduction_func, reduction_func_col_name);
                 if (result == NULL) {
                   PyErr_Print();
                 }
@@ -790,7 +868,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 throw runtime_error("py_operator is not a callable object");
               }
               Py_DECREF(table_pydict);
-              Py_DECREF(col_names);
+              Py_DECREF(key_col_names);
 
               return result;
             }
