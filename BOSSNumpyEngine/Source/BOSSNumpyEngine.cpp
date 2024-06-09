@@ -345,7 +345,7 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
     }
     // auto boss_list = PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
     // PythonExpressionSystem::PythonExpressionSystem::ComplexExpression 
-    auto boss_list = boss::expressions::generic::ComplexExpressionWithAdditionalCustomAtoms<std::tuple<>, PyObject *>("List"_, {}, {}, move(col_list_spans));
+    auto boss_list = PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
     // head = List
 
     PythonExpressionSystem::ExpressionArguments col_dynamics;
@@ -653,6 +653,33 @@ Engine::pywrapper_to_table(PyObject *wrapper_dict) {
   return table;
 }
 
+template <typename T>
+PyObject *primitive_to_pyobject() {
+
+}
+
+PyObject *list_to_pylist(PythonExpressionSystem::ComplexExpression &&list) {
+  auto [list_unused_0, list_unused_1, list_unused_2, list_spans] =
+    forward<decltype(list)>(list).decompose();
+  auto it = make_move_iterator(list_spans.begin());
+  auto it_end = make_move_iterator(list_spans.end());
+  PyObject *py_list = PyList_New(list_spans.size());
+  Py_ssize_t i = 0;
+  for (; it < it_end; it += 1) {
+    auto span_arg = *it;
+    visit(
+      []<typename T>(Span<T> &&typed_span) -> void {
+
+      },
+      forward<decltype(span_arg)>(span_arg)
+    );
+    auto col_name_c = col_name_str.c_str();
+    PyObject* col_name = PyUnicode_FromString(col_name_c);
+    PyList_SET_ITEM(py_list, i, col_name);
+    i++;
+  }
+}
+
 #pragma endregion conversion_new
 
 PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expression &&e) {
@@ -686,6 +713,51 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               auto result = get<PythonExpressionSystem::ComplexExpression>(evaluate(move(expr)));
               return table_to_pydict_column(move(result));
               // return PythonExpressionSystem::ComplexExpression("python"_, {}, {}, {});
+            }
+
+            if (top_head == "select"_) {
+              // head = select
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto expr = get<PythonExpressionSystem::Expression>(*top_it);
+              auto table_pydict = get<PyObject *>(evaluate(move(expr)));
+
+              auto as_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
+              auto [as_unused_0, as_unused_1, as_dynamics, as_unused_2] =
+                forward<decltype(as_expr)>(as_expr).decompose();
+              auto it = make_move_iterator(as_dynamics.begin());
+              auto it_end = make_move_iterator(as_dynamics.end());
+              PyObject *col_names = PyList_New(as_dynamics.size());
+              Py_ssize_t i = 0;
+              for (; it < it_end; it += 1) {
+                auto col_name_str = get<Symbol>(*it).getName();
+                auto col_name_c = col_name_str.c_str();
+                PyObject* col_name = PyUnicode_FromString(col_name_c);
+                PyList_SET_ITEM(col_names, i, col_name);
+                i++;
+              }
+
+              PyObject* project = PyObject_GetAttrString(rel_alg, "project");
+              if (project == NULL) {
+                PyErr_Print();
+              }
+
+              PyObject* result;
+              if (PyCallable_Check(project)) {
+                // borrows references to args
+                // returns new reference
+                result = PyObject_CallFunction(project, "OO", table_pydict, col_names);
+                if (result == NULL) {
+                  PyErr_Print();
+                }
+              } else {
+                PyErr_SetString(PyExc_TypeError, "Y is not a callable object");
+                PyErr_Print();
+                throw runtime_error("Y is not a callable object");
+              }
+              Py_DECREF(col_names);
+              Py_DECREF(table_pydict);
+
+              return result;
             }
 
             if (top_head == "project"_) {

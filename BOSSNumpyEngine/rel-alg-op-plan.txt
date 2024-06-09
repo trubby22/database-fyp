@@ -1,4 +1,6 @@
-Project(
+def project(table, col_names)
+
+"project"_(
     "table1"_,
     "As"_(
         "col2"_,
@@ -6,18 +8,29 @@ Project(
     )
 )
 
-join(
-    python(table1),
-    python(table2),
+def select(table, key_col_names, boolean_ops, vals)
+
+"select"_(
+    "table1"_,
+    "List"_("col1"_, ...),
+    "List"_(">"_, ...),
+    "List"_(3.14, ...),
 )
 
-my_complex_expr {
-    head = variant< PyObject *, Symbol >
-    dynamics = vector< my_complex_expr >
-    statics
-    spans
-}
+def equi_join(table_1, table_2, key_col_names_1, key_col_names_2)
 
-Expression -> evaluate_variant -> variant< PyObject *, Expression >
+"equi_join"_(
+    "table1"_,
+    "table2"_,
+    "List"_("col1"_, ...),
+    "List"_("col1"_, ...),
+)
 
-evaluate calls helper: evaluate_variant and then casts the result to Expression
+def aggregate(table, key_col_names, reduction_func, reduction_col_name)
+
+"aggregate"_(
+    "table1"_,
+    "List"_("col1"_, ...),
+    "sum"_,
+    "col2"_,
+)

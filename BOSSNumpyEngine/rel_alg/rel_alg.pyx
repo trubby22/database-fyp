@@ -114,6 +114,8 @@ reduction_functions = {
     'prod': lambda x: np.prod(x),
     'count': lambda x: x.size,
     'avg': lambda x: np.mean(x),
+    'max': lambda x: np.max(x),
+    'min': lambda x: np.min(x),
 }
 
 boolean_op = {
