@@ -29,12 +29,12 @@ import numpy as np
 # print(x[ix])
 # print(x[np.array(ix)])
 
-foo = {
-    'bar': lambda x: np.sum(x),
-    'baz': lambda x, y: x < y,
-}
+# foo = {
+#     'bar': lambda x: np.sum(x),
+#     'baz': lambda x, y: x < y,
+# }
 
-xs = np.array([1, 2, 3])
+# xs = np.array([1, 2, 3])
 # print(xs[foo['baz'](xs, 2)])
 
 # a = np.array([True, True, False])
@@ -42,4 +42,12 @@ xs = np.array([1, 2, 3])
 # c = a & b
 # print(c)
 
-print(xs[np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])])
+# print(xs[np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])])
+
+# xs = np.array([1, 2, 3])
+# splits = np.array([1])
+# [a, b] = np.split(xs, splits)
+# print([a, b])
+
+xs = np.tile(np.arange(5, 10, 1), 2)
+print(xs)
