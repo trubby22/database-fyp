@@ -1,0 +1,23 @@
+Project(
+    "table1"_,
+    "As"_(
+        "col2"_,
+        "col3"_
+    )
+)
+
+join(
+    python(table1),
+    python(table2),
+)
+
+my_complex_expr {
+    head = variant< PyObject *, Symbol >
+    dynamics = vector< my_complex_expr >
+    statics
+    spans
+}
+
+Expression -> evaluate_variant -> variant< PyObject *, Expression >
+
+evaluate calls helper: evaluate_variant and then casts the result to Expression

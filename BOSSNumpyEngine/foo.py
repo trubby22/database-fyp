@@ -24,8 +24,14 @@ import numpy as np
 #         case _:
 #             raise Exception()
 
-x = np.array([1, 2, 3])
-ix = [1, 0, 2]
-print(x[ix])
-print(x[np.array(ix)])
+# x = np.array([1, 2, 3])
+# ix = [1, 0, 2]
+# print(x[ix])
+# print(x[np.array(ix)])
 
+foo = {
+    'bar': lambda x: np.sum(x)
+}
+
+xs = np.array([1, 2, 3])
+print(foo['bar'](xs))
