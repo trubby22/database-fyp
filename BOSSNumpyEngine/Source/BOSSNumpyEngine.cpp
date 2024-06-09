@@ -773,7 +773,7 @@ void Engine::init_python_and_numpy() {
   local_dict = PyDict_New();
   PyRun_String(R"(
 import sys
-sys.path.append("/mnt/ubuntu-image-repos/mvp")
+sys.path.append("/mnt/ubuntu-image-repos/BOSSNumpyEngine/rel_alg")
 import numpy as np
   )", Py_file_input, global_dict, local_dict);
 
