@@ -2,7 +2,7 @@ def project(table, col_names)
 
 "project"_(
     "table1"_,
-    "As"_(
+    "List"_(
         "col2"_,
         "col3"_
     )
