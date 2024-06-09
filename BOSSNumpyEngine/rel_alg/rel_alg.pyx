@@ -81,7 +81,7 @@ def aggregate(table, key_col_names, reduction_func, reduction_col_name):
                 col_name = key_col_names[k]
                 elem_i = table_sorted[col_name][i]
                 elem_j = table_sorted[col_name][j]
-                if elem_1 != elem_2:
+                if elem_i != elem_j:
                     same = False
                     break
             if not same:
@@ -105,8 +105,8 @@ def materialise_into_columns(table):
 
 def split_into_spans(table, span_size):
     col_names = list(table.keys())
-    num_splits = math.ceil(len(table[col_names[0]]) / chunk_size)
-    splits = np.array([(i + 1) * chunk_size for i in range(num_splits)])
+    num_splits = math.ceil(len(table[col_names[0]]) / span_size)
+    splits = np.array([(i + 1) * span_size for i in range(num_splits)])
     return {col_name: [x for x in np.split(table[col_name], splits) if len(x) > 0] for col_name in col_names}
 
 reduction_functions = {
