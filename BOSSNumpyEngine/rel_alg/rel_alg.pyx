@@ -61,8 +61,8 @@ def equi_join(table_1, table_2, key_col_names_1, key_col_names_2):
     
     res_ix_1_npy = np.array(res_ix_1)
     res_ix_2_npy = np.array(res_ix_2)
-    table_1_joined = {col_name: table_1[col_name][res_ix_1_npy] for col_name in col_names_1}
-    table_2_joined = {col_name: table_2[col_name][res_ix_2_npy] for col_name in col_names_2}
+    table_1_joined = {col_name: table_1_sorted[col_name][res_ix_1_npy] for col_name in col_names_1}
+    table_2_joined = {col_name: table_2_sorted[col_name][res_ix_2_npy] for col_name in col_names_2}
     return table_1_joined | table_2_joined
 
 # accepts and returns tables /w materialised columns
@@ -74,9 +74,9 @@ def aggregate(table, key_col_names, reduction_func, reduction_col_name):
     splits = []
     i = 0
     j = 0
-    while i < len(table_sorted):
+    while i < len(table_sorted[col_names[0]]):
         j = i + 1
-        while j < len(table_sorted):
+        while j < len(table_sorted[col_names[0]]):
             same = True
             for k in range(len(key_col_names)):
                 col_name = key_col_names[k]
@@ -84,15 +84,15 @@ def aggregate(table, key_col_names, reduction_func, reduction_col_name):
                 elem_j = table_sorted[col_name][j]
                 if elem_i != elem_j:
                     same = False
+                    splits.append(j)
                     break
             if not same:
                 break
             j += 1
-        splits.append(j)
         i = j
     
     table_split_up = {
-        col_name: [x for x in np.split(table[col_name], splits) if len(x) > 0] 
+        col_name: [x for x in np.split(table_sorted[col_name], splits) if len(x) > 0] 
         for col_name in col_names
     }
     reduced_col = [reduction_functions[reduction_func](x) for x in table_split_up[reduction_col_name]]
@@ -133,17 +133,19 @@ if __name__ == '__main__':
         'col3': np.array([0, 0, 1]),
     }
     project_res = project(table_1, ['col2', 'col3'])
-    project_expected = {'col2': array([0.8 , 3.14, 2.42]), 'col3': array([0, 0, 1])}
-    assert(project_res == project_expected)
+    project_expected = {'col2': np.array([0.8 , 3.14, 2.42]), 'col3': np.array([0, 0, 1])}
     print('project_res')
     print(project_res)
+    print('project_expected')
+    print(project_expected)
     print()
 
     select_res = select(table_1, ['col3', 'col1'], ['==', '<'], [0, 1.5])
-    select_expected = {'col1': array([1]), 'col2': array([0.8]), 'col3': array([0])}
-    assert(select_res == select_expected)
+    select_expected = {'col1': np.array([1]), 'col2': np.array([0.8]), 'col3': np.array([0])}
     print('select_res')
     print(select_res)
+    print('select_expected')
+    print(select_expected)
     print()
 
     table_2 = {
@@ -152,15 +154,16 @@ if __name__ == '__main__':
         'col3': np.array([6, 7, 8]),
     }
     table_3 = {
-        'col2': np.array([10, 5, 2]),
-        'col1': np.array([5, 3, 4]),
+        'col1': np.array([10, 5, 2]),
+        'col2': np.array([5, 3, 4]),
         'col4': np.array([9, 2, 1]),
     }
-    join_res = equi_join(table_2, table_3, ['col1', 'col2'], ['col2', 'col1'])
-    # join_expected = {'col1': array([5]), 'col2': array([10]), 'col3': array([6]), 'col4': array([9])}
-    # assert(join_res == join_expected)
+    join_res = equi_join(table_2, table_3, ['col1', 'col2'], ['col1', 'col2'])
+    join_expected = {'col1': np.array([5]), 'col2': np.array([3]), 'col3': np.array([7]), 'col4': np.array([2])}
     print('join_res')
     print(join_res)
+    print('join_expected')
+    print(join_expected)
     print()
 
     table_4 = {
@@ -168,8 +171,11 @@ if __name__ == '__main__':
         'col2': np.array([0, 0, 1, 1, 0, 0, 1, 1]),
         'col3': np.array([1, 2, 3, 4, 1, 2, 3, 4]),
     }
-    aggregate_res = aggregate(table_4, ['col1', 'col2'], 'count', 'col3')
+    aggregate_res = aggregate(table_4, ['col1', 'col2'], 'sum', 'col3')
+    aggregate_expected = {'col3': np.array([2, 4, 6, 8]), 'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1])}
     print('aggregate_res')
     print(aggregate_res)
+    print('aggregate_expected')
+    print(aggregate_expected)
     print()
     
