@@ -273,6 +273,14 @@ PythonExpressionSystem::ExpressionSpanArgument Engine::numpy_arr_to_span(PyObjec
   }
 }
 
+PythonExpressionSystem::ExpressionSpanArguments Engine::npy_arr_to_spans(PyObject *npy_arr) {
+  PythonExpressionSystem::ExpressionSpanArguments result;
+  result.reserve(1);
+  auto span_arg = numpy_arr_to_span(npy_arr);
+  result.emplace_back(move(span_arg));
+  return result;
+}
+
 PythonExpressionSystem::ExpressionSpanArguments Engine::py_list_to_spans(PyObject *list) {
   PythonExpressionSystem::ExpressionSpanArguments result;
   auto size = PyList_Size(list);
@@ -359,6 +367,7 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
 
 #pragma region boss_to_python
 
+// returns new reference
 PyObject *
 Engine::span_to_numpy_arr(PythonExpressionSystem::ExpressionSpanArgument &&arg) {
   PyObject *result;
@@ -424,7 +433,46 @@ Engine::spans_to_py_list(PythonExpressionSystem::ExpressionSpanArguments &&args)
 
 // returns new reference to dict
 PyObject *
-Engine::table_to_pydict(PythonExpressionSystem::ComplexExpression &&table_expr) {
+Engine::table_to_pydict_column(PythonExpressionSystem::ComplexExpression &&table_expr) {
+  PyObject *table_dict = PyDict_New();
+
+  auto [table_unused_0, table_unused_1, table_dynamics,
+        table_unused_3] = move(table_expr).decompose();
+  // head = Table
+  auto table_it = make_move_iterator(table_dynamics.begin());
+  auto table_it_end = make_move_iterator(table_dynamics.end());
+  for (; table_it < table_it_end; table_it++) {
+    auto table_column_expr =
+        get<PythonExpressionSystem::ComplexExpression>(*(table_it));
+
+    auto [colname_head, colname_unused_1, colname_dynamics,
+          colname_unused_3] =
+        move(table_column_expr).decompose();
+    // head = <column_name>
+    auto colname_column_name_str = colname_head.getName();
+    auto colname_column_name =
+        move(colname_column_name_str).c_str();
+    auto colname_it =
+        make_move_iterator(colname_dynamics.begin());
+    auto colname_list_expr =
+        get<PythonExpressionSystem::ComplexExpression>(*colname_it);
+
+    auto [list_head, list_unused_1, list_unused_2, list_spans] =
+        move(colname_list_expr).decompose();
+    // head = List
+    auto list_it = make_move_iterator(list_spans.begin());
+    PyObject *numpy_arr = span_to_numpy_arr(*list_it);
+    PyDict_SetItemString(table_dict, colname_column_name,
+                          numpy_arr);
+    Py_DECREF(numpy_arr);
+  }
+
+  return table_dict;
+}
+
+// returns new reference to dict
+PyObject *
+Engine::table_to_pydict_spans(PythonExpressionSystem::ComplexExpression &&table_expr) {
   PyObject *table_dict = PyDict_New();
 
   // PythonExpressionSystem::Expression table_expr = std_move(table_expr_arg);
@@ -470,7 +518,7 @@ PyObject *
 Engine::table_to_pywrapper(PythonExpressionSystem::ComplexExpression &&table_expr) {
   PyObject *wrapper_dict = PyDict_New();
   PyObject *matrix_dict = PyDict_New();
-  PyObject *table_dict = table_to_pydict(move(table_expr));
+  PyObject *table_dict = table_to_pydict_spans(move(table_expr));
 
   PyDict_SetItemString(wrapper_dict, "table", table_dict);
   Py_DECREF(table_dict);
@@ -482,7 +530,43 @@ Engine::table_to_pywrapper(PythonExpressionSystem::ComplexExpression &&table_exp
 
 // steals reference to table_dict
 PythonExpressionSystem::Expression
-Engine::pydict_to_table(PyObject *table_dict) {
+Engine::pydict_column_to_table(PyObject *table_dict) {
+  PythonExpressionSystem::ExpressionArguments res_dynamics;
+  res_dynamics.reserve(PyDict_Size(table_dict));
+
+  PyObject *col_name, *npy_arr;
+  Py_ssize_t pos = 0;
+  while (PyDict_Next(table_dict, &pos, &col_name, &npy_arr)) {
+    Py_INCREF(col_name);
+    Py_INCREF(npy_arr);
+    string col_name_str = PyObject_to_string(col_name);
+    Py_DECREF(col_name);
+    Symbol col_head(move(col_name_str));
+
+    auto col_list_spans = numpy_arr_to_spans(npy_arr);
+    Py_DECREF(npy_arr);
+    auto boss_list =
+        PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
+    // head = List
+
+    PythonExpressionSystem::ExpressionArguments col_dynamics;
+    col_dynamics.reserve(1);
+    col_dynamics.emplace_back(move(boss_list));
+
+    auto boss_column = PythonExpressionSystem::ComplexExpression(move(col_head), {},
+                                          move(col_dynamics), {});
+    // head = <col_name>
+
+    res_dynamics.emplace_back(move(boss_column));
+  }
+  Py_DECREF(table_dict);
+
+  return PythonExpressionSystem::ComplexExpression("Table"_, {}, move(res_dynamics), {});
+}
+
+// steals reference to table_dict
+PythonExpressionSystem::Expression
+Engine::pydict_spans_to_table(PyObject *table_dict) {
   PythonExpressionSystem::ExpressionArguments res_dynamics;
   res_dynamics.reserve(PyDict_Size(table_dict));
 
@@ -560,7 +644,7 @@ Engine::pywrapper_to_table(PyObject *wrapper_dict) {
 
   PythonExpressionSystem::Expression table;
   if (table_dict != Py_None) {
-    table = pydict_to_table(table_dict);
+    table = pydict_spans_to_table(table_dict);
   } else {
     table = pymatrix_to_table(matrix_dict);
   }
@@ -590,9 +674,9 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             if (top_head == "to_boss"_) {
               // head = to_boss
               auto top_it = make_move_iterator(top_dynamics.begin());
-              auto expr = get<Expression>(*top_it);
+              auto expr = get<PythonExpressionSystem::Expression>(*top_it);
               auto result = get<PyObject *>(evaluate(move(expr)));
-              return pydict_to_table(result);
+              return pydict_column_to_table(result);
             }
 
             if (top_head == "to_python"_) {
@@ -600,8 +684,8 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto expr = get<PythonExpressionSystem::Expression>(*top_it);
               auto result = get<PythonExpressionSystem::ComplexExpression>(evaluate(move(expr)));
-              // return table_to_pydict(move(result));
-              return PythonExpressionSystem::ComplexExpression("python"_, {}, {}, {});
+              return table_to_pydict_column(move(result));
+              // return PythonExpressionSystem::ComplexExpression("python"_, {}, {}, {});
             }
 
             if (top_head == "project"_) {

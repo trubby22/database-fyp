@@ -100,8 +100,11 @@ private:
   PythonExpressionSystem::Expression pytable_to_table(PyObject *table_dict);
   PythonExpressionSystem::ComplexExpression pymatrix_to_table(PyObject *matrix_dict);
   PythonExpressionSystem::Expression pywrapper_to_table(PyObject *wrapper_dict);
-  PyObject *table_to_pydict(PythonExpressionSystem::ComplexExpression &&table_expr);
-  PythonExpressionSystem::Expression pydict_to_table(PyObject *table_dict);
+  PyObject *table_to_pydict_spans(PythonExpressionSystem::ComplexExpression &&table_expr);
+  PythonExpressionSystem::Expression pydict_spans_to_table(PyObject *table_dict);
+  PythonExpressionSystem::Expression pydict_column_to_table(PyObject *table_dict);
+  PyObject *table_to_pydict_column(PythonExpressionSystem::ComplexExpression &&table_expr);
+  PythonExpressionSystem::ExpressionSpanArguments npy_arr_to_spans(PyObject *npy_arr);
 };
 
 PythonExpressionSystem::ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs);
