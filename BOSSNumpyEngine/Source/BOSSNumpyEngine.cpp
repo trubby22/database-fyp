@@ -723,13 +723,14 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               // return PythonExpressionSystem::ComplexExpression("python"_, {}, {}, {});
             }
 
+            // def project(table, col_names)
             if (top_head == "project"_) {
               // head = project
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto expr = get<PythonExpressionSystem::Expression>(*top_it);
-              auto table_pydict = get<PyObject *>(evaluate(move(expr)));
-
               auto col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
+
+              PyObject *table_pydict = get<PyObject *>(evaluate(move(expr)));
               PyObject *col_names = single_span_list_to_pylist(move(key_col_names_expr));
 
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project");
@@ -756,14 +757,16 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               return result;
             }
 
+            // def select(table, key_col_names, boolean_ops, vals)
             if (top_head == "select"_) {
               // head = select
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto expr = get<PythonExpressionSystem::Expression>(*top_it);
-              auto table_pydict = get<PyObject *>(evaluate(move(expr)));
               auto key_col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
               auto boolean_ops_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 2));
               auto vals_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 3));
+
+              PyObject *table_pydict = get<PyObject *>(evaluate(move(expr)));
               PyObject *key_col_names = single_span_list_to_pylist(move(key_col_names_expr));
               PyObject *boolean_ops = single_span_list_to_pylist(move(boolean_ops_expr));
               PyObject *vals = single_span_list_to_pylist(move(vals_expr));
@@ -795,6 +798,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               return result;
             }
 
+            // def equi_join(table_1, table_2, key_col_names_1, key_col_names_2)
             if (top_head == "equi_join"_) {
               // head = project
               auto top_it = make_move_iterator(top_dynamics.begin());
@@ -802,6 +806,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               auto expr_2 = get<PythonExpressionSystem::Expression>(*(top_it + 1));
               auto key_col_names_expr_1 = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 2));
               auto key_col_names_expr_2 = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 3));
+
               PyObject *table_pydict_1 = get<PyObject *>(evaluate(move(expr_1)));
               PyObject *table_pydict_2 = get<PyObject *>(evaluate(move(expr_2)));
               PyObject *key_col_names_1 = single_span_list_to_pylist(move(key_col_names_expr_1));
@@ -834,6 +839,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               return result;
             }
 
+            // def aggregate(table, key_col_names, reduction_func, reduction_col_name)
             if (top_head == "aggregate"_) {
               // head = project
               auto top_it = make_move_iterator(top_dynamics.begin());
@@ -841,6 +847,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               auto key_col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
               auto reduction_func_expr = get<Symbol>(*(top_it + 2));
               auto reduction_col_name_expr = get<Symbol>(*(top_it + 3));
+
               PyObject *table_pydict = get<PyObject *>(evaluate(move(expr)));
               PyObject *key_col_names = single_span_list_to_pylist(move(key_col_names_expr));
               string reduction_func_str = reduction_func_expr.getName();
