@@ -50,7 +50,7 @@ using boss::Symbol;
 
 typedef unsigned long long ull;
 const int ENGINE_SPAN_SIZE_BYTES = 1000000; // 1 million = 1 mb
-// using MyExpression = std::variant<Expression, PyObject *>;
+// using MyExpression = std::variant<PythonExpressionSystem::Expression, PyObject *>;
 
 namespace boss::engines::numpy {
 
@@ -69,7 +69,8 @@ public:
 
   ~Engine();
 
-  Expression evaluate(Expression &&e);
+  PythonExpressionSystem::Expression evaluate(PythonExpressionSystem::Expression &&e);
+  boss::expressions::Expression evaluate_c(boss::expressions::Expression &&e);
 
 private:
   PyObject *global_dict;
@@ -82,27 +83,27 @@ private:
   void init_python_and_numpy();
 
   template <typename T>
-  ComplexExpression
+  PythonExpressionSystem::ComplexExpression
   npy_matrix_to_table_helper(PyArrayObject *npy_matrix,
                                      PyObject *col_names);
 
-  ComplexExpression npy_matrix_to_table(PyArrayObject *npy_matrix,
+  PythonExpressionSystem::ComplexExpression npy_matrix_to_table(PyArrayObject *npy_matrix,
                                                 PyObject *col_names);
                                             
-  ExpressionSpanArgument numpy_arr_to_span(PyObject *npy_arr);
-  PyObject *span_to_numpy_arr(ExpressionSpanArgument &&arg);
-  ExpressionSpanArguments py_list_to_spans(PyObject *list);
-  PyObject *spans_to_py_list(ExpressionSpanArguments &&args);
+  PythonExpressionSystem::ExpressionSpanArgument numpy_arr_to_span(PyObject *npy_arr);
+  PyObject *span_to_numpy_arr(PythonExpressionSystem::ExpressionSpanArgument &&arg);
+  PythonExpressionSystem::ExpressionSpanArguments py_list_to_spans(PyObject *list);
+  PyObject *spans_to_py_list(PythonExpressionSystem::ExpressionSpanArguments &&args);
   void reset_python_dict();
 
-  PyObject *table_to_pywrapper(ComplexExpression &&table_expr);
-  Expression pytable_to_table(PyObject *table_dict);
-  ComplexExpression pymatrix_to_table(PyObject *matrix_dict);
-  Expression pywrapper_to_table(PyObject *wrapper_dict);
-  PyObject *table_to_pydict(ComplexExpression &&table_expr);
-  Expression pydict_to_table(PyObject *table_dict);
+  PyObject *table_to_pywrapper(PythonExpressionSystem::ComplexExpression &&table_expr);
+  PythonExpressionSystem::Expression pytable_to_table(PyObject *table_dict);
+  PythonExpressionSystem::ComplexExpression pymatrix_to_table(PyObject *matrix_dict);
+  PythonExpressionSystem::Expression pywrapper_to_table(PyObject *wrapper_dict);
+  PyObject *table_to_pydict(PythonExpressionSystem::ComplexExpression &&table_expr);
+  PythonExpressionSystem::Expression pydict_to_table(PyObject *table_dict);
 };
 
-ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs);
+PythonExpressionSystem::ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs);
 
 } // namespace boss::engines::numpy
