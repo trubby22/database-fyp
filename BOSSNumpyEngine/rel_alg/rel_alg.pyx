@@ -16,8 +16,7 @@ def select(table, col_names, boolean_ops, vals):
         op = boolean_ops[i]
         val = vals[i]
         npy_arr = table[col_name]
-        # res_table[col_name] = boolean_op(npy_arr, op, val)
-        res_table[col_name] = op(npy_arr, val)
+        res_table[col_name] = boolean_op[op](npy_arr, val)
     return res_table
 
 # works on spans
@@ -31,28 +30,10 @@ def select_spans(table, col_names, boolean_ops, vals):
         res_col = []
         for j in range(len(list_of_npy_arrs)):
             npy_arr = list_of_npy_arrs[j]
-            # res_span = boolean_op(npy_arr, op, val)
-            res_span = op(npy_arr, val)
+            res_span = boolean_op[op](npy_arr, val)
             res_col.append(res_span)
         res_table[col_name] = res_col
     return res_table
-
-def boolean_op(arr, op, val):
-    match op:
-        case '<':
-            return arr < val
-        case '>':
-            return arr > val
-        case '==':
-            return arr == val
-        case '!=':
-            return arr != val
-        case '<=':
-            return arr <= val
-        case '>=':
-            return arr >= val
-        case _:
-            raise Exception()
 
 # accepts and returns tables /w materialised columns
 def equi_join(table_1, table_2, col_names_1, col_names_2):
@@ -146,4 +127,13 @@ reduction_functions = {
     'prod': lambda x: np.prod(x),
     'count': lambda x: x.size,
     'avg': lambda x: np.mean(x),
+}
+
+boolean_op = {
+    '==': lambda x, y: x == y,
+    '!=': lambda x, y: x != y,
+    '<': lambda x, y: x < y,
+    '<=': lambda x, y: x <= y,
+    '>': lambda x, y: x > y,
+    '>=': lambda x, y: x >= y,
 }
