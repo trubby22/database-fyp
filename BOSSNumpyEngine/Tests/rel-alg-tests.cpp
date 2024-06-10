@@ -1,72 +1,47 @@
 #include "../Source/BOSSNumpyEngine.hpp"
 
-// using namespace std;
-// using boss::engines::numpy::Engine;
-// using boss::engines::numpy::create_random_table;
-// using string_literals::operator"" s;
-// using boss::utilities::operator""_;
-// using boss::ComplexExpression;
-// using boss::Expression;
-// using boss::Span;
-// using boss::Symbol;
-// using boss::expressions::ComplexExpressionWithStaticArguments;
-// using boss::expressions::ExpressionArguments;
-// using boss::expressions::ExpressionSpanArgument;
-// using boss::expressions::ExpressionSpanArguments;
-// using boss::expressions::CloneReason;
+auto create_int_col(int32_t... values) {
+  return create_span<int32_t>(values...);
+}
 
+auto create_double_col(double... values) {
+  return create_span<double>(values...);
+}
 
-auto createSpansInt = [](auto... values) {
-  using SpanArguments = ExpressionSpanArguments;
-  vector<intType> v1 = {values...};
-  auto s1 = Span<intType>(move(v1));
-  SpanArguments args;
+auto create_str_col(string... values) {
+  return create_span<string>(values...);
+}
+
+template<typename... T>
+auto create_span(T... values) {
+  vector<T> v1 = {values...};
+  auto s1 = Span<T>(move(v1));
+  boss::expressions::ExpressionSpanArguments args;
   args.emplace_back(move(s1));
   return ComplexExpression("List"_, {}, {}, move(args));
 };
 
-auto createSpansFloat = [](auto... values) {
-  using SpanArguments = ExpressionSpanArguments;
-  vector<double_t> v1 = {values...};
-  auto s1 = Span<double_t>(move(v1));
-  SpanArguments args;
-  args.emplace_back(move(s1));
-  return ComplexExpression("List"_, {}, {}, move(args));
-};
-
-auto create_lineitem() {
-  return "Table"_("l_orderkey"_(createSpansInt(1, 1, 2, 3)),
-                  "l_partkey"_(createSpansInt(1, 2, 3, 4)),
-                  "l_suppkey"_(createSpansInt(1, 2, 3, 4)),
-                  "l_returnflag"_(createSpansInt('N', 'N', 'A', 'A')),
-                  "l_linestatus"_(createSpansInt('O', 'O', 'F', 'F')),
-                  "l_quantity"_(createSpansInt(17, 21, 8, 5)),
-                  "l_extendedprice"_(
-                      createSpansFloat(17954.55, 34850.16, 7712.48, 25284.00)),
-                  "l_discount"_(createSpansFloat(0.10, 0.05, 0.06, 0.06)),
-                  "l_tax"_(createSpansFloat(0.02, 0.06, 0.02, 0.06)),
-                  "l_shipdate"_(createSpansInt(1992, 1994, 1996, 1994)));
-}
-
-// wrapper = {"table": {"col1": [npy_arr_1, npy_arr_2], "col2": [npy_arr_3, npy_arr4]}, "matrix": {"data": npy_matrix, "col_names": ["col1", "col2"]}}
-
-void foo() {
-  boss::engines::numpy::Engine engine(ENGINE_SPAN_SIZE_BYTES);
-  auto lineitem = create_lineitem();
-
-  auto query = "to_boss"_("project"_(
-    "to_python"_(move(lineitem)),
-    "as"_(
-       "l_partkey"_,
-       "l_quantity"_
-    )
-  ));
-
-  auto const result = engine.evaluate(move(query));
-  cout << "result " << endl << result << endl << endl;
-}
+// pydict_column = {"col1": npy_arr1, "col2": npy_arr2}
 
 int main() {
-  foo();
+  boss::engines::numpy::Engine engine(ENGINE_SPAN_SIZE_BYTES);
+  auto table_1 = "Table"_(
+    "col1"_(create_int_col(1, 2, 3)),
+    "col2"_(create_double_col(0.8, 3.14, 2.42)),
+    "col3"_(create_int_col(0, 0, 1)),
+  );
+  auto project_query = "project"_(
+    move(table_1),
+    create_str_col("col2", "col3"),
+  );
+  auto const project_res = engine.evaluate(move(project_query));
+  auto project_expected = "Table"_(
+    "col2"_(create_double_col(0.8, 3.14, 2.42)),
+    "col3"_(create_int_col(0, 0, 1)),
+  );
+  cout << "project_res " << endl << project_res << endl;
+  cout << "project_expected " << endl << project_expected << endl;
+  cout << endl;
+
   return 0;
 }
