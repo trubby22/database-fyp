@@ -70,6 +70,7 @@ int main() {
   auto project_query = "project"_(
     move(table_1),
     "List"_(boss::Span<string>{vector<string>{"col2", "col3"}})
+    // "List"_(boss::Span<int32_t>{vector<int32_t>{4, 20}})
   );
   auto const project_res = engine.evaluate(move(project_query));
   cout << "project_res " << endl << project_res << endl;

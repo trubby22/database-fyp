@@ -128,20 +128,20 @@ set(ImplementationFiles
 )
 set(TestFiles Tests/BOSSTests.cpp)
 
-add_library(BOSSNumpyEngine MODULE ${ImplementationFiles})
+# add_library(BOSSNumpyEngine MODULE ${ImplementationFiles})
 
 add_executable(rel-alg-tests ${ImplementationFiles} Tests/rel-alg-tests.cpp)
 # add_executable(npy-to-span ${ImplementationFiles} Tests/npy-to-span.cpp)
 # add_executable(NPTests ${ImplementationFiles} ${TestFiles})
 # add_dependencies(NPTests catch2)
 
-set_property(TARGET BOSSNumpyEngine PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
+# set_property(TARGET BOSSNumpyEngine PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 # set_property(TARGET NPTests PROPERTY CXX_STANDARD 20) ## the core is c++ 17 but the engines may want to use 20
 
 # set(PUBLIC_HEADER_LIST ${CMAKE_CURRENT_SOURCE_DIR}/Source/BOSSNumpyEngine.hpp;)
 
 list(APPEND AllTargets 
-  BOSSNumpyEngine 
+  # BOSSNumpyEngine 
   # NPTests 
   rel-alg-tests 
   # npy-to-span
@@ -183,9 +183,9 @@ foreach(Target IN LISTS AllTargets)
     endif()
 endforeach()
 
-set_target_properties(BOSSNumpyEngine PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+# set_target_properties(BOSSNumpyEngine PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 # set_target_properties(BOSSNumpyEngine PROPERTIES PUBLIC_HEADER ${PUBLIC_HEADER_LIST})
-install(TARGETS BOSSNumpyEngine LIBRARY DESTINATION lib)
+# install(TARGETS BOSSNumpyEngine LIBRARY DESTINATION lib)
 
 # set_target_properties(NPTests PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 # install(TARGETS NPTests RUNTIME DESTINATION bin)

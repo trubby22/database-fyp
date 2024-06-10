@@ -5,7 +5,7 @@ import math
 def say_hello_to(name):
     print(f"Hello {name}!")
 
-def project(table, col_names):
+def project_foo(table, col_names):
     print('table')
     print(table)
     print('col_names')
@@ -138,7 +138,7 @@ if __name__ == '__main__':
         'col2': np.array([0.8, 3.14, 2.42]),
         'col3': np.array([0, 0, 1]),
     }
-    project_res = project(table_1, ['col2', 'col3'])
+    project_res = project_foo(table_1, ['col2', 'col3'])
     project_expected = {'col2': np.array([0.8 , 3.14, 2.42]), 'col3': np.array([0, 0, 1])}
     print('project_res')
     print(project_res)

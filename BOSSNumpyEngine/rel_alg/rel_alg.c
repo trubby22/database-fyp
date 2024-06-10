@@ -2298,7 +2298,6 @@ static const char __pyx_k_splits[] = "splits";
 static const char __pyx_k_j_start[] = "j_start";
 static const char __pyx_k_lexsort[] = "lexsort";
 static const char __pyx_k_npy_arr[] = "npy_arr";
-static const char __pyx_k_project[] = "project";
 static const char __pyx_k_rel_alg[] = "rel_alg";
 static const char __pyx_k_table_1[] = "table_1";
 static const char __pyx_k_table_2[] = "table_2";
@@ -2326,6 +2325,7 @@ static const char __pyx_k_boolean_ops[] = "boolean_ops";
 static const char __pyx_k_col_names_1[] = "col_names_1";
 static const char __pyx_k_col_names_2[] = "col_names_2";
 static const char __pyx_k_concatenate[] = "concatenate";
+static const char __pyx_k_project_foo[] = "project_foo";
 static const char __pyx_k_project_res[] = "project_res";
 static const char __pyx_k_reduced_col[] = "reduced_col";
 static const char __pyx_k_rel_alg_pyx[] = "rel_alg.pyx";
@@ -2371,7 +2371,7 @@ static PyObject *__pyx_lambda_funcdef_7rel_alg_lambda9(CYTHON_UNUSED PyObject *_
 static PyObject *__pyx_lambda_funcdef_7rel_alg_lambda10(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_x, PyObject *__pyx_v_y); /* proto */
 static PyObject *__pyx_lambda_funcdef_7rel_alg_lambda11(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_x, PyObject *__pyx_v_y); /* proto */
 static PyObject *__pyx_pf_7rel_alg_say_hello_to(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_name); /* proto */
-static PyObject *__pyx_pf_7rel_alg_2project(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_table, PyObject *__pyx_v_col_names); /* proto */
+static PyObject *__pyx_pf_7rel_alg_2project_foo(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_table, PyObject *__pyx_v_col_names); /* proto */
 static PyObject *__pyx_pf_7rel_alg_4select(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_table, PyObject *__pyx_v_key_col_names, PyObject *__pyx_v_boolean_ops, PyObject *__pyx_v_vals); /* proto */
 static PyObject *__pyx_pf_7rel_alg_6equi_join(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_table_1, PyObject *__pyx_v_table_2, PyObject *__pyx_v_key_col_names_1, PyObject *__pyx_v_key_col_names_2); /* proto */
 static PyObject *__pyx_pf_7rel_alg_8aggregate(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_table, PyObject *__pyx_v_key_col_names, PyObject *__pyx_v_reduction_func, PyObject *__pyx_v_reduction_col_name); /* proto */
@@ -2482,8 +2482,8 @@ typedef struct {
   PyObject *__pyx_n_s_op;
   PyObject *__pyx_n_s_print;
   PyObject *__pyx_n_s_prod;
-  PyObject *__pyx_n_s_project;
   PyObject *__pyx_n_s_project_expected;
+  PyObject *__pyx_n_s_project_foo;
   PyObject *__pyx_n_s_project_res;
   PyObject *__pyx_n_s_range;
   PyObject *__pyx_n_s_reduced_col;
@@ -2684,8 +2684,8 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_op);
   Py_CLEAR(clear_module_state->__pyx_n_s_print);
   Py_CLEAR(clear_module_state->__pyx_n_s_prod);
-  Py_CLEAR(clear_module_state->__pyx_n_s_project);
   Py_CLEAR(clear_module_state->__pyx_n_s_project_expected);
+  Py_CLEAR(clear_module_state->__pyx_n_s_project_foo);
   Py_CLEAR(clear_module_state->__pyx_n_s_project_res);
   Py_CLEAR(clear_module_state->__pyx_n_s_range);
   Py_CLEAR(clear_module_state->__pyx_n_s_reduced_col);
@@ -2864,8 +2864,8 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_op);
   Py_VISIT(traverse_module_state->__pyx_n_s_print);
   Py_VISIT(traverse_module_state->__pyx_n_s_prod);
-  Py_VISIT(traverse_module_state->__pyx_n_s_project);
   Py_VISIT(traverse_module_state->__pyx_n_s_project_expected);
+  Py_VISIT(traverse_module_state->__pyx_n_s_project_foo);
   Py_VISIT(traverse_module_state->__pyx_n_s_project_res);
   Py_VISIT(traverse_module_state->__pyx_n_s_range);
   Py_VISIT(traverse_module_state->__pyx_n_s_reduced_col);
@@ -3056,8 +3056,8 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_op __pyx_mstate_global->__pyx_n_s_op
 #define __pyx_n_s_print __pyx_mstate_global->__pyx_n_s_print
 #define __pyx_n_s_prod __pyx_mstate_global->__pyx_n_s_prod
-#define __pyx_n_s_project __pyx_mstate_global->__pyx_n_s_project
 #define __pyx_n_s_project_expected __pyx_mstate_global->__pyx_n_s_project_expected
+#define __pyx_n_s_project_foo __pyx_mstate_global->__pyx_n_s_project_foo
 #define __pyx_n_s_project_res __pyx_mstate_global->__pyx_n_s_project_res
 #define __pyx_n_s_range __pyx_mstate_global->__pyx_n_s_range
 #define __pyx_n_s_reduced_col __pyx_mstate_global->__pyx_n_s_reduced_col
@@ -5059,7 +5059,7 @@ static PyObject *__pyx_pf_7rel_alg_say_hello_to(CYTHON_UNUSED PyObject *__pyx_se
  * def say_hello_to(name):
  *     print(f"Hello {name}!")             # <<<<<<<<<<<<<<
  * 
- * def project(table, col_names):
+ * def project_foo(table, col_names):
  */
   __pyx_t_1 = PyTuple_New(3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 6, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -5113,21 +5113,21 @@ static PyObject *__pyx_pf_7rel_alg_say_hello_to(CYTHON_UNUSED PyObject *__pyx_se
 /* "rel_alg.pyx":8
  *     print(f"Hello {name}!")
  * 
- * def project(table, col_names):             # <<<<<<<<<<<<<<
+ * def project_foo(table, col_names):             # <<<<<<<<<<<<<<
  *     print('table')
  *     print(table)
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_7rel_alg_3project(PyObject *__pyx_self, 
+static PyObject *__pyx_pw_7rel_alg_3project_foo(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_7rel_alg_3project = {"project", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_7rel_alg_3project, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_7rel_alg_3project(PyObject *__pyx_self, 
+static PyMethodDef __pyx_mdef_7rel_alg_3project_foo = {"project_foo", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_7rel_alg_3project_foo, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_7rel_alg_3project_foo(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
@@ -5146,7 +5146,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("project (wrapper)", 0);
+  __Pyx_RefNannySetupContext("project_foo (wrapper)", 0);
   #if !CYTHON_METH_FASTCALL
   #if CYTHON_ASSUME_SAFE_MACROS
   __pyx_nargs = PyTuple_GET_SIZE(__pyx_args);
@@ -5184,12 +5184,12 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
         }
         else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 8, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("project", 1, 2, 2, 1); __PYX_ERR(0, 8, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("project_foo", 1, 2, 2, 1); __PYX_ERR(0, 8, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "project") < 0)) __PYX_ERR(0, 8, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "project_foo") < 0)) __PYX_ERR(0, 8, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 2)) {
       goto __pyx_L5_argtuple_error;
@@ -5202,7 +5202,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("project", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 8, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("project_foo", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 8, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -5212,11 +5212,11 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
     }
   }
-  __Pyx_AddTraceback("rel_alg.project", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("rel_alg.project_foo", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_7rel_alg_2project(__pyx_self, __pyx_v_table, __pyx_v_col_names);
+  __pyx_r = __pyx_pf_7rel_alg_2project_foo(__pyx_self, __pyx_v_table, __pyx_v_col_names);
 
   /* function exit code */
   {
@@ -5229,7 +5229,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_7rel_alg_2project(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_table, PyObject *__pyx_v_col_names) {
+static PyObject *__pyx_pf_7rel_alg_2project_foo(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_table, PyObject *__pyx_v_col_names) {
   PyObject *__pyx_7genexpr__pyx_v_col_name = NULL;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -5241,11 +5241,11 @@ static PyObject *__pyx_pf_7rel_alg_2project(CYTHON_UNUSED PyObject *__pyx_self, 
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("project", 1);
+  __Pyx_RefNannySetupContext("project_foo", 1);
 
   /* "rel_alg.pyx":9
  * 
- * def project(table, col_names):
+ * def project_foo(table, col_names):
  *     print('table')             # <<<<<<<<<<<<<<
  *     print(table)
  *     print('col_names')
@@ -5255,7 +5255,7 @@ static PyObject *__pyx_pf_7rel_alg_2project(CYTHON_UNUSED PyObject *__pyx_self, 
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "rel_alg.pyx":10
- * def project(table, col_names):
+ * def project_foo(table, col_names):
  *     print('table')
  *     print(table)             # <<<<<<<<<<<<<<
  *     print('col_names')
@@ -5372,7 +5372,7 @@ static PyObject *__pyx_pf_7rel_alg_2project(CYTHON_UNUSED PyObject *__pyx_self, 
   /* "rel_alg.pyx":8
  *     print(f"Hello {name}!")
  * 
- * def project(table, col_names):             # <<<<<<<<<<<<<<
+ * def project_foo(table, col_names):             # <<<<<<<<<<<<<<
  *     print('table')
  *     print(table)
  */
@@ -5382,7 +5382,7 @@ static PyObject *__pyx_pf_7rel_alg_2project(CYTHON_UNUSED PyObject *__pyx_self, 
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_AddTraceback("rel_alg.project", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("rel_alg.project_foo", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_7genexpr__pyx_v_col_name);
@@ -9061,8 +9061,8 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_op, __pyx_k_op, sizeof(__pyx_k_op), 0, 0, 1, 1},
     {&__pyx_n_s_print, __pyx_k_print, sizeof(__pyx_k_print), 0, 0, 1, 1},
     {&__pyx_n_s_prod, __pyx_k_prod, sizeof(__pyx_k_prod), 0, 0, 1, 1},
-    {&__pyx_n_s_project, __pyx_k_project, sizeof(__pyx_k_project), 0, 0, 1, 1},
     {&__pyx_n_s_project_expected, __pyx_k_project_expected, sizeof(__pyx_k_project_expected), 0, 0, 1, 1},
+    {&__pyx_n_s_project_foo, __pyx_k_project_foo, sizeof(__pyx_k_project_foo), 0, 0, 1, 1},
     {&__pyx_n_s_project_res, __pyx_k_project_res, sizeof(__pyx_k_project_res), 0, 0, 1, 1},
     {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
     {&__pyx_n_s_reduced_col, __pyx_k_reduced_col, sizeof(__pyx_k_reduced_col), 0, 0, 1, 1},
@@ -9128,7 +9128,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 
   /* "rel_alg.pyx":9
  * 
- * def project(table, col_names):
+ * def project_foo(table, col_names):
  *     print('table')             # <<<<<<<<<<<<<<
  *     print(table)
  *     print('col_names')
@@ -9163,14 +9163,14 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "rel_alg.pyx":8
  *     print(f"Hello {name}!")
  * 
- * def project(table, col_names):             # <<<<<<<<<<<<<<
+ * def project_foo(table, col_names):             # <<<<<<<<<<<<<<
  *     print('table')
  *     print(table)
  */
   __pyx_tuple__7 = PyTuple_Pack(3, __pyx_n_s_table, __pyx_n_s_col_names, __pyx_n_s_col_name); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(0, 8, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__7);
   __Pyx_GIVEREF(__pyx_tuple__7);
-  __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__7, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_rel_alg_pyx, __pyx_n_s_project, 8, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__7, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_rel_alg_pyx, __pyx_n_s_project_foo, 8, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) __PYX_ERR(0, 8, __pyx_L1_error)
 
   /* "rel_alg.pyx":16
  * 
@@ -9233,7 +9233,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_codeobj__18 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 8, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__17, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_rel_alg_pyx, __pyx_n_s_split_into_spans, 110, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__18)) __PYX_ERR(0, 110, __pyx_L1_error)
 
   /* "rel_alg.pyx":143
- *     project_res = project(table_1, ['col2', 'col3'])
+ *     project_res = project_foo(table_1, ['col2', 'col3'])
  *     project_expected = {'col2': np.array([0.8 , 3.14, 2.42]), 'col3': np.array([0, 0, 1])}
  *     print('project_res')             # <<<<<<<<<<<<<<
  *     print(project_res)
@@ -9740,13 +9740,13 @@ if (!__Pyx_RefNanny) {
   /* "rel_alg.pyx":8
  *     print(f"Hello {name}!")
  * 
- * def project(table, col_names):             # <<<<<<<<<<<<<<
+ * def project_foo(table, col_names):             # <<<<<<<<<<<<<<
  *     print('table')
  *     print(table)
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_7rel_alg_3project, 0, __pyx_n_s_project, NULL, __pyx_n_s_rel_alg, __pyx_d, ((PyObject *)__pyx_codeobj__8)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_7rel_alg_3project_foo, 0, __pyx_n_s_project_foo, NULL, __pyx_n_s_rel_alg, __pyx_d, ((PyObject *)__pyx_codeobj__8)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 8, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_project, __pyx_t_2) < 0) __PYX_ERR(0, 8, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_project_foo, __pyx_t_2) < 0) __PYX_ERR(0, 8, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "rel_alg.pyx":16
@@ -10041,7 +10041,7 @@ if (!__Pyx_RefNanny) {
  *         'col2': np.array([0.8, 3.14, 2.42]),
  *         'col3': np.array([0, 0, 1]),             # <<<<<<<<<<<<<<
  *     }
- *     project_res = project(table_1, ['col2', 'col3'])
+ *     project_res = project_foo(table_1, ['col2', 'col3'])
  */
     __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_np); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 139, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
@@ -10071,11 +10071,11 @@ if (!__Pyx_RefNanny) {
     /* "rel_alg.pyx":141
  *         'col3': np.array([0, 0, 1]),
  *     }
- *     project_res = project(table_1, ['col2', 'col3'])             # <<<<<<<<<<<<<<
+ *     project_res = project_foo(table_1, ['col2', 'col3'])             # <<<<<<<<<<<<<<
  *     project_expected = {'col2': np.array([0.8 , 3.14, 2.42]), 'col3': np.array([0, 0, 1])}
  *     print('project_res')
  */
-    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_project); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 141, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_project_foo); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 141, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_table_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 141, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
@@ -10104,7 +10104,7 @@ if (!__Pyx_RefNanny) {
 
     /* "rel_alg.pyx":142
  *     }
- *     project_res = project(table_1, ['col2', 'col3'])
+ *     project_res = project_foo(table_1, ['col2', 'col3'])
  *     project_expected = {'col2': np.array([0.8 , 3.14, 2.42]), 'col3': np.array([0, 0, 1])}             # <<<<<<<<<<<<<<
  *     print('project_res')
  *     print(project_res)
@@ -10159,7 +10159,7 @@ if (!__Pyx_RefNanny) {
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
     /* "rel_alg.pyx":143
- *     project_res = project(table_1, ['col2', 'col3'])
+ *     project_res = project_foo(table_1, ['col2', 'col3'])
  *     project_expected = {'col2': np.array([0.8 , 3.14, 2.42]), 'col3': np.array([0, 0, 1])}
  *     print('project_res')             # <<<<<<<<<<<<<<
  *     print(project_res)

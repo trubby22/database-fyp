@@ -8,6 +8,30 @@
 
 namespace boss::engines::numpy {
 
+void print_pylist(PyObject* pylist) {
+    if (pylist && PyList_Check(pylist)) {
+        Py_ssize_t size = PyList_Size(pylist);
+        for (Py_ssize_t i = 0; i < size; ++i) {
+            PyObject* item = PyList_GetItem(pylist, i);  // Borrowed reference
+            PyObject* item_str = PyObject_Str(item);     // New reference
+
+            if (item_str) {
+                const char* item_cstr = PyUnicode_AsUTF8(item_str);
+                if (item_cstr) {
+                    std::cout << "Item " << i << ": " << item_cstr << std::endl;
+                } else {
+                    std::cerr << "Failed to convert item " << i << " to string." << std::endl;
+                }
+                Py_DECREF(item_str);  // Decrement reference count of item_str
+            } else {
+                std::cerr << "Failed to get string representation of item " << i << std::endl;
+            }
+        }
+    } else {
+        std::cerr << "The provided object is not a list." << std::endl;
+    }
+}
+
 template <typename T>
 Span<T> *Engine::transfer_ownership(Span<T> &&span) {
   return new Span<T>(move(span));
@@ -638,12 +662,15 @@ Engine::pywrapper_to_table(PyObject *wrapper_dict) {
 
 template <typename T>
 PyObject *Engine::primitive_to_pyobject(T &&arg) {
-  if constexpr (is_same_v<T, int64_t>) {
+  if constexpr (is_same_v<T, int32_t>) {
+    return PyLong_FromLong(static_cast<int64_t>(arg));
+  } else if constexpr (is_same_v<T, int64_t>) {
     return PyLong_FromLong(arg);
   } else if constexpr (is_same_v<T, double_t>) {
     return PyFloat_FromDouble(arg);
   } else if constexpr (is_same_v<T, string>) {
-    return PyUnicode_FromString(arg.c_str());
+    const char *arg_c = arg.c_str();
+    return PyUnicode_FromString(arg_c);
   } else {
     throw runtime_error("unsupported type: " + string(typeid(T).name()));
   }
@@ -662,7 +689,6 @@ PyObject *Engine::single_span_list_to_pylist(PythonExpressionSystem::ComplexExpr
       for (size_t i = 0; i < size; i++) {
         PyObject *pyobject = primitive_to_pyobject<T>(move(typed_span[i]));
         PyList_SET_ITEM(py_list, i, pyobject);
-        Py_DECREF(pyobject);
       }
       return py_list;
     },
@@ -766,10 +792,14 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               PyObject *table_pydict = python_expression_to_pyobject(evaluate(move(expr)));
               PyObject *col_names = single_span_list_to_pylist(move(col_names_expr));
 
-              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project");
+              print_pylist(col_names);
+
+              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project_foo");
               if (py_operator == NULL) {
                 PyErr_Print();
               }
+
+              print_pylist(col_names);
 
               PyObject* result;
               if (PyCallable_Check(py_operator)) {
@@ -786,7 +816,6 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               }
               Py_DECREF(table_pydict);
               Py_DECREF(col_names);
-
               return result;
             }
 
