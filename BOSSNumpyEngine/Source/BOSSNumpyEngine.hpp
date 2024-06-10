@@ -47,6 +47,7 @@ static ExpressionBuilder operator""_(const char* name, size_t /*unused*/) {
 };
 using boss::Span;
 using boss::Symbol;
+using intType = int32_t;
 
 typedef unsigned long long ull;
 const int ENGINE_SPAN_SIZE_BYTES = 1000000; // 1 million = 1 mb
@@ -104,7 +105,24 @@ private:
   PythonExpressionSystem::Expression pydict_spans_to_table(PyObject *table_dict);
   PythonExpressionSystem::Expression pydict_column_to_table(PyObject *table_dict);
   PyObject *table_to_pydict_column(PythonExpressionSystem::ComplexExpression &&table_expr);
-  PythonExpressionSystem::ExpressionSpanArguments npy_arr_to_spans(PyObject *npy_arr);
+  PythonExpressionSystem::ExpressionSpanArguments numpy_arr_to_spans(PyObject *npy_arr);
+  boss::expressions::ExpressionSpanArgument toBOSSExpression(PythonExpressionSystem::ExpressionSpanArgument&& span);
+  boss::Expression toBOSSExpression(PythonExpressionSystem::Expression&& expr);
+  PyObject *python_expression_to_pyobject(PythonExpressionSystem::Expression &&expr);
+  PyObject *single_span_list_to_pylist(PythonExpressionSystem::ComplexExpression &&list);
+  template <typename T>
+  PyObject *primitive_to_pyobject(T &&arg);
+  template <typename T> Span<T> numpy_arr_to_span_helper(PyObject *py_npy_arr);
+  int sizeof_dtype(PyArrayObject *npy_arr);
+  template <typename T> NPY_TYPES cpp_type_to_numpy();
+  PythonExpressionSystem::ExpressionSpanArguments print_span_args(PythonExpressionSystem::ExpressionSpanArguments &&args);
+  PythonExpressionSystem::ExpressionSpanArgument print_span_arg(PythonExpressionSystem::ExpressionSpanArgument &&arg);
+  void print_py_list(PyObject *list);
+  void print_1d_numpy_array(PyArrayObject *array);
+  template <typename T> void print_1d_numpy_array_helper(PyArrayObject *array);
+  string PyObject_to_string(PyObject *obj);
+  template <typename T>
+  Span<T> *transfer_ownership(Span<T> &&span);
 };
 
 PythonExpressionSystem::ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs);

@@ -9,7 +9,7 @@
 namespace boss::engines::numpy {
 
 template <typename T>
-Span<T> *transfer_ownership(Span<T> &&span) {
+Span<T> *Engine::transfer_ownership(Span<T> &&span) {
   return new Span<T>(move(span));
 }
 
@@ -46,7 +46,7 @@ extern "C" {
 
 #pragma region python_helpers
 
-string PyObject_to_string(PyObject *obj) {
+string Engine::PyObject_to_string(PyObject *obj) {
   PyGILState_STATE gstate;
   gstate = PyGILState_Ensure();
 
@@ -77,7 +77,7 @@ string PyObject_to_string(PyObject *obj) {
 
 #pragma region print
 
-template <typename T> void print_1d_numpy_array_helper(PyArrayObject *array) {
+template <typename T> void Engine::print_1d_numpy_array_helper(PyArrayObject *array) {
   auto size = PyArray_DIM(array, 0);
   cout << "[";
   int j = 0;
@@ -95,7 +95,7 @@ template <typename T> void print_1d_numpy_array_helper(PyArrayObject *array) {
   cout << "]" << endl;
 }
 
-void print_1d_numpy_array(PyArrayObject *array) {
+void Engine::print_1d_numpy_array(PyArrayObject *array) {
   cout << "printing numpy array" << endl;
   int dtype = PyArray_TYPE(array);
   switch (dtype) {
@@ -123,7 +123,7 @@ void print_1d_numpy_array(PyArrayObject *array) {
   cout << "end of numpy array" << endl;
 }
 
-void print_py_list(PyObject *list) {
+void Engine::print_py_list(PyObject *list) {
   cout << "printing py list" << endl;
   Py_ssize_t size = PyList_Size(list);
   for (Py_ssize_t i = 0; i < size; i++) {
@@ -135,7 +135,7 @@ void print_py_list(PyObject *list) {
   cout << "end of py list" << endl;
 }
 
-PythonExpressionSystem::ExpressionSpanArgument print_span_arg(PythonExpressionSystem::ExpressionSpanArgument &&arg) {
+PythonExpressionSystem::ExpressionSpanArgument Engine::print_span_arg(PythonExpressionSystem::ExpressionSpanArgument &&arg) {
   return visit(
       []<typename T>(Span<T> &&typed_span) -> PythonExpressionSystem::ExpressionSpanArgument {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
@@ -162,12 +162,12 @@ PythonExpressionSystem::ExpressionSpanArgument print_span_arg(PythonExpressionSy
       forward<decltype(arg)>(arg));
 }
 
-PythonExpressionSystem::ExpressionSpanArguments print_span_args(PythonExpressionSystem::ExpressionSpanArguments &&args) {
+PythonExpressionSystem::ExpressionSpanArguments Engine::print_span_args(PythonExpressionSystem::ExpressionSpanArguments &&args) {
   cout << "span args" << endl;
   cout << "[";
 
   transform(make_move_iterator(args.begin()), make_move_iterator(args.end()),
-            args.begin(), [](auto &&arg) {
+            args.begin(), [this](auto &&arg) {
               arg = print_span_arg(forward<decltype(arg)>(arg));
               cout << ", ";
               return move(arg);
@@ -183,7 +183,7 @@ PythonExpressionSystem::ExpressionSpanArguments print_span_args(PythonExpression
 
 #pragma region type_conversion
 
-template <typename T> NPY_TYPES cpp_type_to_numpy() {
+template <typename T> NPY_TYPES Engine::cpp_type_to_numpy() {
   if constexpr (is_same_v<T, int32_t>) {
     return NPY_INT32;
   } else if constexpr (is_same_v<T, int64_t>) {
@@ -197,7 +197,7 @@ template <typename T> NPY_TYPES cpp_type_to_numpy() {
   }
 }
 
-int sizeof_dtype(PyArrayObject *npy_arr) {
+int Engine::sizeof_dtype(PyArrayObject *npy_arr) {
   int typenum = PyArray_TYPE(npy_arr);
 
   switch (typenum) {
@@ -223,7 +223,7 @@ int sizeof_dtype(PyArrayObject *npy_arr) {
 
 #pragma region python_to_boss
 
-template <typename T> Span<T> numpy_arr_to_span_helper(PyObject *py_npy_arr) {
+template <typename T> Span<T> Engine::numpy_arr_to_span_helper(PyObject *py_npy_arr) {
   auto npy_arr = reinterpret_cast<PyArrayObject *>(py_npy_arr);
   T *data = static_cast<T *>(PyArray_DATA(npy_arr));
   auto length = PyArray_SIZE(npy_arr);
@@ -256,7 +256,7 @@ PythonExpressionSystem::ExpressionSpanArgument Engine::numpy_arr_to_span(PyObjec
   }
 }
 
-PythonExpressionSystem::ExpressionSpanArguments Engine::npy_arr_to_spans(PyObject *npy_arr) {
+PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_spans(PyObject *npy_arr) {
   PythonExpressionSystem::ExpressionSpanArguments result;
   result.reserve(1);
   auto span_arg = numpy_arr_to_span(npy_arr);
@@ -355,7 +355,7 @@ PyObject *
 Engine::span_to_numpy_arr(PythonExpressionSystem::ExpressionSpanArgument &&arg) {
   PyObject *result;
   visit(
-      [&result]<typename T>(Span<T> &&typed_span) -> void {
+      [&result, this]<typename T>(Span<T> &&typed_span) -> void {
         if constexpr (is_same_v<T, int32_t> || is_same_v<T, int64_t> ||
                       is_same_v<T, float_t> || is_same_v<T, double_t>) {
 
@@ -637,7 +637,7 @@ Engine::pywrapper_to_table(PyObject *wrapper_dict) {
 }
 
 template <typename T>
-PyObject *primitive_to_pyobject(T &&arg) {
+PyObject *Engine::primitive_to_pyobject(T &&arg) {
   if constexpr (is_same_v<T, int64_t>) {
     return PyLong_FromLong(arg);
   } else if constexpr (is_same_v<T, double_t>) {
@@ -650,15 +650,16 @@ PyObject *primitive_to_pyobject(T &&arg) {
 }
 
 // returns new reference
-PyObject *single_span_list_to_pylist(PythonExpressionSystem::ComplexExpression &&list) {
+PyObject *Engine::single_span_list_to_pylist(PythonExpressionSystem::ComplexExpression &&list) {
   auto [list_unused_0, list_unused_1, list_unused_2, list_spans] =
     forward<decltype(list)>(list).decompose();
   auto it = make_move_iterator(list_spans.begin());
   auto span_arg = *it;
-  PyObject *py_list = PyList_New(span_arg.size());
+  PyObject *py_list;
   visit(
-    []<typename T>(Span<T> &&typed_span) -> void {
+    [&py_list, this]<typename T>(Span<T> &&typed_span) -> void {
       auto size = typed_span.size();
+      py_list = PyList_New(size);
       for (int i = 0; i < size; i++) {
         PyObject *pyobject = primitive_to_pyobject<T>(move(typed_span[i]));
         PyList_SET_ITEM(py_list, i, pyobject);
@@ -671,15 +672,19 @@ PyObject *single_span_list_to_pylist(PythonExpressionSystem::ComplexExpression &
   return py_list;
 }
 
-static boss::expressions::ExpressionSpanArgument toBOSSExpression(PythonExpressionSystem::ExpressionSpanArgument&& span) {
+boss::expressions::ExpressionSpanArgument Engine::toBOSSExpression(PythonExpressionSystem::ExpressionSpanArgument&& span) {
   return std::visit(
       []<typename T>(boss::Span<T>&& typedSpan) -> boss::expressions::ExpressionSpanArgument {
-        return static_cast<boss::expressions::ExpressionSpanArgument>(std::move(typedSpan));
+        if constexpr (!(is_same_v<T, PyObject *> || is_same_v<T, PyObject *const>)) {
+          return static_cast<boss::expressions::ExpressionSpanArgument>(std::move(typedSpan));
+        } else {
+          throw runtime_error("should not happen");
+        }
       },
       std::move(span));
 }
 
-static boss::Expression toBOSSExpression(PythonExpressionSystem::Expression&& expr) {
+boss::Expression Engine::toBOSSExpression(PythonExpressionSystem::Expression&& expr) {
   return std::visit(
       boss::utilities::overload(
           [&](PythonExpressionSystem::ComplexExpression&& e) -> boss::Expression {
@@ -698,7 +703,7 @@ static boss::Expression toBOSSExpression(PythonExpressionSystem::Expression&& ex
             std::transform(
                 std::make_move_iterator(spans.begin()), std::make_move_iterator(spans.end()),
                 std::back_inserter(bossSpans),
-                [](auto&& span) { return toBOSSExpression(std::forward<decltype(span)>(span)); });
+                [this](auto&& span) { return toBOSSExpression(std::forward<decltype(span)>(span)); });
             return boss::ComplexExpression(std::move(head), {}, std::move(bossDynamics),
                                             std::move(bossSpans));
           },
@@ -710,8 +715,7 @@ static boss::Expression toBOSSExpression(PythonExpressionSystem::Expression&& ex
       std::move(expr));
 }
 
-PyObject *
-Engine::python_expression_to_pyobject(PythonExpressionSystem::Expression &&expr) {
+PyObject *Engine::python_expression_to_pyobject(PythonExpressionSystem::Expression &&expr) {
   return std::visit(
     boss::utilities::overload(
         [&](PythonExpressionSystem::ComplexExpression&& e) -> PyObject * {
@@ -720,7 +724,9 @@ Engine::python_expression_to_pyobject(PythonExpressionSystem::Expression &&expr)
         [&](PyObject *&&e) -> PyObject * {
           return move(e);
         },
-        [](auto&& otherTypes) -> PyObject * { return otherTypes; }),
+        [](auto&& otherTypes) -> PyObject * { 
+          throw runtime_error("should not happen");
+        }),
     std::move(expr));
 }
 
@@ -738,7 +744,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             if (top_head == "to_boss"_) {
               // head = to_boss
               auto top_it = make_move_iterator(top_dynamics.begin());
-              auto expr = get<PythonExpressionSystem::Expression>(*top_it);
+              auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
               auto result = get<PyObject *>(evaluate(move(expr)));
               return pydict_column_to_table(result);
             }
@@ -746,7 +752,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             if (top_head == "to_python"_) {
               // head = to_python
               auto top_it = make_move_iterator(top_dynamics.begin());
-              auto expr = get<PythonExpressionSystem::Expression>(*top_it);
+              auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
               auto result = get<PythonExpressionSystem::ComplexExpression>(evaluate(move(expr)));
               return table_to_pydict_column(move(result));
               // return PythonExpressionSystem::ComplexExpression("python"_, {}, {}, {});
@@ -756,11 +762,11 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             if (top_head == "project"_) {
               // head = project
               auto top_it = make_move_iterator(top_dynamics.begin());
-              auto expr = get<PythonExpressionSystem::Expression>(*top_it);
+              auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
               auto col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
 
               PyObject *table_pydict = get<PyObject *>(evaluate(move(expr)));
-              PyObject *col_names = single_span_list_to_pylist(move(key_col_names_expr));
+              PyObject *col_names = single_span_list_to_pylist(move(col_names_expr));
 
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project");
               if (py_operator == NULL) {
@@ -790,7 +796,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             if (top_head == "select"_) {
               // head = select
               auto top_it = make_move_iterator(top_dynamics.begin());
-              auto expr = get<PythonExpressionSystem::Expression>(*top_it);
+              auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
               auto key_col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
               auto boolean_ops_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 2));
               auto vals_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 3));
@@ -831,8 +837,8 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             if (top_head == "equi_join"_) {
               // head = project
               auto top_it = make_move_iterator(top_dynamics.begin());
-              auto expr_1 = get<PythonExpressionSystem::Expression>(*top_it);
-              auto expr_2 = get<PythonExpressionSystem::Expression>(*(top_it + 1));
+              auto expr_1 = get<PythonExpressionSystem::ComplexExpression>(*top_it);
+              auto expr_2 = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
               auto key_col_names_expr_1 = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 2));
               auto key_col_names_expr_2 = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 3));
 
@@ -872,7 +878,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             if (top_head == "aggregate"_) {
               // head = project
               auto top_it = make_move_iterator(top_dynamics.begin());
-              auto expr = get<PythonExpressionSystem::Expression>(*top_it);
+              auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
               auto key_col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
               auto reduction_func_expr = get<Symbol>(*(top_it + 2));
               auto reduction_col_name_expr = get<Symbol>(*(top_it + 3));
@@ -880,9 +886,9 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               PyObject *table_pydict = get<PyObject *>(evaluate(move(expr)));
               PyObject *key_col_names = single_span_list_to_pylist(move(key_col_names_expr));
               string reduction_func_str = reduction_func_expr.getName();
-              string reduction_col_name_str = reductino_col_name_expr.getName();
+              string reduction_col_name_str = reduction_col_name_expr.getName();
               PyObject *reduction_func = primitive_to_pyobject<string>(move(reduction_func_str));
-              PyObject *reduction_func_col_name = primitive_to_pyobject<string>(move(reduction_func_col_name_str));
+              PyObject *reduction_func_col_name = primitive_to_pyobject<string>(move(reduction_col_name_str));
 
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "aggregate");
               if (py_operator == NULL) {
@@ -992,7 +998,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                       make_move_iterator(top_dynamics.end()),
                       top_dynamics.begin(), [this](auto &&arg) {
                         auto result = evaluate(forward<decltype(arg)>(arg));
-                        return get<PythonExpressionSystem::Expression>(move(result));
+                        return get<PythonExpressionSystem::ComplexExpression>(move(result));
                       });
 
             return PythonExpressionSystem::ComplexExpression(move(top_head), {}, move(top_dynamics),

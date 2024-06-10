@@ -1,20 +1,19 @@
 #include "../Source/BOSSNumpyEngine.hpp"
 
-using namespace std;
-using intType = int32_t;
-using boss::engines::numpy::Engine;
-using boss::engines::numpy::create_random_table;
-using string_literals::operator"" s;
-using boss::utilities::operator""_;
-using boss::ComplexExpression;
-using boss::Expression;
-using boss::Span;
-using boss::Symbol;
-using boss::expressions::ComplexExpressionWithStaticArguments;
-using boss::expressions::ExpressionArguments;
-using boss::expressions::ExpressionSpanArgument;
-using boss::expressions::ExpressionSpanArguments;
-using boss::expressions::CloneReason;
+// using namespace std;
+// using boss::engines::numpy::Engine;
+// using boss::engines::numpy::create_random_table;
+// using string_literals::operator"" s;
+// using boss::utilities::operator""_;
+// using boss::ComplexExpression;
+// using boss::Expression;
+// using boss::Span;
+// using boss::Symbol;
+// using boss::expressions::ComplexExpressionWithStaticArguments;
+// using boss::expressions::ExpressionArguments;
+// using boss::expressions::ExpressionSpanArgument;
+// using boss::expressions::ExpressionSpanArguments;
+// using boss::expressions::CloneReason;
 
 
 auto createSpansInt = [](auto... values) {
@@ -52,7 +51,7 @@ auto create_lineitem() {
 // wrapper = {"table": {"col1": [npy_arr_1, npy_arr_2], "col2": [npy_arr_3, npy_arr4]}, "matrix": {"data": npy_matrix, "col_names": ["col1", "col2"]}}
 
 void foo() {
-  Engine engine(ENGINE_SPAN_SIZE_BYTES);
+  boss::engines::numpy::Engine engine(ENGINE_SPAN_SIZE_BYTES);
   auto lineitem = create_lineitem();
 
   auto query = "to_boss"_("project"_(
