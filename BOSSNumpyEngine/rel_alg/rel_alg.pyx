@@ -10,7 +10,9 @@ def project_foo(table, col_names):
     print(table)
     print('col_names')
     print(col_names)
-    return {col_name : table[col_name] for col_name in col_names}
+    res = {col_name : table[col_name] for col_name in col_names}
+    print(res)
+    return res
 
 # works on materialised columns
 def select(table, key_col_names, boolean_ops, vals):

@@ -2,6 +2,11 @@
 
 #pragma region using
 
+using ExpressionBuilder = boss::utilities::ExtensibleExpressionBuilder<PythonExpressionSystem>;
+static ExpressionBuilder operator""_(const char* name, size_t /*unused*/) {
+  return ExpressionBuilder(name);
+};
+
 #pragma endregion using
 
 // #define DEBUG
@@ -792,14 +797,10 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               PyObject *table_pydict = python_expression_to_pyobject(evaluate(move(expr)));
               PyObject *col_names = single_span_list_to_pylist(move(col_names_expr));
 
-              print_pylist(col_names);
-
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project_foo");
               if (py_operator == NULL) {
                 PyErr_Print();
               }
-
-              print_pylist(col_names);
 
               PyObject* result;
               if (PyCallable_Check(py_operator)) {
@@ -814,8 +815,6 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-              Py_DECREF(table_pydict);
-              Py_DECREF(col_names);
               return result;
             }
 
@@ -852,10 +851,6 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-              Py_DECREF(table_pydict);
-              Py_DECREF(key_col_names);
-              Py_DECREF(boolean_ops);
-              Py_DECREF(vals);
 
               return result;
             }
@@ -893,10 +888,6 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-              Py_DECREF(table_pydict_1);
-              Py_DECREF(table_pydict_2);
-              Py_DECREF(key_col_names_1);
-              Py_DECREF(key_col_names_2);
 
               return result;
             }
@@ -936,8 +927,6 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-              Py_DECREF(table_pydict);
-              Py_DECREF(key_col_names);
 
               return result;
             }

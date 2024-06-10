@@ -41,10 +41,6 @@ using Expression = PythonExpressionSystem::Expression;
 using ExpressionArguments = PythonExpressionSystem::ExpressionArguments;
 using ExpressionSpanArguments = PythonExpressionSystem::ExpressionSpanArguments;
 using ExpressionSpanArgument = PythonExpressionSystem::ExpressionSpanArgument;
-using ExpressionBuilder = boss::utilities::ExtensibleExpressionBuilder<PythonExpressionSystem>;
-static ExpressionBuilder operator""_(const char* name, size_t /*unused*/) {
-  return ExpressionBuilder(name);
-};
 using boss::Span;
 using boss::Symbol;
 using intType = int32_t;
