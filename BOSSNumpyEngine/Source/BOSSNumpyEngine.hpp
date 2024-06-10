@@ -125,6 +125,4 @@ private:
   Span<T> *transfer_ownership(Span<T> &&span);
 };
 
-PythonExpressionSystem::ComplexExpression create_random_table(int num_cols, ull table_size, ull span_size_bytes, vector<unique_ptr<vector<int>>> &span_ptrs);
-
 } // namespace boss::engines::numpy

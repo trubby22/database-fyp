@@ -653,22 +653,21 @@ PyObject *Engine::primitive_to_pyobject(T &&arg) {
 PyObject *Engine::single_span_list_to_pylist(PythonExpressionSystem::ComplexExpression &&list) {
   auto [list_unused_0, list_unused_1, list_unused_2, list_spans] =
     forward<decltype(list)>(list).decompose();
-  auto it = make_move_iterator(list_spans.begin());
-  auto span_arg = *it;
-  PyObject *py_list;
-  visit(
-    [&py_list, this]<typename T>(Span<T> &&typed_span) -> void {
+  auto list_it = make_move_iterator(list_spans.begin());
+  auto span_arg = *list_it;
+  return visit(
+    [this]<typename T>(Span<T> &&typed_span) -> PyObject * {
       auto size = typed_span.size();
-      py_list = PyList_New(size);
+      PyObject *py_list = PyList_New(size);
       for (size_t i = 0; i < size; i++) {
         PyObject *pyobject = primitive_to_pyobject<T>(move(typed_span[i]));
         PyList_SET_ITEM(py_list, i, pyobject);
         Py_DECREF(pyobject);
       }
+      return py_list;
     },
     forward<decltype(span_arg)>(span_arg)
   );
-  return py_list;
 }
 
 boss::expressions::ExpressionSpanArgument Engine::toBOSSExpression(PythonExpressionSystem::ExpressionSpanArgument&& span) {

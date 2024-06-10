@@ -6,6 +6,10 @@ def say_hello_to(name):
     print(f"Hello {name}!")
 
 def project(table, col_names):
+    print('table')
+    print(table)
+    print('col_names')
+    print(col_names)
     return {col_name : table[col_name] for col_name in col_names}
 
 # works on materialised columns
