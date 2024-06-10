@@ -5,14 +5,8 @@ import math
 def say_hello_to(name):
     print(f"Hello {name}!")
 
-def project_foo(table, col_names):
-    print('table')
-    print(table)
-    print('col_names')
-    print(col_names)
-    res = {col_name : table[col_name] for col_name in col_names}
-    print(res)
-    return res
+def project(table, col_names):
+    return {col_name : table[col_name] for col_name in col_names}
 
 # works on materialised columns
 def select(table, key_col_names, boolean_ops, vals):
@@ -140,7 +134,7 @@ if __name__ == '__main__':
         'col2': np.array([0.8, 3.14, 2.42]),
         'col3': np.array([0, 0, 1]),
     }
-    project_res = project_foo(table_1, ['col2', 'col3'])
+    project_res = project(table_1, ['col2', 'col3'])
     project_expected = {'col2': np.array([0.8 , 3.14, 2.42]), 'col3': np.array([0, 0, 1])}
     print('project_res')
     print(project_res)

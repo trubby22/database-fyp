@@ -797,7 +797,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               PyObject *table_pydict = python_expression_to_pyobject(evaluate(move(expr)));
               PyObject *col_names = single_span_list_to_pylist(move(col_names_expr));
 
-              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project_foo");
+              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project");
               if (py_operator == NULL) {
                 PyErr_Print();
               }
