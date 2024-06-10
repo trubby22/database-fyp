@@ -98,7 +98,7 @@ def aggregate(table, key_col_names, reduction_func, reduction_col_name):
     reduced_col = [reduction_functions[reduction_func](x) for x in table_split_up[reduction_col_name]]
     table_reduced = {reduction_col_name: np.array(reduced_col)}
     table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
-    return table_reduced | table_key
+    return table_key | table_reduced
 
 def materialise_into_columns(table):
     return {col_name: np.concatenate(table[col_name]) for col_name in table.keys()}
@@ -174,7 +174,7 @@ if __name__ == '__main__':
         'col3': np.array([1, 2, 3, 4, 1, 2, 3, 4]),
     }
     aggregate_res = aggregate(table_4, ['col1', 'col2'], 'sum', 'col3')
-    aggregate_expected = {'col3': np.array([2, 4, 6, 8]), 'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1])}
+    aggregate_expected = {'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1]), 'col3': np.array([2, 4, 6, 8])}
     print('aggregate_res')
     print(aggregate_res)
     print('aggregate_expected')

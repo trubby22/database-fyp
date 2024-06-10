@@ -7899,7 +7899,7 @@ static PyObject *__pyx_pf_7rel_alg_8aggregate(CYTHON_UNUSED PyObject *__pyx_self
  *     reduced_col = [reduction_functions[reduction_func](x) for x in table_split_up[reduction_col_name]]
  *     table_reduced = {reduction_col_name: np.array(reduced_col)}             # <<<<<<<<<<<<<<
  *     table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
- *     return table_reduced | table_key
+ *     return table_key | table_reduced
  */
   __pyx_t_2 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 99, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -7939,7 +7939,7 @@ static PyObject *__pyx_pf_7rel_alg_8aggregate(CYTHON_UNUSED PyObject *__pyx_self
  *     reduced_col = [reduction_functions[reduction_func](x) for x in table_split_up[reduction_col_name]]
  *     table_reduced = {reduction_col_name: np.array(reduced_col)}
  *     table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}             # <<<<<<<<<<<<<<
- *     return table_reduced | table_key
+ *     return table_key | table_reduced
  * 
  */
   { /* enter inner scope */
@@ -8117,12 +8117,12 @@ static PyObject *__pyx_pf_7rel_alg_8aggregate(CYTHON_UNUSED PyObject *__pyx_self
   /* "rel_alg.pyx":101
  *     table_reduced = {reduction_col_name: np.array(reduced_col)}
  *     table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
- *     return table_reduced | table_key             # <<<<<<<<<<<<<<
+ *     return table_key | table_reduced             # <<<<<<<<<<<<<<
  * 
  * def materialise_into_columns(table):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = PyNumber_Or(__pyx_v_table_reduced, __pyx_v_table_key); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 101, __pyx_L1_error)
+  __pyx_t_2 = PyNumber_Or(__pyx_v_table_key, __pyx_v_table_reduced); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 101, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
@@ -8175,7 +8175,7 @@ static PyObject *__pyx_pf_7rel_alg_8aggregate(CYTHON_UNUSED PyObject *__pyx_self
 }
 
 /* "rel_alg.pyx":103
- *     return table_reduced | table_key
+ *     return table_key | table_reduced
  * 
  * def materialise_into_columns(table):             # <<<<<<<<<<<<<<
  *     return {col_name: np.concatenate(table[col_name]) for col_name in table.keys()}
@@ -8371,7 +8371,7 @@ static PyObject *__pyx_pf_7rel_alg_10materialise_into_columns(CYTHON_UNUSED PyOb
   goto __pyx_L0;
 
   /* "rel_alg.pyx":103
- *     return table_reduced | table_key
+ *     return table_key | table_reduced
  * 
  * def materialise_into_columns(table):             # <<<<<<<<<<<<<<
  *     return {col_name: np.concatenate(table[col_name]) for col_name in table.keys()}
@@ -9135,7 +9135,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_codeobj__12 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 27, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__11, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_rel_alg_pyx, __pyx_n_s_aggregate, 69, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__12)) __PYX_ERR(0, 69, __pyx_L1_error)
 
   /* "rel_alg.pyx":103
- *     return table_reduced | table_key
+ *     return table_key | table_reduced
  * 
  * def materialise_into_columns(table):             # <<<<<<<<<<<<<<
  *     return {col_name: np.concatenate(table[col_name]) for col_name in table.keys()}
@@ -9226,7 +9226,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 
   /* "rel_alg.pyx":178
  *     aggregate_res = aggregate(table_4, ['col1', 'col2'], 'sum', 'col3')
- *     aggregate_expected = {'col3': np.array([2, 4, 6, 8]), 'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1])}
+ *     aggregate_expected = {'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1]), 'col3': np.array([2, 4, 6, 8])}
  *     print('aggregate_res')             # <<<<<<<<<<<<<<
  *     print(aggregate_res)
  *     print('aggregate_expected')
@@ -9712,7 +9712,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "rel_alg.pyx":103
- *     return table_reduced | table_key
+ *     return table_key | table_reduced
  * 
  * def materialise_into_columns(table):             # <<<<<<<<<<<<<<
  *     return {col_name: np.concatenate(table[col_name]) for col_name in table.keys()}
@@ -10840,7 +10840,7 @@ if (!__Pyx_RefNanny) {
  *         'col3': np.array([1, 2, 3, 4, 1, 2, 3, 4]),
  *     }
  *     aggregate_res = aggregate(table_4, ['col1', 'col2'], 'sum', 'col3')             # <<<<<<<<<<<<<<
- *     aggregate_expected = {'col3': np.array([2, 4, 6, 8]), 'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1])}
+ *     aggregate_expected = {'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1]), 'col3': np.array([2, 4, 6, 8])}
  *     print('aggregate_res')
  */
     __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_aggregate); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 176, __pyx_L1_error)
@@ -10879,7 +10879,7 @@ if (!__Pyx_RefNanny) {
     /* "rel_alg.pyx":177
  *     }
  *     aggregate_res = aggregate(table_4, ['col1', 'col2'], 'sum', 'col3')
- *     aggregate_expected = {'col3': np.array([2, 4, 6, 8]), 'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1])}             # <<<<<<<<<<<<<<
+ *     aggregate_expected = {'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1]), 'col3': np.array([2, 4, 6, 8])}             # <<<<<<<<<<<<<<
  *     print('aggregate_res')
  *     print(aggregate_res)
  */
@@ -10892,23 +10892,23 @@ if (!__Pyx_RefNanny) {
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     __pyx_t_7 = PyList_New(4); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
-    __Pyx_INCREF(__pyx_int_2);
-    __Pyx_GIVEREF(__pyx_int_2);
-    if (__Pyx_PyList_SET_ITEM(__pyx_t_7, 0, __pyx_int_2)) __PYX_ERR(0, 177, __pyx_L1_error);
-    __Pyx_INCREF(__pyx_int_4);
-    __Pyx_GIVEREF(__pyx_int_4);
-    if (__Pyx_PyList_SET_ITEM(__pyx_t_7, 1, __pyx_int_4)) __PYX_ERR(0, 177, __pyx_L1_error);
-    __Pyx_INCREF(__pyx_int_6);
-    __Pyx_GIVEREF(__pyx_int_6);
-    if (__Pyx_PyList_SET_ITEM(__pyx_t_7, 2, __pyx_int_6)) __PYX_ERR(0, 177, __pyx_L1_error);
-    __Pyx_INCREF(__pyx_int_8);
-    __Pyx_GIVEREF(__pyx_int_8);
-    if (__Pyx_PyList_SET_ITEM(__pyx_t_7, 3, __pyx_int_8)) __PYX_ERR(0, 177, __pyx_L1_error);
+    __Pyx_INCREF(__pyx_int_0);
+    __Pyx_GIVEREF(__pyx_int_0);
+    if (__Pyx_PyList_SET_ITEM(__pyx_t_7, 0, __pyx_int_0)) __PYX_ERR(0, 177, __pyx_L1_error);
+    __Pyx_INCREF(__pyx_int_1);
+    __Pyx_GIVEREF(__pyx_int_1);
+    if (__Pyx_PyList_SET_ITEM(__pyx_t_7, 1, __pyx_int_1)) __PYX_ERR(0, 177, __pyx_L1_error);
+    __Pyx_INCREF(__pyx_int_0);
+    __Pyx_GIVEREF(__pyx_int_0);
+    if (__Pyx_PyList_SET_ITEM(__pyx_t_7, 2, __pyx_int_0)) __PYX_ERR(0, 177, __pyx_L1_error);
+    __Pyx_INCREF(__pyx_int_1);
+    __Pyx_GIVEREF(__pyx_int_1);
+    if (__Pyx_PyList_SET_ITEM(__pyx_t_7, 3, __pyx_int_1)) __PYX_ERR(0, 177, __pyx_L1_error);
     __pyx_t_6 = __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_7); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_col3, __pyx_t_6) < 0) __PYX_ERR(0, 177, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_col1, __pyx_t_6) < 0) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
     __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
@@ -10920,12 +10920,12 @@ if (!__Pyx_RefNanny) {
     __Pyx_INCREF(__pyx_int_0);
     __Pyx_GIVEREF(__pyx_int_0);
     if (__Pyx_PyList_SET_ITEM(__pyx_t_6, 0, __pyx_int_0)) __PYX_ERR(0, 177, __pyx_L1_error);
-    __Pyx_INCREF(__pyx_int_1);
-    __Pyx_GIVEREF(__pyx_int_1);
-    if (__Pyx_PyList_SET_ITEM(__pyx_t_6, 1, __pyx_int_1)) __PYX_ERR(0, 177, __pyx_L1_error);
     __Pyx_INCREF(__pyx_int_0);
     __Pyx_GIVEREF(__pyx_int_0);
-    if (__Pyx_PyList_SET_ITEM(__pyx_t_6, 2, __pyx_int_0)) __PYX_ERR(0, 177, __pyx_L1_error);
+    if (__Pyx_PyList_SET_ITEM(__pyx_t_6, 1, __pyx_int_0)) __PYX_ERR(0, 177, __pyx_L1_error);
+    __Pyx_INCREF(__pyx_int_1);
+    __Pyx_GIVEREF(__pyx_int_1);
+    if (__Pyx_PyList_SET_ITEM(__pyx_t_6, 2, __pyx_int_1)) __PYX_ERR(0, 177, __pyx_L1_error);
     __Pyx_INCREF(__pyx_int_1);
     __Pyx_GIVEREF(__pyx_int_1);
     if (__Pyx_PyList_SET_ITEM(__pyx_t_6, 3, __pyx_int_1)) __PYX_ERR(0, 177, __pyx_L1_error);
@@ -10933,7 +10933,7 @@ if (!__Pyx_RefNanny) {
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_col1, __pyx_t_3) < 0) __PYX_ERR(0, 177, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_col2, __pyx_t_3) < 0) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
@@ -10942,30 +10942,30 @@ if (!__Pyx_RefNanny) {
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __pyx_t_3 = PyList_New(4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __Pyx_INCREF(__pyx_int_0);
-    __Pyx_GIVEREF(__pyx_int_0);
-    if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 0, __pyx_int_0)) __PYX_ERR(0, 177, __pyx_L1_error);
-    __Pyx_INCREF(__pyx_int_0);
-    __Pyx_GIVEREF(__pyx_int_0);
-    if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 1, __pyx_int_0)) __PYX_ERR(0, 177, __pyx_L1_error);
-    __Pyx_INCREF(__pyx_int_1);
-    __Pyx_GIVEREF(__pyx_int_1);
-    if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 2, __pyx_int_1)) __PYX_ERR(0, 177, __pyx_L1_error);
-    __Pyx_INCREF(__pyx_int_1);
-    __Pyx_GIVEREF(__pyx_int_1);
-    if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 3, __pyx_int_1)) __PYX_ERR(0, 177, __pyx_L1_error);
+    __Pyx_INCREF(__pyx_int_2);
+    __Pyx_GIVEREF(__pyx_int_2);
+    if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 0, __pyx_int_2)) __PYX_ERR(0, 177, __pyx_L1_error);
+    __Pyx_INCREF(__pyx_int_4);
+    __Pyx_GIVEREF(__pyx_int_4);
+    if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 1, __pyx_int_4)) __PYX_ERR(0, 177, __pyx_L1_error);
+    __Pyx_INCREF(__pyx_int_6);
+    __Pyx_GIVEREF(__pyx_int_6);
+    if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 2, __pyx_int_6)) __PYX_ERR(0, 177, __pyx_L1_error);
+    __Pyx_INCREF(__pyx_int_8);
+    __Pyx_GIVEREF(__pyx_int_8);
+    if (__Pyx_PyList_SET_ITEM(__pyx_t_3, 3, __pyx_int_8)) __PYX_ERR(0, 177, __pyx_L1_error);
     __pyx_t_7 = __Pyx_PyObject_CallOneArg(__pyx_t_6, __pyx_t_3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_col2, __pyx_t_7) < 0) __PYX_ERR(0, 177, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_col3, __pyx_t_7) < 0) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     if (PyDict_SetItem(__pyx_d, __pyx_n_s_aggregate_expected, __pyx_t_2) < 0) __PYX_ERR(0, 177, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
     /* "rel_alg.pyx":178
  *     aggregate_res = aggregate(table_4, ['col1', 'col2'], 'sum', 'col3')
- *     aggregate_expected = {'col3': np.array([2, 4, 6, 8]), 'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1])}
+ *     aggregate_expected = {'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1]), 'col3': np.array([2, 4, 6, 8])}
  *     print('aggregate_res')             # <<<<<<<<<<<<<<
  *     print(aggregate_res)
  *     print('aggregate_expected')
@@ -10975,7 +10975,7 @@ if (!__Pyx_RefNanny) {
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
     /* "rel_alg.pyx":179
- *     aggregate_expected = {'col3': np.array([2, 4, 6, 8]), 'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1])}
+ *     aggregate_expected = {'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1]), 'col3': np.array([2, 4, 6, 8])}
  *     print('aggregate_res')
  *     print(aggregate_res)             # <<<<<<<<<<<<<<
  *     print('aggregate_expected')
