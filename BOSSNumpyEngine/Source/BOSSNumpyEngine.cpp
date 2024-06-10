@@ -8,23 +8,6 @@
 
 namespace boss::engines::numpy {
 
-// class ComplexExpressionWrapper : public PythonExpressionSystem::ComplexExpression {
-// private:
-//   PyObject *npy_matrix;
-// public:
-//   void steal_ref(PyObject *obj) {
-//     npy_matrix = obj;
-//   }
-
-//   ~ComplexExpressionWrapper() {
-//     // if (npy_matrix != nullptr) {
-//     //   PyDECREF(npy_matrix);
-//     // }
-//     PythonExpressionSystem::ComplexExpression::~PythonExpressionSystem::ComplexExpression();
-//   }
-// };
-
-
 template <typename T>
 Span<T> *transfer_ownership(Span<T> &&span) {
   return new Span<T>(move(span));
@@ -688,19 +671,65 @@ PyObject *single_span_list_to_pylist(PythonExpressionSystem::ComplexExpression &
   return py_list;
 }
 
+static boss::expressions::ExpressionSpanArgument toBOSSExpression(PythonExpressionSystem::ExpressionSpanArgument&& span) {
+  return std::visit(
+      []<typename T>(boss::Span<T>&& typedSpan) -> boss::expressions::ExpressionSpanArgument {
+        return static_cast<boss::expressions::ExpressionSpanArgument>(std::move(typedSpan));
+      },
+      std::move(span));
+}
+
+static boss::Expression toBOSSExpression(PythonExpressionSystem::Expression&& expr) {
+  return std::visit(
+      boss::utilities::overload(
+          [&](PythonExpressionSystem::ComplexExpression&& e) -> boss::Expression {
+            auto [head, unused_, dynamics, spans] = std::move(e).decompose();
+
+            boss::ExpressionArguments bossDynamics;
+            bossDynamics.reserve(dynamics.size());
+            std::transform(std::make_move_iterator(dynamics.begin()),
+                           std::make_move_iterator(dynamics.end()),
+                           std::back_inserter(bossDynamics), [&](auto&& arg) {
+                             return toBOSSExpression(std::forward<decltype(arg)>(arg));
+                           });
+
+            boss::expressions::ExpressionSpanArguments bossSpans;
+            bossSpans.reserve(spans.size());
+            std::transform(
+                std::make_move_iterator(spans.begin()), std::make_move_iterator(spans.end()),
+                std::back_inserter(bossSpans),
+                [](auto&& span) { return toBOSSExpression(std::forward<decltype(span)>(span)); });
+            return boss::ComplexExpression(std::move(head), {}, std::move(bossDynamics),
+                                            std::move(bossSpans));
+          },
+          [&](PyObject *&&e) -> boss::Expression {
+            auto table = pydict_column_to_table(move(e));
+            return toBOSSExpression(move(table));
+          },
+          [](auto&& otherTypes) -> boss::Expression { return otherTypes; }),
+      std::move(expr));
+}
+
+PyObject *
+Engine::python_expression_to_pyobject(PythonExpressionSystem::Expression &&expr) {
+  return std::visit(
+    boss::utilities::overload(
+        [&](PythonExpressionSystem::ComplexExpression&& e) -> PyObject * {
+          return table_to_pydict_column(move(e));
+        },
+        [&](PyObject *&&e) -> PyObject * {
+          return move(e);
+        },
+        [](auto&& otherTypes) -> PyObject * { return otherTypes; }),
+    std::move(expr));
+}
+
 #pragma endregion conversion_new
 
 PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expression &&e) {
   return visit(
       boss::utilities::overload(
           [this](PythonExpressionSystem::ComplexExpression &&expression) -> PythonExpressionSystem::Expression {
-
-            // if (PythonExpressionSystem::Expression.getHead() == "And"_) {
-            //   cout << PythonExpressionSystem::Expression << endl;
-            // } else {
-            //   cout << PythonExpressionSystem::Expression.getHead() << endl;
-            // }
-            // cout << endl;
 
             // top-level
             auto [top_head, top_statics, top_dynamics, top_spans] =
@@ -984,7 +1013,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
 
 boss::expressions::Expression Engine::evaluate_c(boss::expressions::Expression &&e) {
   auto result = evaluate(move(e));
-  return get<boss::expressions::ComplexExpression>(move(result));
+  return toBOSSExpression(move(result));
 }
 
 #pragma region boilerplate
