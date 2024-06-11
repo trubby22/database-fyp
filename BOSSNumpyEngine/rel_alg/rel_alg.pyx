@@ -6,6 +6,7 @@ def say_hello_to(name):
     print(f"Hello {name}!")
 
 def project(table, col_names):
+    print(table)
     return {col_name : table[col_name] for col_name in col_names}
 
 # works on materialised columns
@@ -180,4 +181,41 @@ if __name__ == '__main__':
     print('aggregate_expected')
     print(aggregate_expected)
     print()
+
+    table = {
+        'col1': [
+            np.array([1, 2], dtype=int32),
+            np.array([3, 4], dtype=int32),
+        ], 
+        'col2': [
+            np.array([5 ,6], dtype=int32),
+            np.array([7, 8], dtype=int32),
+        ],
+    }
+    wrapper = {
+        'table': table,
+        'matrix': None
+    }
+
+    table = {
+        'col1': [
+            np.array([1, 2, 3, 4], dtype=int32),
+        ], 
+        'col2': [
+            np.array([5 ,6, 7, 8], dtype=int32),
+        ],
+    }
+    wrapper = {
+        'table': table,
+        'matrix': None
+    }
+
+    matrix = np.array([
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+    ], dtype=int32)
+    wrapper = {
+        'table': None,
+        'matrix': matrix
+    }
     

@@ -134,5 +134,16 @@ int main() {
   cout << endl;
   assert(aggregate_res == aggregate_expected);
 
+  auto table = "Table"_(
+    "col1"_("List"_(
+      boss::Span<int32_t>{vector<int32_t>{1, 2}}, 
+      boss::Span<int32_t>{vector<int32_t>{3, 4}}
+      )),
+    "col2"_("List"_(
+      boss::Span<int32_t>{vector<int32_t>{5, 6}}, 
+      boss::Span<int32_t>{vector<int32_t>{7, 8}}
+      ))
+  );
+
   return 0;
 }

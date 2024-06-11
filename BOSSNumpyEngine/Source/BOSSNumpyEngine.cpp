@@ -340,9 +340,10 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
           matrix_begin + i * npy_cols + j;
       T *span_end = min(span_begin + span_size_bytes,
                         matrix_begin + (i + 1) * npy_cols);
+      size_t cur_span_size_num_elems = static_cast<size_t>(distance(span_begin, span_end));
 #ifdef DEBUG
-      // cout << "creating new boss span of size ";
-      // cout << distance(span_begin, span_end) << endl;
+      cout << "creating new boss span of size ";
+      cout << cur_span_size_num_elems << endl;
       // cout << "npy_rows " << npy_rows << endl;
       cout << "num_spans_per_boss_col " << num_spans_per_boss_col << endl;
       cout << "npy_cols " << npy_cols << endl;
@@ -351,8 +352,14 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
       cout << endl;
 #endif
       vector<T> v;
-      v.assign(move(span_begin), move(span_end));
-      auto result = Span<T>(move(v));
+      Py_INCREF(reinterpret_cast<PyObject *>(npy_matrix));
+      // v.assign(move(span_begin), move(span_end));
+      // auto size = v.size();
+      auto result = boss::Span<T>(span_begin, cur_span_size_num_elems, [npy_matrix]() {
+        // cout << "deleting matrix view" << endl;
+        Py_DECREF(reinterpret_cast<PyObject *>(npy_matrix));
+      });
+      // auto result = Span<T>(move(v));
       col_list_spans.emplace_back(move(result));
     }
     // auto boss_list = PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
