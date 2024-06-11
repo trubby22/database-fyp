@@ -285,7 +285,47 @@ PythonExpressionSystem::ExpressionSpanArgument Engine::numpy_arr_to_span(PyObjec
   }
 }
 
-PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_spans(PyObject *npy_arr) {
+PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_spans_spans(PyObject *npy_arr) {
+  npy_intp *dims = PyArray_DIMS(npy_arr);
+  auto num_elems_in_npy_row = static_cast<ull>(*(dims));
+
+  T *arr_begin = static_cast<T *>(PyArray_DATA(npy_matrix));
+  ull dtype_size = static_cast<ull>(sizeof_dtype(npy_matrix));
+
+  ull = span_size_bytes / dtype_size;
+  ull num_full_spans_per_boss_col = num_elems_in_npy_row / num_elems_per_full_span;
+  ull num_elems_in_last_non_full_span = num_elems_in_npy_row % num_elems_per_full_span;
+
+  ull total_num_spans = num_full_spans_per_boss_col;
+  if (num_elems_in_last_non_full_span > 0) {
+    total_num_spans += 1;
+  }
+
+  PythonExpressionSystem::ExpressionSpanArguments col_list_spans;
+  col_list_spans.reserve(total_num_spans);
+
+  for (ull j = 0; j < total_num_spans; j++) {
+    T *span_begin = arr_begin + j * num_elems_per_full_span;
+    vector<T> v;
+    ull num_elems_in_cur_span;
+    if (j < num_full_spans_per_boss_col) {
+      num_elems_in_cur_span = num_elems_per_full_span;
+    } else {
+      num_elems_in_cur_span = num_elems_in_last_non_full_span;
+    }
+
+    Py_INCREF(reinterpret_cast<PyObject *>(npy_matrix));
+    auto span = boss::Span<T>(span_begin, num_elems_per_full_span, [npy_matrix]() {
+      // cout << "deleting materialised column view" << endl;
+      Py_DECREF(reinterpret_cast<PyObject *>(npy_matrix));
+    });
+    col_list_spans.emplace_back(move(span));
+  }
+
+  return col_list_spans;
+}
+
+PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_column_spans(PyObject *npy_arr) {
   PythonExpressionSystem::ExpressionSpanArguments result;
   result.reserve(1);
   auto span_arg = numpy_arr_to_span(npy_arr);
@@ -311,59 +351,52 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
                                                      PyObject *col_names) {
   Py_ssize_t col_names_size = PyList_Size(col_names);
   npy_intp *dims = PyArray_DIMS(npy_matrix);
-  auto npy_rows = static_cast<int>(*dims);
-  auto npy_cols = static_cast<ull>(*(dims + 1));
-  assert(col_names_size == npy_rows);
+  auto num_npy_rows = static_cast<int>(*dims);
+  auto num_elems_in_npy_row = static_cast<ull>(*(dims + 1));
+  assert(col_names_size == num_npy_rows);
   T *matrix_begin = static_cast<T *>(PyArray_DATA(npy_matrix));
   ull dtype_size = static_cast<ull>(sizeof_dtype(npy_matrix));
-  ull boss_col_size_bytes = npy_cols * dtype_size;
-  ull num_spans_per_boss_col = boss_col_size_bytes / span_size_bytes;
-  ull mod = boss_col_size_bytes % span_size_bytes;
-  if (mod > 0) {
-    num_spans_per_boss_col += 1;
+
+  ull = span_size_bytes / dtype_size;
+  ull num_full_spans_per_boss_col = num_elems_in_npy_row / num_elems_per_full_span;
+  ull num_elems_in_last_non_full_span = num_elems_in_npy_row % num_elems_per_full_span;
+
+  ull total_num_spans = num_full_spans_per_boss_col;
+  if (num_elems_in_last_non_full_span > 0) {
+    total_num_spans += 1;
   }
 
   PythonExpressionSystem::ExpressionArguments res_dynamics;
-  res_dynamics.reserve(npy_rows);
+  res_dynamics.reserve(num_npy_rows);
 
-  for (int i = 0; i < npy_rows; i++) {
+  for (int i = 0; i < num_npy_rows; i++) {
     auto col_name = PyList_GetItem(col_names, i);
     Py_INCREF(col_name);
     string col_name_str = PyObject_to_string(col_name);
-    Py_DECREF(col_name);
+    Py_DECREF(col_name);num_elems_per_full_span
     Symbol col_head(move(col_name_str));
 
     PythonExpressionSystem::ExpressionSpanArguments col_list_spans;
-    col_list_spans.reserve(num_spans_per_boss_col);
-    for (ull j = 0; j < npy_cols; j += span_size_bytes) {
-      T *span_begin =
-          matrix_begin + i * npy_cols + j;
-      T *span_end = min(span_begin + span_size_bytes,
-                        matrix_begin + (i + 1) * npy_cols);
-      size_t cur_span_size_num_elems = static_cast<size_t>(distance(span_begin, span_end));
-#ifdef DEBUG
-      cout << "creating new boss span of size ";
-      cout << cur_span_size_num_elems << endl;
-      // cout << "npy_rows " << npy_rows << endl;
-      cout << "num_spans_per_boss_col " << num_spans_per_boss_col << endl;
-      cout << "npy_cols " << npy_cols << endl;
-      cout << "boss_col_size_bytes " << boss_col_size_bytes << endl;
-      cout << "span_size_bytes " << span_size_bytes << endl;
-      cout << endl;
-#endif
+    col_list_spans.reserve(total_num_spans);
+
+    for (ull j = 0; j < total_num_spans; j++) {
+      T *span_begin = matrix_begin + i * num_elems_in_npy_row + j * num_elems_per_full_span;
       vector<T> v;
+      ull num_elems_in_cur_span;
+      if (j < num_full_spans_per_boss_col) {
+        num_elems_in_cur_span = num_elems_per_full_span;
+      } else {
+        num_elems_in_cur_span = num_elems_in_last_non_full_span;
+      }
+
       Py_INCREF(reinterpret_cast<PyObject *>(npy_matrix));
-      // v.assign(move(span_begin), move(span_end));
-      // auto size = v.size();
-      auto result = boss::Span<T>(span_begin, cur_span_size_num_elems, [npy_matrix]() {
+      auto span = boss::Span<T>(span_begin, num_elems_per_full_span, [npy_matrix]() {
         // cout << "deleting matrix view" << endl;
         Py_DECREF(reinterpret_cast<PyObject *>(npy_matrix));
       });
-      // auto result = Span<T>(move(v));
-      col_list_spans.emplace_back(move(result));
+      col_list_spans.emplace_back(move(span));
     }
-    // auto boss_list = PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
-    // PythonExpressionSystem::PythonExpressionSystem::ComplexExpression 
+
     auto boss_list = PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
     // head = List
 
@@ -549,7 +582,7 @@ Engine::table_to_pywrapper(PythonExpressionSystem::ComplexExpression &&table_exp
 
 // steals reference to table_dict
 PythonExpressionSystem::Expression
-Engine::pydict_column_to_table(PyObject *table_dict) {
+Engine::pydict_column_to_table_column(PyObject *table_dict) {
   PythonExpressionSystem::ExpressionArguments res_dynamics;
   res_dynamics.reserve(PyDict_Size(table_dict));
 
@@ -562,7 +595,7 @@ Engine::pydict_column_to_table(PyObject *table_dict) {
     Py_DECREF(col_name);
     Symbol col_head(move(col_name_str));
 
-    auto col_list_spans = numpy_arr_to_spans(npy_arr);
+    auto col_list_spans = numpy_arr_to_column_spans(npy_arr);
     Py_DECREF(npy_arr);
     auto boss_list =
         PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
@@ -585,21 +618,27 @@ Engine::pydict_column_to_table(PyObject *table_dict) {
 
 // steals reference to table_dict
 PythonExpressionSystem::Expression
-Engine::pydict_spans_to_table(PyObject *table_dict) {
+Engine::pydict_col_or_spans_to_table_spans(PyObject *table_dict) {
   PythonExpressionSystem::ExpressionArguments res_dynamics;
   res_dynamics.reserve(PyDict_Size(table_dict));
 
-  PyObject *col_name, *col_py_list;
+  PyObject *col_name, *col_pylist_or_npy_arr;
   Py_ssize_t pos = 0;
-  while (PyDict_Next(table_dict, &pos, &col_name, &col_py_list)) {
+  while (PyDict_Next(table_dict, &pos, &col_name, &col_pylist_or_npy_arr)) {
     Py_INCREF(col_name);
-    Py_INCREF(col_py_list);
+    Py_INCREF(col_pylist_or_npy_arr);
     string col_name_str = PyObject_to_string(col_name);
     Py_DECREF(col_name);
     Symbol col_head(move(col_name_str));
 
-    auto col_list_spans = py_list_to_spans(col_py_list);
-    Py_DECREF(col_py_list);
+    PythonExpressionSystem::ExpressionSpanArguments col_list_spans;
+    if (PyList_Check(col_pylist_or_npy_arr) == 1) {
+      col_list_spans = py_list_to_spans(col_pylist_or_npy_arr);
+    } else {
+      col_list_spans = numpy_arr_to_spans_spans(col_pylist_or_npy_arr);
+    }
+
+    Py_DECREF(col_pylist_or_npy_arr);
     auto boss_list =
         PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
     // head = List
@@ -663,7 +702,8 @@ Engine::pywrapper_to_table(PyObject *wrapper_dict) {
 
   PythonExpressionSystem::Expression table;
   if (table_dict != Py_None) {
-    table = pydict_spans_to_table(table_dict);
+    // todo
+    table = pydict_col_or_spans_to_table_spans(table_dict);
   } else {
     table = pymatrix_to_table(matrix_dict);
   }
@@ -744,7 +784,7 @@ boss::Expression Engine::toBOSSExpression(PythonExpressionSystem::Expression&& e
                                             std::move(bossSpans));
           },
           [&](PyObject *&&e) -> boss::Expression {
-            auto table = pydict_column_to_table(move(e));
+            auto table = pydict_column_to_table_column(move(e));
             return toBOSSExpression(move(table));
           },
           [](auto&& otherTypes) -> boss::Expression { return otherTypes; }),
@@ -782,7 +822,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             //   auto top_it = make_move_iterator(top_dynamics.begin());
             //   auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
             //   auto result = python_expression_to_pyobject(evaluate(move(expr)));
-            //   return pydict_column_to_table(result);
+            //   return pydict_column_to_table_column(result);
             // }
 
             // if (top_head == "to_python"_) {
