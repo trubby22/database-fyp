@@ -1,29 +1,34 @@
 #include "../Source/BOSSNumpyEngine.hpp"
 
-using ExpressionBuilder = boss::utilities::ExpressionBuilder;
+// using ExpressionBuilder = boss::utilities::ExpressionBuilder;
+// static ExpressionBuilder operator""_(const char* name, size_t /*unused*/) {
+//   return ExpressionBuilder(name);
+// };
+
+using ExpressionBuilder = boss::utilities::ExtensibleExpressionBuilder<PythonExpressionSystem>;
 static ExpressionBuilder operator""_(const char* name, size_t /*unused*/) {
   return ExpressionBuilder(name);
 };
 
-static boss::ComplexExpression shallow_copy(boss::ComplexExpression const& e) {
+static PythonExpressionSystem::ComplexExpression shallow_copy(PythonExpressionSystem::ComplexExpression const& e) {
   auto const& head = e.getHead();
   auto const& dynamics = e.getDynamicArguments();
   auto const& spans = e.getSpanArguments();
-  boss::ExpressionArguments dynamicsCopy;
+  PythonExpressionSystem::ExpressionArguments dynamicsCopy;
   std::transform(dynamics.begin(), dynamics.end(), std::back_inserter(dynamicsCopy),
                  [](auto const& arg) {
                    return std::visit(
                        boss::utilities::overload(
-                           [&](boss::ComplexExpression const& expr) -> boss::Expression {
+                           [&](PythonExpressionSystem::ComplexExpression const& expr) -> PythonExpressionSystem::Expression {
                              return shallow_copy(expr);
                            },
-                           [](auto const& otherTypes) -> boss::Expression { return otherTypes; }),
+                           [](auto const& otherTypes) -> PythonExpressionSystem::Expression { return otherTypes; }),
                        arg);
                  });
-  boss::expressions::ExpressionSpanArguments spansCopy;
+  PythonExpressionSystem::ExpressionSpanArguments spansCopy;
   std::transform(spans.begin(), spans.end(), std::back_inserter(spansCopy), [](auto const& span) {
     return std::visit(
-        [](auto const& typedSpan) -> boss::expressions::ExpressionSpanArgument {
+        [](auto const& typedSpan) -> PythonExpressionSystem::ExpressionSpanArgument {
           // just do a shallow copy of the span
           // the storage's span keeps the ownership
           // (since the storage will be alive until the query finishes)
@@ -40,7 +45,7 @@ static boss::ComplexExpression shallow_copy(boss::ComplexExpression const& e) {
         },
         span);
   });
-  return boss::ComplexExpression(head, {}, std::move(dynamicsCopy), std::move(spansCopy));
+  return PythonExpressionSystem::ComplexExpression(head, {}, std::move(dynamicsCopy), std::move(spansCopy));
 }
 
 // pydict_column = {"col1": npy_arr1, "col2": npy_arr2}
@@ -75,8 +80,8 @@ print(table)
 )"_, 
     "Where"_());
   auto extract_spans = "get_python_var"_("wrapper"_);
-  auto const set_up_spans_res = engine.evaluate_c(shallow_copy(set_up_spans));
-  auto const extract_spans_res = engine.evaluate_c(shallow_copy(extract_spans));
+  auto const set_up_spans_res = engine.evaluate(shallow_copy(set_up_spans));
+  auto const extract_spans_res = engine.evaluate(shallow_copy(extract_spans));
   cout << "table_spans " << table_spans << endl;
   cout << "extract_spans_res " << extract_spans_res << endl;
   cout << endl;
@@ -104,8 +109,8 @@ print(table)
 )"_, 
     "Where"_());
   auto extract_columns = "get_python_var"_("wrapper"_);
-  auto const set_up_columns_res = engine.evaluate_c(shallow_copy(set_up_columns));
-  auto const extract_columns_res = engine.evaluate_c(shallow_copy(extract_columns));
+  auto const set_up_columns_res = engine.evaluate(shallow_copy(set_up_columns));
+  auto const extract_columns_res = engine.evaluate(shallow_copy(extract_columns));
   cout << "table_spans " << table_spans << endl;
   cout << "extract_columns_res " << extract_columns_res << endl;
   cout << endl;
@@ -129,8 +134,8 @@ print(matrix)
 )"_, 
     "Where"_());
   auto extract_matrix = "get_python_var"_("wrapper"_);
-  auto const set_up_matrix_res = engine.evaluate_c(shallow_copy(set_up_matrix));
-  auto const extract_matrix_res = engine.evaluate_c(shallow_copy(extract_matrix));
+  auto const set_up_matrix_res = engine.evaluate(shallow_copy(set_up_matrix));
+  auto const extract_matrix_res = engine.evaluate(shallow_copy(extract_matrix));
   cout << "table_spans " << table_spans << endl;
   cout << "extract_matrix_res " << extract_matrix_res << endl;
   cout << endl;
