@@ -94,12 +94,11 @@ private:
   void reset_python_dict();
 
   PyObject *table_to_pywrapper(PythonExpressionSystem::ComplexExpression &&table_expr);
-  PythonExpressionSystem::Expression pytable_to_table(PyObject *table_dict);
   PythonExpressionSystem::ComplexExpression pymatrix_to_table(PyObject *matrix_dict);
   PythonExpressionSystem::Expression pywrapper_to_table(PyObject *wrapper_dict);
   PyObject *table_to_pydict_spans(PythonExpressionSystem::ComplexExpression &&table_expr);
-  PythonExpressionSystem::Expression pydict_spans_to_table(PyObject *table_dict);
-  PythonExpressionSystem::Expression pydict_column_to_table(PyObject *table_dict);
+  PythonExpressionSystem::Expression pydict_col_or_spans_to_table_spans(PyObject *table_dict);
+  PythonExpressionSystem::Expression pydict_column_to_table_column(PyObject *table_dict);
   PyObject *table_to_pydict_column(PythonExpressionSystem::ComplexExpression &&table_expr);
   PythonExpressionSystem::ExpressionSpanArguments numpy_arr_to_spans(PyObject *npy_arr);
   boss::expressions::ExpressionSpanArgument toBOSSExpression(PythonExpressionSystem::ExpressionSpanArgument&& span);
@@ -119,6 +118,11 @@ private:
   string PyObject_to_string(PyObject *obj);
   template <typename T>
   Span<T> *transfer_ownership(Span<T> &&span);
+  PythonExpressionSystem::ExpressionSpanArguments numpy_arr_to_column_spans(PyObject *npy_arr);
+  template <typename T>
+PythonExpressionSystem::ExpressionSpanArguments numpy_arr_to_spans_spans_helper(PyArrayObject *npy_arr);
+PythonExpressionSystem::ExpressionSpanArguments numpy_arr_to_spans_spans(PyArrayObject *npy_arr);
+
 };
 
 } // namespace boss::engines::numpy

@@ -285,14 +285,15 @@ PythonExpressionSystem::ExpressionSpanArgument Engine::numpy_arr_to_span(PyObjec
   }
 }
 
-PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_spans_spans(PyObject *npy_arr) {
+template <typename T>
+PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_spans_spans_helper(PyArrayObject *npy_arr) {
   npy_intp *dims = PyArray_DIMS(npy_arr);
   auto num_elems_in_npy_row = static_cast<ull>(*(dims));
 
-  T *arr_begin = static_cast<T *>(PyArray_DATA(npy_matrix));
-  ull dtype_size = static_cast<ull>(sizeof_dtype(npy_matrix));
+  T *arr_begin = static_cast<T *>(PyArray_DATA(npy_arr));
+  ull dtype_size = static_cast<ull>(sizeof_dtype(npy_arr));
 
-  ull = span_size_bytes / dtype_size;
+  ull num_elems_per_full_span = span_size_bytes / dtype_size;
   ull num_full_spans_per_boss_col = num_elems_in_npy_row / num_elems_per_full_span;
   ull num_elems_in_last_non_full_span = num_elems_in_npy_row % num_elems_per_full_span;
 
@@ -314,15 +315,37 @@ PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_spans_spans
       num_elems_in_cur_span = num_elems_in_last_non_full_span;
     }
 
-    Py_INCREF(reinterpret_cast<PyObject *>(npy_matrix));
-    auto span = boss::Span<T>(span_begin, num_elems_per_full_span, [npy_matrix]() {
+    Py_INCREF(reinterpret_cast<PyObject *>(npy_arr));
+    auto span = boss::Span<T>(span_begin, num_elems_in_cur_span, [npy_arr]() {
       // cout << "deleting materialised column view" << endl;
-      Py_DECREF(reinterpret_cast<PyObject *>(npy_matrix));
+      Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
     });
     col_list_spans.emplace_back(move(span));
   }
 
   return col_list_spans;
+}
+
+PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_spans_spans(PyArrayObject *npy_arr) {
+  int typenum = PyArray_TYPE(npy_arr);
+
+  switch (typenum) {
+  case NPY_INT32:
+    return numpy_arr_to_spans_spans_helper<int32_t>(npy_arr);
+    break;
+  case NPY_INT64:
+    return numpy_arr_to_spans_spans_helper<int64_t>(npy_arr);
+    break;
+  case NPY_FLOAT:
+    return numpy_arr_to_spans_spans_helper<float_t>(npy_arr);
+    break;
+  case NPY_DOUBLE:
+    return numpy_arr_to_spans_spans_helper<double_t>(npy_arr);
+    break;
+  default:
+    throw runtime_error("shouldn't happen");
+    break;
+  }
 }
 
 PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_column_spans(PyObject *npy_arr) {
@@ -357,7 +380,7 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
   T *matrix_begin = static_cast<T *>(PyArray_DATA(npy_matrix));
   ull dtype_size = static_cast<ull>(sizeof_dtype(npy_matrix));
 
-  ull = span_size_bytes / dtype_size;
+  ull num_elems_per_full_span = span_size_bytes / dtype_size;
   ull num_full_spans_per_boss_col = num_elems_in_npy_row / num_elems_per_full_span;
   ull num_elems_in_last_non_full_span = num_elems_in_npy_row % num_elems_per_full_span;
 
@@ -373,7 +396,7 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
     auto col_name = PyList_GetItem(col_names, i);
     Py_INCREF(col_name);
     string col_name_str = PyObject_to_string(col_name);
-    Py_DECREF(col_name);num_elems_per_full_span
+    Py_DECREF(col_name);
     Symbol col_head(move(col_name_str));
 
     PythonExpressionSystem::ExpressionSpanArguments col_list_spans;
@@ -390,7 +413,7 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
       }
 
       Py_INCREF(reinterpret_cast<PyObject *>(npy_matrix));
-      auto span = boss::Span<T>(span_begin, num_elems_per_full_span, [npy_matrix]() {
+      auto span = boss::Span<T>(span_begin, num_elems_in_cur_span, [npy_matrix]() {
         // cout << "deleting matrix view" << endl;
         Py_DECREF(reinterpret_cast<PyObject *>(npy_matrix));
       });
@@ -635,7 +658,7 @@ Engine::pydict_col_or_spans_to_table_spans(PyObject *table_dict) {
     if (PyList_Check(col_pylist_or_npy_arr) == 1) {
       col_list_spans = py_list_to_spans(col_pylist_or_npy_arr);
     } else {
-      col_list_spans = numpy_arr_to_spans_spans(col_pylist_or_npy_arr);
+      col_list_spans = numpy_arr_to_spans_spans(reinterpret_cast<PyArrayObject *>(col_pylist_or_npy_arr));
     }
 
     Py_DECREF(col_pylist_or_npy_arr);
