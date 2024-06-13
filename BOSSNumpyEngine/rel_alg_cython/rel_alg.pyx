@@ -153,12 +153,12 @@ reduction_functions = {
 }
 
 boolean_op = {
-    '==': lambda x, y: x == y,
-    '!=': lambda x, y: x != y,
-    '<': lambda x, y: x < y,
-    '<=': lambda x, y: x <= y,
-    '>': lambda x, y: x > y,
-    '>=': lambda x, y: x >= y,
+    '==': lambda x, y: np.equal(x, y),
+    '!=': lambda x, y: np.not_equal(x, y),
+    '<': lambda x, y: np.less(x, y),
+    '<=': lambda x, y: np.less_equal(x, y),
+    '>': lambda x, y: np.greater(x, y),
+    '>=': lambda x, y: np.greater_equal(x, y),
 }
 
 # unit tests
