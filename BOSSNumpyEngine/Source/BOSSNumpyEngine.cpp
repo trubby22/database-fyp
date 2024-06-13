@@ -836,6 +836,14 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
       boss::utilities::overload(
           [this](PythonExpressionSystem::ComplexExpression &&expression) -> PythonExpressionSystem::Expression {
 
+            // cout << expression.getHead().getName() << endl;
+
+            // if (expression.getHead() == "Table"_) {
+            //   cout << expression << endl;
+            // }
+
+            // cout << endl;
+
             // top-level
             auto [top_head, top_statics, top_dynamics, top_spans] =
                 forward<decltype(expression)>(expression).decompose();
@@ -857,6 +865,12 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             //   // return PythonExpressionSystem::ComplexExpression("python"_, {}, {}, {});
             // }
 
+            if (top_head == "DictionaryEncodedList"_) {
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto list = get<PythonExpressionSystem::ComplexExpression>(*top_it);
+              return evaluate(move(list));
+            }
+
             // def project(table, col_names)
             if (top_head == "project"_) {
               // head = project
@@ -864,7 +878,9 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
               auto col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
 
-              PyObject *table_pydict = python_expression_to_pyobject(evaluate(move(expr)));
+              auto evaluated_expr = evaluate(move(expr));
+              cout << evaluated_expr << endl;
+              PyObject *table_pydict = python_expression_to_pyobject(move(evaluated_expr));
               PyObject *col_names = single_span_list_to_pylist(move(col_names_expr));
 
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project");
@@ -1115,6 +1131,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
 
 boss::expressions::Expression Engine::evaluate_c(boss::expressions::Expression &&e) {
   auto result = evaluate(move(e));
+  cout << "ack" << endl;
   return toBOSSExpression(move(result));
 }
 

@@ -105,7 +105,9 @@ def aggregate(table, key_col_names, reduction_func, reduction_col_name):
     reduced_col = [reduction_functions[reduction_func](x) for x in table_split_up[reduction_col_name]]
     table_reduced = {reduction_col_name: np.array(reduced_col)}
     table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
-    return table_key | table_reduced
+    res = table_key | table_reduced
+    print(res)
+    return res
 
 def materialise_into_columns(table):
     return {col_name: np.concatenate([table[col_name]]).ravel() for col_name in table.keys()}
