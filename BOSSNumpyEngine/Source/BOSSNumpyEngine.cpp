@@ -76,8 +76,8 @@ extern "C" {
 #pragma region python_helpers
 
 string Engine::PyObject_to_string(PyObject *obj) {
-  PyGILState_STATE gstate;
-  gstate = PyGILState_Ensure();
+  // PyGILState_STATE gstate;
+  // gstate = PyGILState_Ensure();
 
   string result;
 
@@ -97,7 +97,7 @@ string Engine::PyObject_to_string(PyObject *obj) {
     }
   }
 
-  PyGILState_Release(gstate);
+  // PyGILState_Release(gstate);
 
   return result;
 }
@@ -885,7 +885,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               auto col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
 
               auto evaluated_expr = evaluate(move(expr));
-              cout << evaluated_expr << endl;
+              // cout << evaluated_expr << endl;
               PyObject *table_pydict = python_expression_to_pyobject(move(evaluated_expr));
               PyObject *col_names = single_span_list_to_pylist(move(col_names_expr));
 
@@ -1137,7 +1137,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
 
 boss::expressions::Expression Engine::evaluate_c(boss::expressions::Expression &&e) {
   auto result = evaluate(move(e));
-  cout << "ack" << endl;
+  // cout << "ack" << endl;ś
   return toBOSSExpression(move(result));
 }
 
@@ -1153,13 +1153,13 @@ void Engine::init_python_and_numpy() {
     throw runtime_error("Failed to import numpy Python module(s).");
   }
   assert(PyArray_API);
-  gstate = PyGILState_Ensure();
+  // gstate = PyGILState_Ensure();
 
   global_dict = PyDict_New();
   local_dict = PyDict_New();
   PyRun_String(R"(
 import sys
-sys.path.append("/mnt/ubuntu-image-repos/BOSSNumpyEngine/rel_alg")
+sys.path.append("/mnt/ubuntu-image-repos/BOSSNumpyEngine/rel_alg_cython")
 import numpy as np
   )", Py_file_input, global_dict, local_dict);
 
@@ -1189,7 +1189,7 @@ Engine::Engine(ull span_size_bytes) : span_size_bytes(span_size_bytes) {
 
 Engine::~Engine() {
   // Py_DECREF(local_dict);
-  PyGILState_Release(gstate);
+  // PyGILState_Release(gstate);
 }
 
 #pragma endregion boilerplate

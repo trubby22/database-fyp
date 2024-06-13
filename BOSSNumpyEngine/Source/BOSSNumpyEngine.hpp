@@ -73,7 +73,7 @@ private:
   PyObject *local_dict;
   PyObject *rel_alg;
   PyObject *main_module;
-  PyGILState_STATE gstate;
+  // PyGILState_STATE gstate;
 
   ull span_size_bytes;
 
