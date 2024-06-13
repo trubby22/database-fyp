@@ -255,7 +255,7 @@ void initStorageEngine_TPCH() {
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
-        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_1MB/" + filename + ".tbl";
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_0.1MB/" + filename + ".tbl";
     checkForErrors(evalStorage("Load"_(table, path)));
   }
 }
@@ -667,14 +667,14 @@ void benchmark_loop_tpch(
 
       auto res = eval(shallowCopy(query_expr));
 
-      cout << shallowCopy(query_expr) << endl;
-      cout << endl;
-      cout << "res" << endl;
-      cout << res << endl;
-      cout << endl;
+      // cout << shallowCopy(query_expr) << endl;
+      // cout << endl;
+      // cout << "res" << endl;
+      // cout << res << endl;
+      // cout << endl;
 
-      const chrono::seconds time_warmup = 0s;
-      const ull warmup_iters = 0;
+      const chrono::seconds time_warmup = 3s;
+      const ull warmup_iters = 1;
       chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
       chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
       chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
@@ -684,8 +684,8 @@ void benchmark_loop_tpch(
         warmup_timestamp = chrono::high_resolution_clock::now();
       }
 
-      const chrono::seconds time_test = 0s;
-      const ull test_iters = 0;
+      const chrono::seconds time_test = 10s;
+      const ull test_iters = 3;
       chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
       chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
       chrono::high_resolution_clock::time_point test_timestamp = test_start;
