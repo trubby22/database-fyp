@@ -77,6 +77,10 @@ def go(trips: pd.DataFrame):
     test_out = dur_test
 
     pred = train_in @ params.T
+    print('train_in', train_in, sep='\n')
+    print('params.T', params.T, sep='\n')
+    print('pred', pred, sep='\n')
+
     pred = np.reshape(pred, -1)
 
     def squared_err(act, pred):
