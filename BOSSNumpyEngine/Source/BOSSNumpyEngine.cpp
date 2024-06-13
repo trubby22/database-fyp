@@ -27,7 +27,7 @@ void print_pylist(PyObject* pylist) {
                 } else {
                     std::cerr << "Failed to convert item " << i << " to string." << std::endl;
                 }
-                Py_DECREF(item_str);  // Decrement reference count of item_str
+                // Py_DECREF(item_str);  // Decrement reference count of item_str
             } else {
                 std::cerr << "Failed to get string representation of item " << i << std::endl;
             }
@@ -93,7 +93,7 @@ string Engine::PyObject_to_string(PyObject *obj) {
       if (c_str) {
         result = string(c_str);
       }
-      Py_DECREF(unicodeObj);
+      // Py_DECREF(unicodeObj);
     }
   }
 
@@ -157,9 +157,9 @@ void Engine::print_py_list(PyObject *list) {
   Py_ssize_t size = PyList_Size(list);
   for (Py_ssize_t i = 0; i < size; i++) {
     auto npy_arr = PyList_GetItem(list, i);
-    Py_INCREF(npy_arr);
+    // Py_INCREF(npy_arr);
     print_1d_numpy_array(reinterpret_cast<PyArrayObject *>(npy_arr));
-    Py_DECREF(npy_arr);
+    // Py_DECREF(npy_arr);
   }
   cout << "end of py list" << endl;
 }
@@ -258,7 +258,7 @@ template <typename T> Span<T> Engine::numpy_arr_to_span_helper(PyObject *py_npy_
   auto length = PyArray_SIZE(npy_arr);
   auto span = boss::Span<T>(data, length, [npy_arr]() {
     // cout << "deleting span" << endl;
-    Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
+    // Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
   });
   return span;
 }
@@ -315,10 +315,10 @@ PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_spans_spans
       num_elems_in_cur_span = num_elems_in_last_non_full_span;
     }
 
-    Py_INCREF(reinterpret_cast<PyObject *>(npy_arr));
+    // Py_INCREF(reinterpret_cast<PyObject *>(npy_arr));
     auto span = boss::Span<T>(span_begin, num_elems_in_cur_span, [npy_arr]() {
       // cout << "deleting materialised column view" << endl;
-      Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
+      // Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
     });
     col_list_spans.emplace_back(move(span));
   }
@@ -362,7 +362,7 @@ PythonExpressionSystem::ExpressionSpanArguments Engine::py_list_to_spans(PyObjec
   result.reserve(size);
   for (int i = 0; i < size; i++) {
     auto npy_arr = PyList_GetItem(list, i);
-    Py_INCREF(npy_arr);
+    // Py_INCREF(npy_arr);
     auto span_arg = numpy_arr_to_span(npy_arr);
     result.emplace_back(move(span_arg));
   }
@@ -394,9 +394,9 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
 
   for (int i = 0; i < num_npy_rows; i++) {
     auto col_name = PyList_GetItem(col_names, i);
-    Py_INCREF(col_name);
+    // Py_INCREF(col_name);
     string col_name_str = PyObject_to_string(col_name);
-    Py_DECREF(col_name);
+    // Py_DECREF(col_name);
     Symbol col_head(move(col_name_str));
 
     PythonExpressionSystem::ExpressionSpanArguments col_list_spans;
@@ -412,10 +412,10 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
         num_elems_in_cur_span = num_elems_in_last_non_full_span;
       }
 
-      Py_INCREF(reinterpret_cast<PyObject *>(npy_matrix));
+      // Py_INCREF(reinterpret_cast<PyObject *>(npy_matrix));
       auto span = boss::Span<T>(span_begin, num_elems_in_cur_span, [npy_matrix]() {
         // cout << "deleting matrix view" << endl;
-        Py_DECREF(reinterpret_cast<PyObject *>(npy_matrix));
+        // Py_DECREF(reinterpret_cast<PyObject *>(npy_matrix));
       });
       col_list_spans.emplace_back(move(span));
     }
@@ -475,7 +475,7 @@ Engine::span_to_numpy_arr(PythonExpressionSystem::ExpressionSpanArgument &&arg) 
           PyObject *capsule = PyCapsule_New(span_ptr, "backing_span",
                                   (PyCapsule_Destructor)destroy_span);
           if (PyArray_SetBaseObject(reinterpret_cast<PyArrayObject *>(result), capsule) == -1) {
-            Py_DECREF(result);
+            // Py_DECREF(result);
             PyErr_Print();
             throw runtime_error("can't convert span to npy_arr - problems /w capsule");
           }
@@ -539,7 +539,7 @@ Engine::table_to_pydict_column(PythonExpressionSystem::ComplexExpression &&table
     PyObject *numpy_arr = span_to_numpy_arr(*list_it);
     PyDict_SetItemString(table_dict, colname_column_name,
                           numpy_arr);
-    Py_DECREF(numpy_arr);
+    // Py_DECREF(numpy_arr);
   }
 
   return table_dict;
@@ -582,7 +582,7 @@ Engine::table_to_pydict_spans(PythonExpressionSystem::ComplexExpression &&table_
     auto list_py_list = spans_to_py_list(move(list_spans));
     PyDict_SetItemString(table_dict, colname_column_name,
                           list_py_list);
-    Py_DECREF(list_py_list);
+    // Py_DECREF(list_py_list);
   }
 
   return table_dict;
@@ -596,9 +596,9 @@ Engine::table_to_pywrapper(PythonExpressionSystem::ComplexExpression &&table_exp
   PyObject *table_dict = table_to_pydict_spans(move(table_expr));
 
   PyDict_SetItemString(wrapper_dict, "table", table_dict);
-  Py_DECREF(table_dict);
+  // Py_DECREF(table_dict);
   PyDict_SetItemString(wrapper_dict, "matrix", matrix_dict);
-  Py_DECREF(matrix_dict);
+  // Py_DECREF(matrix_dict);
 
   return wrapper_dict;
 }
@@ -612,14 +612,14 @@ Engine::pydict_column_to_table_column(PyObject *table_dict) {
   PyObject *col_name, *npy_arr;
   Py_ssize_t pos = 0;
   while (PyDict_Next(table_dict, &pos, &col_name, &npy_arr)) {
-    Py_INCREF(col_name);
-    Py_INCREF(npy_arr);
+    // Py_INCREF(col_name);
+    // Py_INCREF(npy_arr);
     string col_name_str = PyObject_to_string(col_name);
-    Py_DECREF(col_name);
+    // Py_DECREF(col_name);
     Symbol col_head(move(col_name_str));
 
     auto col_list_spans = numpy_arr_to_column_spans(npy_arr);
-    Py_DECREF(npy_arr);
+    // Py_DECREF(npy_arr);
     auto boss_list =
         PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
     // head = List
@@ -634,7 +634,7 @@ Engine::pydict_column_to_table_column(PyObject *table_dict) {
 
     res_dynamics.emplace_back(move(boss_column));
   }
-  Py_DECREF(table_dict);
+  // Py_DECREF(table_dict);
 
   return PythonExpressionSystem::ComplexExpression("Table"_, {}, move(res_dynamics), {});
 }
@@ -648,10 +648,10 @@ Engine::pydict_col_or_spans_to_table_spans(PyObject *table_dict) {
   PyObject *col_name, *col_pylist_or_npy_arr;
   Py_ssize_t pos = 0;
   while (PyDict_Next(table_dict, &pos, &col_name, &col_pylist_or_npy_arr)) {
-    Py_INCREF(col_name);
-    Py_INCREF(col_pylist_or_npy_arr);
+    // Py_INCREF(col_name);
+    // Py_INCREF(col_pylist_or_npy_arr);
     string col_name_str = PyObject_to_string(col_name);
-    Py_DECREF(col_name);
+    // Py_DECREF(col_name);
     Symbol col_head(move(col_name_str));
 
     PythonExpressionSystem::ExpressionSpanArguments col_list_spans;
@@ -661,7 +661,7 @@ Engine::pydict_col_or_spans_to_table_spans(PyObject *table_dict) {
       col_list_spans = numpy_arr_to_spans_spans(reinterpret_cast<PyArrayObject *>(col_pylist_or_npy_arr));
     }
 
-    Py_DECREF(col_pylist_or_npy_arr);
+    // Py_DECREF(col_pylist_or_npy_arr);
     auto boss_list =
         PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
     // head = List
@@ -676,7 +676,7 @@ Engine::pydict_col_or_spans_to_table_spans(PyObject *table_dict) {
 
     res_dynamics.emplace_back(move(boss_column));
   }
-  Py_DECREF(table_dict);
+  // Py_DECREF(table_dict);
 
   return PythonExpressionSystem::ComplexExpression("Table"_, {}, move(res_dynamics), {});
 }
@@ -684,11 +684,11 @@ Engine::pydict_col_or_spans_to_table_spans(PyObject *table_dict) {
 // steals reference to matrix_dict
 PythonExpressionSystem::ComplexExpression Engine::pymatrix_to_table(PyObject *matrix_dict) {
   auto matrix = PyDict_GetItemString(matrix_dict, "data");
-  Py_INCREF(matrix);
+  // Py_INCREF(matrix);
   auto npy_matrix = reinterpret_cast<PyArrayObject *>(matrix);
   auto col_names = PyDict_GetItemString(matrix_dict, "col_names");
-  Py_INCREF(col_names);
-  Py_DECREF(matrix_dict);
+  // Py_INCREF(col_names);
+  // Py_DECREF(matrix_dict);
   int typenum = PyArray_TYPE(npy_matrix);
 
   PythonExpressionSystem::Expression result;
@@ -710,8 +710,8 @@ PythonExpressionSystem::ComplexExpression Engine::pymatrix_to_table(PyObject *ma
     break;
   }
 
-  Py_DECREF(col_names);
-  Py_DECREF(matrix);
+  // Py_DECREF(col_names);
+  // Py_DECREF(matrix);
   return get<PythonExpressionSystem::ComplexExpression>(move(result));
 }
 
@@ -719,9 +719,9 @@ PythonExpressionSystem::ComplexExpression Engine::pymatrix_to_table(PyObject *ma
 PythonExpressionSystem::Expression
 Engine::pywrapper_to_table(PyObject *wrapper_dict) {
   auto table_dict = PyDict_GetItemString(wrapper_dict, "table");
-  Py_INCREF(table_dict);
+  // Py_INCREF(table_dict);
   auto matrix_dict = PyDict_GetItemString(wrapper_dict, "matrix");
-  Py_INCREF(matrix_dict);
+  // Py_INCREF(matrix_dict);
 
   PythonExpressionSystem::Expression table;
   if (table_dict != Py_None) {
@@ -730,7 +730,7 @@ Engine::pywrapper_to_table(PyObject *wrapper_dict) {
   } else {
     table = pymatrix_to_table(matrix_dict);
   }
-  Py_DECREF(wrapper_dict);
+  // Py_DECREF(wrapper_dict);
 
   return table;
 }
@@ -1042,7 +1042,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               *top_it = Symbol(move(top_script_return));
 
               if (top_result != nullptr) {
-                Py_DECREF(top_result);
+                // Py_DECREF(top_result);
               }
 
               auto result =
@@ -1075,7 +1075,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                   PyObject *wrapper_dict = table_to_pywrapper(move(where_table_expr));
                   PyDict_SetItemString(local_dict, where_table_name,
                                        wrapper_dict);
-                  Py_DECREF(wrapper_dict);
+                  // Py_DECREF(wrapper_dict);
                 }
               }
 
@@ -1086,7 +1086,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 throw runtime_error("error in provided python code");
               }
               if (top_result != nullptr) {
-                Py_DECREF(top_result);
+                // Py_DECREF(top_result);
               }
 
               return PythonExpressionSystem::ComplexExpression("python"_, {}, {}, {});
@@ -1100,7 +1100,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
 
               auto wrapper_dict =
                   PyDict_GetItemString(local_dict, var_name);
-              Py_INCREF(wrapper_dict);
+              // Py_INCREF(wrapper_dict);
               return pywrapper_to_table(wrapper_dict);
             }
 
@@ -1172,7 +1172,7 @@ void Engine::reset_python_dict() {
   // Py_ssize_t ref_count = Py_REFCNT(local_dict);
   // cout << "local_dict reference count " << ref_count << endl;
 
-  Py_DECREF(local_dict);
+  // Py_DECREF(local_dict);
   local_dict = PyDict_New();
 }
 
@@ -1182,7 +1182,7 @@ Engine::Engine(ull span_size_bytes) : span_size_bytes(span_size_bytes) {
 }
 
 Engine::~Engine() {
-  Py_DECREF(local_dict);
+  // Py_DECREF(local_dict);
   PyGILState_Release(gstate);
 }
 
