@@ -255,7 +255,7 @@ void initStorageEngine_TPCH() {
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
-        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_100MB/" + filename + ".tbl";
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_1MB/" + filename + ".tbl";
     checkForErrors(evalStorage("Load"_(table, path)));
   }
 }
@@ -281,6 +281,11 @@ auto& tpch_queries() {
 //   l_orderkey,
 //   o_orderdate,
 //   o_shippriority
+
+// DictionaryEncodedList[
+//   List<int> start_ixs,
+//   string dictionary
+// ]
 
   if(queries.empty()) {
     queries.try_emplace(
