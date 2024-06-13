@@ -255,20 +255,36 @@ void initStorageEngine_TPCH() {
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
-        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_0.1MB/" + filename + ".tbl";
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_100MB/" + filename + ".tbl";
     checkForErrors(evalStorage("Load"_(table, path)));
   }
 }
 
 #pragma endregion loading
 
-#pragma region queries
-
 auto& tpch_queries() {
   static map<string, ComplexExpression> queries;
+
+// select
+//   l_orderkey,
+//   sum(l_extendedprice),
+//   o_orderdate,
+//   o_shippriority
+// from
+//   customer,
+//   orders,
+//   lineitem
+// where
+//   c_custkey = o_custkey
+//   and l_orderkey = o_orderkey
+// group by
+//   l_orderkey,
+//   o_orderdate,
+//   o_shippriority
+
   if(queries.empty()) {
     queries.try_emplace(
-      "q6-tpch",
+      "q3-tpch",
       "aggregate"_(
           "project"_(
               "equi_join"_(
@@ -287,13 +303,15 @@ auto& tpch_queries() {
                   string_list("o_orderkey"),
                   string_list("l_orderkey")),
               string_list("l_extendedprice", "l_orderkey", "o_orderdate", "o_shippriority")),
-          string_list("l_orderkey"),
+          string_list("l_orderkey", "o_orderdate", "o_shippriority"),
           "sum"_,
           "l_extendedprice"_)
     );
   }
   return queries;
 }
+
+#pragma region queries
 
 ComplexExpression python_import_numpy() {
   return "Python_globals"_(R"(
@@ -562,8 +580,7 @@ void benchmark_loop(
   string csv_path, 
   map<string, string> &table_names_paths,
   unordered_map<string, string> &table_names,
-  map<string, ComplexExpression> &query_names_exprs
-) {
+  map<string, ComplexExpression> &query_names_exprs) {
   auto eval = getEvaluateLambda();
   auto eval_numpy = getEvaluateBaselineLambda();
   cout << endl;
@@ -636,8 +653,7 @@ void benchmark_loop(
 }
 
 void benchmark_loop_tpch(
-  map<string, ComplexExpression> &query_names_exprs
-) {
+  map<string, ComplexExpression> &query_names_exprs) {
   auto eval = getEvaluateLambda();
   cout << endl;
 
@@ -645,13 +661,12 @@ void benchmark_loop_tpch(
       cout << "========== start " << query_name << " ==========" << endl;
 
       auto res = eval(shallowCopy(query_expr));
-#ifdef DEBUG
+
       cout << shallowCopy(query_expr) << endl;
       cout << endl;
       cout << "res" << endl;
       cout << res << endl;
       cout << endl;
-#endif
 
       const chrono::seconds time_warmup = 0s;
       const ull warmup_iters = 0;
