@@ -43,7 +43,6 @@ using ExpressionSpanArguments = PythonExpressionSystem::ExpressionSpanArguments;
 using ExpressionSpanArgument = PythonExpressionSystem::ExpressionSpanArgument;
 using boss::Span;
 using boss::Symbol;
-using intType = int32_t;
 
 typedef unsigned long long ull;
 const int ENGINE_SPAN_SIZE_BYTES = 1000000; // 1 million = 1 mb
