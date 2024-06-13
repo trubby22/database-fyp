@@ -256,7 +256,9 @@ template <typename T> Span<T> Engine::numpy_arr_to_span_helper(PyObject *py_npy_
   auto npy_arr = reinterpret_cast<PyArrayObject *>(py_npy_arr);
   T *data = static_cast<T *>(PyArray_DATA(npy_arr));
   auto length = PyArray_SIZE(npy_arr);
-  auto span = boss::Span<T>(data, length, [npy_arr]() {
+  auto span = boss::Span<T>(data, length, [
+    // npy_arr
+    ]() {
     // cout << "deleting span" << endl;
     // Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
   });
@@ -316,7 +318,9 @@ PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_spans_spans
     }
 
     // Py_INCREF(reinterpret_cast<PyObject *>(npy_arr));
-    auto span = boss::Span<T>(span_begin, num_elems_in_cur_span, [npy_arr]() {
+    auto span = boss::Span<T>(span_begin, num_elems_in_cur_span, [
+      // npy_arr
+      ]() {
       // cout << "deleting materialised column view" << endl;
       // Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
     });
@@ -413,7 +417,9 @@ PythonExpressionSystem::ComplexExpression Engine::npy_matrix_to_table_helper(PyA
       }
 
       // Py_INCREF(reinterpret_cast<PyObject *>(npy_matrix));
-      auto span = boss::Span<T>(span_begin, num_elems_in_cur_span, [npy_matrix]() {
+      auto span = boss::Span<T>(span_begin, num_elems_in_cur_span, [
+        // npy_matrix
+        ]() {
         // cout << "deleting matrix view" << endl;
         // Py_DECREF(reinterpret_cast<PyObject *>(npy_matrix));
       });
