@@ -18,7 +18,7 @@
 
 #pragma endregion includes
 
-// #define DEBUG
+#define DEBUG
 
 #pragma region usings
 
@@ -164,9 +164,86 @@ void init_storage_engine() {
   checkForErrors(eval("Set"_("LoadToMemoryMappedFiles"_, false)));
 }
 
+void initStorageEngine_TPCH() {
+
+  auto evalStorage = getEvaluateStorageLambda();
+  auto checkForErrors = getCheckForErrorsLambda();
+
+  checkForErrors(evalStorage("CreateTable"_(
+      "LINEITEM"_, "l_orderkey"_, "l_partkey"_, "l_suppkey"_, "l_linenumber"_, "l_quantity"_,
+      "l_extendedprice"_, "l_discount"_, "l_tax"_, "l_returnflag"_, "l_linestatus"_, "l_shipdate"_,
+      "l_commitdate"_, "l_receiptdate"_, "l_shipinstruct"_, "l_shipmode"_, "l_comment"_)));
+
+  checkForErrors(evalStorage("CreateTable"_("REGION"_, "r_regionkey"_, "r_name"_, "r_comment"_)));
+
+  checkForErrors(evalStorage(
+      "CreateTable"_("NATION"_, "n_nationkey"_, "n_name"_, "n_regionkey"_, "n_comment"_)));
+
+  checkForErrors(
+      evalStorage("CreateTable"_("PART"_, "p_partkey"_, "p_name"_, "p_mfgr"_, "p_brand"_, "p_type"_,
+                                 "p_size"_, "p_container"_, "p_retailprice"_, "p_comment"_)));
+
+  checkForErrors(
+      evalStorage("CreateTable"_("SUPPLIER"_, "s_suppkey"_, "s_name"_, "s_address"_, "s_nationkey"_,
+                                 "s_phone"_, "s_acctbal"_, "s_comment"_)));
+
+  checkForErrors(evalStorage("CreateTable"_("PARTSUPP"_, "ps_partkey"_, "ps_suppkey"_,
+                                            "ps_availqty"_, "ps_supplycost"_, "ps_comment"_)));
+
+  checkForErrors(
+      evalStorage("CreateTable"_("CUSTOMER"_, "c_custkey"_, "c_name"_, "c_address"_, "c_nationkey"_,
+                                 "c_phone"_, "c_acctbal"_, "c_mktsegment"_, "c_comment"_)));
+
+  checkForErrors(evalStorage("CreateTable"_(
+      "ORDERS"_, "o_orderkey"_, "o_custkey"_, "o_orderstatus"_, "o_totalprice"_, "o_orderdate"_,
+      "o_orderpriority"_, "o_clerk"_, "o_shippriority"_, "o_comment"_)));
+
+  auto filenamesAndTables = std::vector<std::pair<std::string, boss::Symbol>>{
+      {"lineitem", "LINEITEM"_}, {"region", "REGION"_},     {"nation", "NATION"_},
+      {"part", "PART"_},         {"supplier", "SUPPLIER"_}, {"partsupp", "PARTSUPP"_},
+      {"customer", "CUSTOMER"_}, {"orders", "ORDERS"_}};
+
+  for(auto const& [filename, table] : filenamesAndTables) {
+    std::string path =
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_0.1MB/" + filename + ".tbl";
+    checkForErrors(evalStorage("Load"_(table, path)));
+  }
+}
+
 #pragma endregion loading
 
 #pragma region queries
+
+auto& tpch_queries() {
+  static map<string, ComplexExpression> queries;
+  if(queries.empty()) {
+    queries.try_emplace(
+      "q6-tpch",
+      "aggregate"_(
+          "project"_(
+              "equi_join"_(
+                  "project"_(
+                      "equi_join"_(
+                          "project"_("CUSTOMER"_,
+                                      "List"_(boss::Span<string>{vector<string>{"c_custkey", "c_mktsegment"}})),
+                          "project"_("ORDERS"_,
+                                      "List"_(boss::Span<string>{vector<string>{"o_orderkey", "o_orderdate", "o_custkey", "o_shippriority"}})),
+                          "List"_(boss::Span<string>{vector<string>{"c_custkey"}}),
+                          "List"_(boss::Span<string>{vector<string>{"o_custkey"}})),
+                      "List"_(boss::Span<string>{vector<string>{"o_orderkey", "o_orderdate", "o_custkey", "o_shippriority"}})),
+                  "project"_(
+                      "LINEITEM"_,
+                      "List"_(boss::Span<string>{vector<string>{"l_orderkey", "l_discount", "l_extendedprice"}})),
+                  "List"_(boss::Span<string>{vector<string>{"o_orderkey"}}),
+                  "List"_(boss::Span<string>{vector<string>{"l_orderkey"}})),
+              "List"_(boss::Span<string>{vector<string>{"l_extendedprice", "l_orderkey", "o_orderdate", "o_shippriority"}})),
+          "List"_(boss::Span<string>{vector<string>{"l_orderkey"}}),
+          "sum"_,
+          "l_extendedprice"_)
+    );
+  }
+  return queries;
+}
 
 ComplexExpression python_import_numpy() {
   return "Python_globals"_(R"(
@@ -508,6 +585,58 @@ void benchmark_loop(
   outfile.close();
 }
 
+void benchmark_loop_tpch(
+  map<string, ComplexExpression> &query_names_exprs
+) {
+  auto eval = getEvaluateLambda();
+  cout << endl;
+
+    for (const auto& [query_name, query_expr] : query_names_exprs) {
+      cout << "========== start " << query_name << " ==========" << endl;
+
+      auto res = eval(shallowCopy(query_expr));
+#ifdef DEBUG
+      cout << shallowCopy(query_expr) << endl;
+      cout << endl;
+      cout << "res" << endl;
+      cout << res << endl;
+      cout << endl;
+#endif
+
+      const chrono::seconds time_warmup = 0s;
+      const ull warmup_iters = 0;
+      chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
+      chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
+      chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
+      for (ull i = 0; i < warmup_iters || warmup_timestamp < warmup_end_time; i++) {
+        auto res = eval(shallowCopy(query_expr));
+        benchmark::DoNotOptimize(res);
+        warmup_timestamp = chrono::high_resolution_clock::now();
+      }
+
+      const chrono::seconds time_test = 0s;
+      const ull test_iters = 0;
+      chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
+      chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
+      chrono::high_resolution_clock::time_point test_timestamp = test_start;
+      ull completed_iters = 0;
+      for (completed_iters = 0; completed_iters < test_iters || test_timestamp < test_end_time; completed_iters++) {
+        auto res = eval(shallowCopy(query_expr));
+        benchmark::DoNotOptimize(res);
+        test_timestamp = chrono::high_resolution_clock::now();
+      }
+
+      chrono::high_resolution_clock::time_point test_end = chrono::high_resolution_clock::now();
+      chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(test_end - test_start);
+      chrono::nanoseconds avg_time = elapsed_time / completed_iters;
+
+      print_elapsed_time(avg_time);
+      cout << endl;
+      cout << "end " << " " << query_name << endl;
+      cout << endl;
+    }
+}
+
 void init_and_run_benchmarks() {
   init_libraries();
   storageLibrary = librariesToTest[0];
@@ -539,9 +668,20 @@ void init_and_run_benchmarks() {
   release_boss_engines();
 }
 
+void tpch_bench() {
+  init_libraries();
+  storageLibrary = librariesToTest[0];
+  initStorageEngine_TPCH();
+  auto eval = getEvaluateLambda();
+  // eval(python_import_numpy());
+
+  benchmark_loop_tpch(tpch_queries());
+}
+
 int main() {
   try {
-    init_and_run_benchmarks();
+    // init_and_run_benchmarks();
+    tpch_bench();
   } catch(std::exception& e) {
     std::cerr << "caught exception in main: " << e.what() << std::endl;
     boss::evaluate("ResetEngines"_());
