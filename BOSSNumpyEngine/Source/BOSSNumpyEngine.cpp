@@ -756,7 +756,7 @@ PyObject *Engine::single_span_list_to_pylist(PythonExpressionSystem::ComplexExpr
   auto [list_unused_0, list_unused_1, list_unused_2, list_spans] =
     forward<decltype(list)>(list).decompose();
   auto list_it = make_move_iterator(list_spans.begin());
-  auto span_arg = *list_it;
+  auto span_arg = static_cast<PythonExpressionSystem::ExpressionSpanArgument>(*list_it);
   return visit(
     [this]<typename T>(Span<T> &&typed_span) -> PyObject * {
       auto size = typed_span.size();
@@ -870,6 +870,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project");
               if (py_operator == NULL) {
                 PyErr_Print();
+                throw runtime_error("error");
               }
 
               PyObject* result;
@@ -879,6 +880,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 result = PyObject_CallFunction(py_operator, "OO", table_pydict, col_names);
                 if (result == NULL) {
                   PyErr_Print();
+                  throw runtime_error("error");
                 }
               } else {
                 PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
@@ -905,6 +907,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "select");
               if (py_operator == NULL) {
                 PyErr_Print();
+                throw runtime_error("error");
               }
 
               PyObject* result;
@@ -915,6 +918,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                   py_operator, "OOOO", table_pydict, key_col_names, boolean_ops, vals);
                 if (result == NULL) {
                   PyErr_Print();
+                  throw runtime_error("error");
                 }
               } else {
                 PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
@@ -942,6 +946,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "equi_join");
               if (py_operator == NULL) {
                 PyErr_Print();
+                throw runtime_error("error");
               }
 
               PyObject* result;
@@ -952,6 +957,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                   py_operator, "OOOO", table_pydict_1, table_pydict_2, key_col_names_1, key_col_names_2);
                 if (result == NULL) {
                   PyErr_Print();
+                  throw runtime_error("error");
                 }
               } else {
                 PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
@@ -981,6 +987,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "aggregate");
               if (py_operator == NULL) {
                 PyErr_Print();
+                throw runtime_error("error");
               }
 
               PyObject* result;
@@ -991,6 +998,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                   py_operator, "OOOO", table_pydict, key_col_names, reduction_func, reduction_func_col_name);
                 if (result == NULL) {
                   PyErr_Print();
+                  throw runtime_error("error");
                 }
               } else {
                 PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
@@ -1099,7 +1107,9 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
 
             return forward<decltype(symbol)>(symbol);
           },
-          [](auto &&arg) -> PythonExpressionSystem::Expression { return forward<decltype(arg)>(arg); }),
+          [](auto &&arg) -> PythonExpressionSystem::Expression { 
+            return forward<decltype(arg)>(arg); 
+          }),
       forward<decltype(e)>(e));
 };
 
@@ -1120,6 +1130,7 @@ void Engine::init_python_and_numpy() {
     throw runtime_error("Failed to import numpy Python module(s).");
   }
   assert(PyArray_API);
+  gstate = PyGILState_Ensure();
 
   global_dict = PyDict_New();
   local_dict = PyDict_New();
@@ -1155,6 +1166,7 @@ Engine::Engine(ull span_size_bytes) : span_size_bytes(span_size_bytes) {
 
 Engine::~Engine() {
   Py_DECREF(local_dict);
+  PyGILState_Release(gstate);
 }
 
 #pragma endregion boilerplate

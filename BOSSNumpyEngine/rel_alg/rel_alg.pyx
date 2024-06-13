@@ -10,6 +10,8 @@ def project(table, col_names):
 
 # works on materialised columns
 def select(table, key_col_names, boolean_ops, vals):
+    table = materialise_into_columns(table)
+
     col_names = list(table.keys())
     bools = np.full(len(table[col_names[0]]), True)
     for i in range(len(key_col_names)):
@@ -22,6 +24,9 @@ def select(table, key_col_names, boolean_ops, vals):
 
 # accepts and returns tables /w materialised columns
 def equi_join(table_1, table_2, key_col_names_1, key_col_names_2):
+    table_1 = materialise_into_columns(table_1)
+    table_2 = materialise_into_columns(table_2)
+
     col_names_1 = list(table_1.keys())
     col_names_2 = list(table_2.keys())
     keys_1 = [table_1[col_name] for col_name in key_col_names_1]
@@ -35,10 +40,10 @@ def equi_join(table_1, table_2, key_col_names_1, key_col_names_2):
     i = 0
     j = 0
     j_start = 0
-    while i < len(table_1_sorted):
+    while i < len(table_1_sorted[key_col_names_1[0]]):
         j = j_start
         first = True
-        while j < len(table_2_sorted):
+        while j < len(table_2_sorted[key_col_names_2[0]]):
             same = True
             for k in range(len(key_col_names_1)):
                 col_name_1 = key_col_names_1[k]
@@ -67,6 +72,8 @@ def equi_join(table_1, table_2, key_col_names_1, key_col_names_2):
 
 # accepts and returns tables /w materialised columns
 def aggregate(table, key_col_names, reduction_func, reduction_col_name):
+    table = materialise_into_columns(table)
+
     col_names = list(table.keys())
     key_cols = [table[col_name] for col_name in key_col_names]
     sort_ixs = np.lexsort(key_cols)
@@ -101,7 +108,7 @@ def aggregate(table, key_col_names, reduction_func, reduction_col_name):
     return table_key | table_reduced
 
 def materialise_into_columns(table):
-    return {col_name: np.concatenate(table[col_name]) for col_name in table.keys()}
+    return {col_name: np.concatenate([table[col_name]]).ravel() for col_name in table.keys()}
 
 def split_into_spans(table, span_size):
     col_names = list(table.keys())
@@ -183,12 +190,12 @@ if __name__ == '__main__':
 
     table = {
         'col1': [
-            np.array([1, 2], dtype=int32),
-            np.array([3, 4], dtype=int32),
+            np.array([1, 2], dtype=np.int32),
+            np.array([3, 4], dtype=np.int32),
         ], 
         'col2': [
-            np.array([5 ,6], dtype=int32),
-            np.array([7, 8], dtype=int32),
+            np.array([5 ,6], dtype=np.int32),
+            np.array([7, 8], dtype=np.int32),
         ],
     }
     wrapper = {
@@ -198,10 +205,10 @@ if __name__ == '__main__':
 
     table = {
         'col1': [
-            np.array([1, 2, 3, 4], dtype=int32),
+            np.array([1, 2, 3, 4], dtype=np.int32),
         ], 
         'col2': [
-            np.array([5 ,6, 7, 8], dtype=int32),
+            np.array([5 ,6, 7, 8], dtype=np.int32),
         ],
     }
     wrapper = {
@@ -212,7 +219,7 @@ if __name__ == '__main__':
     matrix = np.array([
         [1, 2, 3, 4],
         [5, 6, 7, 8],
-    ], dtype=int32)
+    ], dtype=np.int32)
     wrapper = {
         'table': None,
         'matrix': matrix
