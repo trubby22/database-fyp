@@ -78,6 +78,56 @@ unordered_map<string, string> bixi_names = {
 
 #pragma endregion globals
 
+#pragma region foo
+
+// Base case for variadic template recursion
+template <typename U>
+void addToVector(__attribute__((unused)) std::vector<U>& vec) {}
+
+// Recursive variadic template function
+template <typename T, typename... Args>
+void addToVector(std::vector<T>& vec, const T& first, const Args&... args) {
+    vec.push_back(first);
+    addToVector<T>(vec, args...);
+}
+
+// Function that takes a variable number of arguments
+template <typename T, typename... Args>
+std::vector<T> makeVector(const Args&... args) {
+    std::vector<T> vec;
+    addToVector<T>(vec, args...);
+    return vec;
+}
+
+// Function that takes a variable number of arguments
+template <typename T, typename... Args>
+boss::Span<T> makeSpan(const Args&... args) {
+    return boss::Span<T>{makeVector<T>(args...)};
+}
+
+// Function that takes a variable number of arguments
+template <typename T, typename... Args>
+ComplexExpression makeList(const Args&... args) {
+    return "List"_(makeSpan<T>(args...));
+}
+
+template <typename... Args>
+ComplexExpression int_list(const Args&... args) {
+    return makeList<int32_t>(args...);
+}
+
+template <typename... Args>
+ComplexExpression double_list(const Args&... args) {
+    return makeList<double>(args...);
+}
+
+template <typename... Args>
+ComplexExpression string_list(const Args&... args) {
+    return makeList<std::string>(args...);
+}
+
+#pragma endregion foo
+
 #pragma region boilerplate
 
 void init_libraries() {
@@ -225,19 +275,19 @@ auto& tpch_queries() {
                   "project"_(
                       "equi_join"_(
                           "project"_("CUSTOMER"_,
-                                      "List"_(boss::Span<string>{vector<string>{"c_custkey", "c_mktsegment"}})),
+                                      string_list("c_custkey", "c_mktsegment")),
                           "project"_("ORDERS"_,
-                                      "List"_(boss::Span<string>{vector<string>{"o_orderkey", "o_orderdate", "o_custkey", "o_shippriority"}})),
-                          "List"_(boss::Span<string>{vector<string>{"c_custkey"}}),
-                          "List"_(boss::Span<string>{vector<string>{"o_custkey"}})),
-                      "List"_(boss::Span<string>{vector<string>{"o_orderkey", "o_orderdate", "o_custkey", "o_shippriority"}})),
+                                      string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
+                          string_list("c_custkey"),
+                          string_list("o_custkey")),
+                      string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
                   "project"_(
                       "LINEITEM"_,
-                      "List"_(boss::Span<string>{vector<string>{"l_orderkey", "l_discount", "l_extendedprice"}})),
-                  "List"_(boss::Span<string>{vector<string>{"o_orderkey"}}),
-                  "List"_(boss::Span<string>{vector<string>{"l_orderkey"}})),
-              "List"_(boss::Span<string>{vector<string>{"l_extendedprice", "l_orderkey", "o_orderdate", "o_shippriority"}})),
-          "List"_(boss::Span<string>{vector<string>{"l_orderkey"}}),
+                      string_list("l_orderkey", "l_discount", "l_extendedprice")),
+                  string_list("o_orderkey"),
+                  string_list("l_orderkey")),
+              string_list("l_extendedprice", "l_orderkey", "o_orderdate", "o_shippriority")),
+          string_list("l_orderkey"),
           "sum"_,
           "l_extendedprice"_)
     );
