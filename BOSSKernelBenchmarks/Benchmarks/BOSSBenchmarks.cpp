@@ -279,46 +279,46 @@ auto& tpch_queries() {
 // select
 //   l_returnflag,
 //   l_linestatus,
-//   avg(l_quantity)
+//   sum(l_quantity) as sum_qty,
+//   sum(l_extendedprice) as sum_base_price,
+//   sum(l_extendedprice*(1-l_discount)) as sum_disc_price,
+//   sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
+//   avg(l_quantity) as avg_qty,
+//   avg(l_extendedprice) as avg_price,
+//   avg(l_discount) as avg_disc,
+//   count(*) as count_order
 // from
-//   lineitem
+//   item
 // where
 //   l_shipdate <= 10558
 // group by
 //   l_returnflag,
 //   l_linestatus
-
-select
-  l_returnflag,
-  l_linestatus,
-  sum(l_quantity) as sum_qty,
-  sum(l_extendedprice) as sum_base_price,
-  sum(l_extendedprice*(1-l_discount)) as sum_disc_price,
-  sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
-  avg(l_quantity) as avg_qty,
-  avg(l_extendedprice) as avg_price,
-  avg(l_discount) as avg_disc,
-  count(*) as count_order
-from
-  item
-where
-  l_shipdate <= 10558
-group by
-  l_returnflag,
-  l_linestatus
  
     queries.try_emplace(
       "q1-tpch",
         "aggregate"_(
-            "select"_(
-              "LINEITEM"_,
-              string_list("l_shipdate"),
-              string_list("<="),
-              int_list(10558)
+          "project"_(
+            "project"_(
+              "select"_(
+                "LINEITEM"_,
+                string_list("l_shipdate"),
+                string_list("<="),
+                int_list(10558)
+              ),
+              string_list(), string_list(), string_list(), 
+              int_list(1, 1), string_list("-", "+"), string_list("l_discount", "l_tax"), string_list("x", "y"),
+              string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "x", "y"),
+              string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "x", "y")
             ),
+            string_list(), string_list(), string_list(), 
+            string_list("l_extendedprice", "z"), string_list("*", "*"), string_list("x", "y"), string_list("z", "w"),
+            string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "z", "w"),
+          )
           string_list("l_returnflag", "l_linestatus"),
-          "avg",
-          "l_quantity"
+          string_list("sum", "sum", "sum", "sum", "avg", "avg", "avg", "count"),
+          string_list("l_quantity", "l_extendedprice", "z", "w", "l_quantity", "l_extendedprice", "l_discount", "l_quantity"),
+          string_list("sum_qty", "sum_base_price", "sum_disc_price", "sum_charge", "avg_qty", "avg_price", "avg_disc", "count_order")
         )
     );
 
@@ -376,8 +376,9 @@ group by
           string_list("l_orderkey", "y", "o_orderdate", "o_shippriority")
         ),
         string_list("l_orderkey", "o_orderkey", "o_shippriority"),
-        "sum"_,
-        "y"_
+        string_list("sum"),
+        string_list("y"),
+        string_list("revenue")
       )
     );
 
@@ -505,8 +506,9 @@ group by
           string_list("nation", "o_orderdate", "amount")
         ),
         string_list("nation", "o_year"),
-        "sum"_,
-        "sum_profit"_
+        string_list("sum"),
+        string_list("sum_profit"),
+        string_list("sum_profit")
       )
     );
 
