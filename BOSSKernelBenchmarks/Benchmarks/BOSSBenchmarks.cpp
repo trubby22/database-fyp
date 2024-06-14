@@ -441,12 +441,12 @@ auto& tpch_queries() {
 
 select
   nation,
-  o_year,
+  o_orderdate,
   sum(amount) as sum_profit
 from (
   select
     n_name as nation,
-    extract(year from o_orderdate) as o_year,
+    o_orderdate,
     l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
   from
     part,
@@ -462,11 +462,58 @@ from (
     and p_partkey = l_partkey
     and o_orderkey = l_orderkey
     and s_nationkey = n_nationkey
-    and p_name like '%[COLOR]%'
-  ) as profit
+  )
 group by
   nation,
   o_year
+
+  if(queries.empty()) {
+    queries.try_emplace(
+      "q9-tpch",
+      "aggregate"_(
+        "project"_(
+          "equi_join"_(
+            "equi_join"_(
+              "equi_join"_(
+                "equi_join"_(
+                  "equi_join"_(
+                    "SUPPLIER"_,
+                    "LINEITEM"_,
+                    string_list("s_suppkey"),
+                    string_list("l_suppkey")
+                  ),
+                  "PARTSUPP"_,
+                  string_list("l_suppkey", "l_partkey"),
+                  string_list("ps_suppkey", "ps_partkey")
+                ),
+                "PART"_,
+                string_list("l_partkey"),
+                string_list("p_partkey")
+              ),
+              "ORDERS"_,
+              string_list("l_orderkey"),
+              string_list("o_orderkey")
+            ),
+            "NATION"_,
+            string_list("s_nationkey"),
+            string_list("n_nationkey")
+          ),
+          string_list(), string_list(), string_list(),
+          string_list("1", "l_extendedprice", "ps_supplycost", "y"),
+          string_list("l_discount", "x", "l_quantity", "z"), 
+          string_list("-", "*", "*", "-"), 
+          string_list("x", "y", "z", "amount"),
+          string_list("n_name", "o_orderdate", "amount"),
+          string_list("nation", "o_orderdate", "amount")
+        ),
+        string_list("nation", "o_year"),
+        "sum"_,
+        "sum_profit"_
+      )
+    );
+  }
+
+  
 
   return queries;
 }
