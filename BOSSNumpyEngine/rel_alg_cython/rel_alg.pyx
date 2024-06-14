@@ -13,6 +13,7 @@ ctypedef char* string
 ctypedef dict[string, list[cnp.int_t[:]]] table_spans
 ctypedef dict[string, cnp.int_t[:]] table_column
 ctypedef cnp.int64_t DTYPE_t
+ctypedef int (*np_unary_op)(cnp.int_t[:])
 
 def say_hello_to(name):
     print(f"Hello {name}!")
@@ -93,62 +94,64 @@ def equi_join(table_spans table_1_in, table_spans table_2_in, list[string] key_c
     cdef table_column res = table_1_joined | table_2_joined
     return res
 
-# accepts and returns tables /w materialised columns
-def aggregate(table_spans table_in, list[string] key_col_names, list[string] reduction_func, list[string] reduction_col_name):
-    cdef table_column table = materialise_into_columns(table_in)
+# # accepts and returns tables /w materialised columns
+# def aggregate(table_spans table_in, list[string] key_col_names, string reduction_func, string reduction_col_name):
+#     cdef table_column table = materialise_into_columns(table_in)
 
-    cdef list[string] col_names = list(table.keys())
-    cdef list[string] key_cols = [table[col_name] for col_name in key_col_names]
+#     cdef list[string] col_names = list(table.keys())
+#     cdef list[string] key_cols = [table[col_name] for col_name in key_col_names]
+#     cdef cnp.int_t[:] sort_ixs = np.lexsort(key_cols)
+#     cdef table_column table_sorted = {col_name: table[col_name][sort_ixs] for col_name in col_names}
+#     cdef list[int] splits = []
+#     cdef int i = 0
+#     cdef int j = 0
+#     cdef bint same
+#     cdef string col_name
+#     while i < len(table_sorted[col_names[0]]):
+#         j = i + 1
+#         while j < len(table_sorted[col_names[0]]):
+#             same = True
+#             for k in range(len(key_col_names)):
+#                 col_name = key_col_names[k]
+#                 elem_i = table_sorted[col_name][i]
+#                 elem_j = table_sorted[col_name][j]
+#                 if elem_i != elem_j:
+#                     same = False
+#                     splits.append(j)
+#                     break
+#             if not same:
+#                 break
+#             j += 1
+#         i = j
+    
+#     cdef table_spans table_split_up = {
+#         col_name: [x for x in np.split(table_sorted[col_name], splits) if len(x) > 0] 
+#         for col_name in col_names
+#     }
+#     cdef list reduced_col = [reduction_functions[reduction_func](x) for x in table_split_up[reduction_col_name]]
+#     cdef table_column table_reduced = {reduction_col_name: np.array(reduced_col)}
+#     cdef table_column table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
+#     cdef table_column res = table_key | table_reduced
+#     # print(res)
+#     return res
+
+# accepts and returns tables /w materialised columns
+def aggregate_matrix(cnp.int_t[:, :] matrix, col_names, key_col_ixs_in, str reduction_func, int reduction_col_ix):
+    cdef cnp.int_t[:] key_col_ixs = np.array(key_col_ixs_in)
+    cdef cnp.int_t[:, :] key_cols = matrix.base[key_col_ixs, :]
     cdef cnp.int_t[:] sort_ixs = np.lexsort(key_cols)
-    cdef table_column table_sorted = {col_name: table[col_name][sort_ixs] for col_name in col_names}
-    cdef list[int] splits = []
+    cdef cnp.int_t[:, :] matrix_sorted = matrix.base[:, sort_ixs]
+    cdef cnp.int_t[:] split_ixs = np.empty(matrix.shape[1], dtype=np.int_)
+    cdef int num_splits = 0
     cdef int i = 0
     cdef int j = 0
+    cdef int num_rows = matrix_sorted.shape[1]
+    cdef cnp.int_t[:, :] matrix_key_view = matrix_sorted.base[key_col_ixs, :]
     cdef bint same
-    cdef string col_name
-    while i < len(table_sorted[col_names[0]]):
-        j = i + 1
-        while j < len(table_sorted[col_names[0]]):
-            same = True
-            for k in range(len(key_col_names)):
-                col_name = key_col_names[k]
-                elem_i = table_sorted[col_name][i]
-                elem_j = table_sorted[col_name][j]
-                if elem_i != elem_j:
-                    same = False
-                    splits.append(j)
-                    break
-            if not same:
-                break
-            j += 1
-        i = j
-    
-    cdef table_spans table_split_up = {
-        col_name: [x for x in np.split(table_sorted[col_name], splits) if len(x) > 0] 
-        for col_name in col_names
-    }
-    cdef list reduced_col = [reduction_functions[reduction_func](x) for x in table_split_up[reduction_col_name]]
-    cdef table_column table_reduced = {reduction_col_name: np.array(reduced_col)}
-    cdef table_column table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
-    cdef table_column res = table_key | table_reduced
-    # print(res)
-    return res
-
-# accepts and returns tables /w materialised columns
-def aggregate_matrix(matrix, col_names, key_col_ixs, reduction_func, reduction_col_ix):
-    key_cols = matrix[:, key_col_ixs]
-    sort_ixs = np.lexsort(key_cols)
-    matrix_sorted = matrix[sort_ixs, :]
-    split_ixs = np.empty(matrix.shape[0], dtype=np.int32)
-    num_splits = 0
-    i = 0
-    j = 0
-    num_rows = matrix_sorted.shape[0]
-    matrix_key_view = matrix_sorted[:, key_col_ixs]
     while i < num_rows:
         j = i + 1
         while j < num_rows:
-            same = np.array_equal(matrix_key_view[i], matrix_key_view[j])
+            same = np.array_equal(matrix_key_view[:, i], matrix_key_view[:, j])
             if not same:
                 split_ixs[num_splits] = j
                 num_splits += 1
@@ -156,17 +159,18 @@ def aggregate_matrix(matrix, col_names, key_col_ixs, reduction_func, reduction_c
             j += 1
         i = j
     
-    splits = np.split(matrix, split_ixs[ : num_splits], axis=0)
-    f = reduction_functions[reduction_func]
-    matrix_reduced = np.empty((num_splits, len(key_col_ixs) + 1), dtype=np.int32)
-    for i in range(num_splits):
-        matrix_reduced[i, np.arange(len(key_col_ixs))] = splits[i][0, key_col_ixs]
-        matrix_reduced[i, len(key_col_ixs) + 1] = f(splits[i][:, reduction_col_ix])
+    cdef list[cnp.int_t[:, :]] splits = np.split(matrix_sorted, split_ixs[ : num_splits], axis=1)
+    cdef np_unary_op f = reduction_functions(reduction_func)
+    cdef cnp.int_t[:, :] matrix_reduced = np.empty((len(key_col_ixs) + 1, num_splits + 1), dtype=np.int_)
+    cdef cnp.int_t[:] key_col_size_ixs = np.arange(len(key_col_ixs))
+    cdef int key_col_ixs_size = len(key_col_ixs)
+    for i in range(num_splits + 1):
+        matrix_reduced.base[key_col_size_ixs, i] = splits[i][key_col_ixs, 0]
+        matrix_reduced.base[key_col_ixs_size, i] = f(splits[i][reduction_col_ix, :])
     
     reduction_col_arr = np.array([col_names[reduction_col_ix]])
     reduced_col_names = np.concatenate((col_names[key_col_ixs], reduction_col_arr))
-    print(matrix_reduced)
-    return (matrix_reduced, reduced_col_names)
+    return matrix_reduced.base
 
 cdef table_column materialise_into_columns(table_spans table):
     return {col_name: np.concatenate([table[col_name]]).ravel() for col_name in table.keys()}
@@ -182,14 +186,23 @@ cdef split_into_spans(table, span_size):
     splits = np.array([(i + 1) * span_size for i in range(num_splits)])
     return {col_name: [x for x in np.split(table[col_name], splits) if len(x) > 0] for col_name in col_names}
 
-reduction_functions = {
-    'sum': lambda x: np.sum(x),
-    'prod': lambda x: np.prod(x),
-    'count': lambda x: x.size,
-    'avg': lambda x: np.mean(x),
-    'max': lambda x: np.max(x),
-    'min': lambda x: np.min(x),
-}
+cdef np_unary_op reduction_functions(str func_name):
+    if func_name == 'sum':
+        return np_sum
+    else:
+        raise Exception()
+
+cdef int np_sum(cnp.int_t[:] x):
+    return np.sum(x)
+
+# reduction_functions = {
+#     'sum': lambda x: np.sum(x),
+#     'prod': lambda x: np.prod(x),
+#     'count': lambda x: x.size,
+#     'avg': lambda x: np.mean(x),
+#     'max': lambda x: np.max(x),
+#     'min': lambda x: np.min(x),
+# }
 
 boolean_op = {
     '==': lambda x, y: np.equal(x, y),
@@ -199,77 +212,4 @@ boolean_op = {
     '>': lambda x, y: np.greater(x, y),
     '>=': lambda x, y: np.greater_equal(x, y),
 }
-
-# unit tests
-if __name__ == '__main__':
-    table_1 = {
-        'col1': np.array([1, 2, 3]),
-        'col2': np.array([0.8, 3.14, 2.42]),
-        'col3': np.array([0, 0, 1]),
-    }
-    project_res = project(table_1, ['col2', 'col3'])
-    project_expected = {'col2': np.array([0.8 , 3.14, 2.42]), 'col3': np.array([0, 0, 1])}
-    print('project_res')
-    print(project_res)
-    print('project_expected')
-    print(project_expected)
-    print()
-
-    select_res = select(table_1, ['col3', 'col1'], ['==', '<'], [0, 1.5])
-    select_expected = {'col1': np.array([1]), 'col2': np.array([0.8]), 'col3': np.array([0])}
-    print('select_res')
-    print(select_res)
-    print('select_expected')
-    print(select_expected)
-    print()
-
-    table_2 = {
-        'col1': np.array([10, 5, 1]),
-        'col2': np.array([3, 3, 4]),
-        'col3': np.array([6, 7, 8]),
-    }
-    table_3 = {
-        'col1': np.array([10, 5, 2]),
-        'col2': np.array([5, 3, 4]),
-        'col4': np.array([9, 2, 1]),
-    }
-    join_res = equi_join(table_2, table_3, ['col1', 'col2'], ['col1', 'col2'])
-    join_expected = {'col1': np.array([5]), 'col2': np.array([3]), 'col3': np.array([7]), 'col4': np.array([2])}
-    print('join_res')
-    print(join_res)
-    print('join_expected')
-    print(join_expected)
-    print()
-
-    table_4 = {
-        'col1': np.array([0, 1, 0, 1, 0, 1, 0, 1]),
-        'col2': np.array([0, 0, 1, 1, 0, 0, 1, 1]),
-        'col3': np.array([1, 2, 3, 4, 1, 2, 3, 4]),
-    }
-    aggregate_res = aggregate(table_4, ['col1', 'col2'], 'sum', 'col3')
-    aggregate_expected = {'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1]), 'col3': np.array([2, 4, 6, 8])}
-    print('aggregate_res')
-    print(aggregate_res)
-    print('aggregate_expected')
-    print(aggregate_expected)
-    print()
-
-    matrix = np.array([
-        [0, 1, 0, 1, 0, 1, 0, 1],
-        [0, 0, 1, 1, 0, 0, 1, 1],
-        [1, 2, 3, 4, 1, 2, 3, 4],
-    ]).T
-    col_names = np.array(['col1', 'col2', 'col3'])
-    key_col_ixs = np.array([0, 1])
-    aggregate_matrix_res = aggregate_matrix(matrix, col_names, key_col_ixs, 'sum', 2)
-    aggregate_matrix_expected = np.array([
-        [0, 1, 0, 1],
-        [0, 0, 1, 1],
-        [2, 4, 6, 8],
-    ]).T
-    print('aggregate_matrix_res')
-    print(aggregate_matrix_res)
-    print('aggregate_matrix_expected')
-    print(aggregate_matrix_expected)
-    print()
     
