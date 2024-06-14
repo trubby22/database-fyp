@@ -258,7 +258,7 @@ void initStorageEngine_TPCH() {
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
-        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_0.1MB/" + filename + ".tbl";
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_1MB/" + filename + ".tbl";
     checkForErrors(evalStorage("Load"_(table, path)));
   }
 }
@@ -269,12 +269,12 @@ auto& tpch_queries() {
   static map<string, ComplexExpression> queries;
   if(queries.empty()) {
 
-    queries.try_emplace(
-      "test-arrow-storage",
-        "foo"_("CUSTOMER"_)
-    );
 
     if (false) {
+      queries.try_emplace(
+        "test-arrow-storage",
+          "foo"_("LINEITEM"_)
+      );
       return queries;
     }
 
@@ -327,6 +327,10 @@ auto& tpch_queries() {
         )
     );
 
+    if (false) {
+      return queries;
+    }
+
 // we skip order by
 // we substitute:
 // BUILDING -> 0
@@ -372,18 +376,19 @@ auto& tpch_queries() {
                 string_list("o_orderkey"),
                 string_list("l_orderkey")
               ),
-              string_list("o_orderdate", "l_shipdate", "c_mktsegent"),
+              string_list("o_orderdate", "l_shipdate", "c_mktsegment"),
               string_list("<", ">", "=="),
               int_list(9204, 9204, 0)
             ),
             string_list(), string_list(), string_list(), 
             int_list(1), string_list("-"), string_list("l_discount"), string_list("x"),
-            string_list("l_orderkey", "l_extendedprice", "x", "o_orderdate", "o_shippriority"),
-            string_list("l_orderkey", "l_extendedprice", "x", "o_orderdate", "o_shippriority")
+            string_list("l_orderkey", "l_extendedprice", "x", "o_orderdate", "o_shippriority", "o_orderkey"),
+            string_list("l_orderkey", "l_extendedprice", "x", "o_orderdate", "o_shippriority", "o_orderkey")
           ),
           string_list(), string_list(), string_list(),
           string_list("l_extendedprice"), string_list("*"), string_list("x"), string_list("y"),
-          string_list("l_orderkey", "y", "o_orderdate", "o_shippriority")
+          string_list("l_orderkey", "y", "o_orderdate", "o_shippriority", "o_orderkey"),
+          string_list("l_orderkey", "y", "o_orderdate", "o_shippriority", "o_orderkey")
         ),
         string_list("l_orderkey", "o_orderkey", "o_shippriority"),
         string_list("sum"),
@@ -461,49 +466,58 @@ auto& tpch_queries() {
 //   )
 // group by
 //   nation,
-//   o_year
+//   o_orderdate
   
     queries.try_emplace(
       "q9-tpch",
       "aggregate"_(
         "project"_(
-          "equi_join"_(
+          "project"_(
             "equi_join"_(
               "equi_join"_(
                 "equi_join"_(
                   "equi_join"_(
-                    "SUPPLIER"_,
-                    "LINEITEM"_,
-                    string_list("s_suppkey"),
-                    string_list("l_suppkey")
+                    "equi_join"_(
+                      "SUPPLIER"_,
+                      "LINEITEM"_,
+                      string_list("s_suppkey"),
+                      string_list("l_suppkey")
+                    ),
+                    "PARTSUPP"_,
+                    string_list("l_suppkey", "l_partkey"),
+                    string_list("ps_suppkey", "ps_partkey")
                   ),
-                  "PARTSUPP"_,
-                  string_list("l_suppkey", "l_partkey"),
-                  string_list("ps_suppkey", "ps_partkey")
+                  "PART"_,
+                  string_list("l_partkey"),
+                  string_list("p_partkey")
                 ),
-                "PART"_,
-                string_list("l_partkey"),
-                string_list("p_partkey")
+                "ORDERS"_,
+                string_list("l_orderkey"),
+                string_list("o_orderkey")
               ),
-              "ORDERS"_,
-              string_list("l_orderkey"),
-              string_list("o_orderkey")
+              "NATION"_,
+              string_list("s_nationkey"),
+              string_list("n_nationkey")
             ),
-            "NATION"_,
-            string_list("s_nationkey"),
-            string_list("n_nationkey")
+            string_list(), string_list(), string_list(),
+            int_list(1),
+            string_list("-"),
+            string_list("l_discount"),
+            string_list("x"),
+            string_list("l_extendedprice", "ps_supplycost", "x", "l_quantity", "n_name", "o_orderdate"),
+            string_list("l_extendedprice", "ps_supplycost", "x", "l_quantity", "n_name", "o_orderdate")
           ),
           string_list(), string_list(), string_list(),
-          string_list("1", "l_extendedprice", "ps_supplycost", "y"),
-          string_list("-", "*", "*", "-"), 
-          string_list("l_discount", "x", "l_quantity", "z"), 
-          string_list("x", "y", "z", "amount"),
+          string_list("l_extendedprice", "ps_supplycost", "y"),
+          string_list("*", "*", "-"), 
+          string_list("x", "l_quantity", "z"), 
+          string_list("y", "z", "amount"),
           string_list("n_name", "o_orderdate", "amount"),
           string_list("nation", "o_orderdate", "amount")
         ),
-        string_list("nation", "o_year"),
+        string_list("nation", "o_orderdate"),
         string_list("sum"),
-        string_list("sum_profit"),
+        string_list("amount"),
         string_list("sum_profit")
       )
     );
