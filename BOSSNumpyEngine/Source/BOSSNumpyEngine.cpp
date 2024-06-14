@@ -1288,13 +1288,18 @@ void Engine::init_python_and_numpy() {
   global_dict = PyDict_New();
   local_dict = PyDict_New();
   PyRun_String(R"(
+import numpy as np
 import sys
 sys.path.append("/mnt/ubuntu-image-repos/BOSSNumpyEngine/rel_alg_cython_untyped")
-import numpy as np
+#if 'rel_alg_cython_untyped' in sys.modules:
+#  del sys.modules['rel_alg_cython_untyped']
+#rel_alg_cython_untyped = importlib.import_module('rel_alg_cython_untyped')
+#importlib.reload(rel_alg_cython_untyped)
   )", Py_file_input, global_dict, local_dict);
 
   main_module = PyImport_AddModule("__main__");
   rel_alg = PyImport_ImportModule("rel_alg_cython_untyped");
+  rel_alg = PyImport_ReloadModule(rel_alg);
   if (rel_alg == NULL) {
     PyErr_Print();
     Py_Finalize();

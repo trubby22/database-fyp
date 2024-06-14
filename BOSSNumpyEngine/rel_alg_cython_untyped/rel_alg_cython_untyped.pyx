@@ -9,7 +9,7 @@ import math
 cnp.import_array()
 
 def say_hello_to(name):
-    print(f"Hello {name}!")
+    maybe_log_one(f"Hello {name}!")
 
 def project(
     table, 
@@ -17,6 +17,7 @@ def project(
     binary_col_names_input_1, binary_ops, binary_col_names_input_2, binary_col_names_output,
     final_col_names, final_col_renames
     ):
+    maybe_log_one('project start')
     table = materialise_into_columns(table)
 
     for i in range(len(unary_ops)):
@@ -37,12 +38,15 @@ def project(
         res = arithmetic_binary_op[op](npy_arr_1, npy_arr_2)
         table[res_name] = res
 
-    return {final_col_renames[i]: table[final_col_names[i]] for i in range(len(final_col_names))}
-
-    # return {col_name : table[col_name] for col_name in col_names}
+    res = {final_col_renames[i]: table[final_col_names[i]] for i in range(len(final_col_names))}
+    maybe_log_one(res)
+    maybe_log_one('project end')
+    maybe_log_one()
+    return res
 
 # works on materialised columns
 def select(table, key_col_names, boolean_ops, vals):
+    maybe_log_one('select start')
     table = materialise_into_columns(table)
 
     col_names = list(table.keys())
@@ -53,17 +57,15 @@ def select(table, key_col_names, boolean_ops, vals):
         val = vals[i]
         npy_arr = table[col_name]
         bools &= boolean_op[op](npy_arr, val)
-    for col_name in col_names:
-        print('col_name')
-        print(col_name)
-        print('table[col_name].shape')
-        print(table[col_name].shape)
-        print('bools.shape')
-        print(bools.shape)
-    return {col_name: table[col_name][ : len(bools)][bools] for col_name in col_names}
+    res = {col_name: table[col_name][ : len(bools)][bools] for col_name in col_names}
+    maybe_log_one(res)
+    maybe_log_one('select end')
+    maybe_log_one()
+    return res
 
 # accepts and returns tables /w materialised columns
 def equi_join(table_1, table_2, key_col_names_1, key_col_names_2):
+    maybe_log_one('equi_join start')
     table_1 = materialise_into_columns(table_1)
     table_2 = materialise_into_columns(table_2)
 
@@ -108,10 +110,15 @@ def equi_join(table_1, table_2, key_col_names_1, key_col_names_2):
     res_ix_2_npy = np.array(res_ix_2)
     table_1_joined = {col_name: table_1_sorted[col_name][res_ix_1_npy] for col_name in col_names_1}
     table_2_joined = {col_name: table_2_sorted[col_name][res_ix_2_npy] for col_name in col_names_2}
-    return table_1_joined | table_2_joined
+    res = table_1_joined | table_2_joined
+    maybe_log_one(res)
+    maybe_log_one('equi_join end')
+    maybe_log_one()
+    return res
 
 # accepts and returns tables /w materialised columns
 def aggregate(table, key_col_names, reduction_funcs, input_reduction_col_names, output_reduction_col_names):
+    maybe_log_one('aggregate start')
     table = materialise_into_columns(table)
 
     col_names = list(table.keys())
@@ -151,6 +158,9 @@ def aggregate(table, key_col_names, reduction_funcs, input_reduction_col_names, 
         table_reduced[output_reduction_col_name] = np.array(reduced_col)
     table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
     res = table_key | table_reduced
+    maybe_log_one(res)
+    maybe_log_one('aggregate end')
+    maybe_log_one()
     return res
 
 def materialise_into_columns(table):
@@ -176,6 +186,10 @@ def is_numeric(s):
         pass
     
     return False
+
+def maybe_log_one(x=None):
+    if False:
+        print(x)
 
 reduction_functions = {
     'sum': lambda x: np.sum(x),
