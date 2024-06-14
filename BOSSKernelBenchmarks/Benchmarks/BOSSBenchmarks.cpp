@@ -132,7 +132,7 @@ ComplexExpression string_list(const Args&... args) {
 
 void init_libraries() {
   librariesToTest.emplace_back("/mnt/ubuntu-image-repos/BOSSArrowStorageEngine/build/libBOSSArrowStorage.so");
-  // librariesToTest.emplace_back("/mnt/ubuntu-image-repos/BOSSNumpyEngine/build/libBOSSNumpyEngine.so");
+  librariesToTest.emplace_back("/mnt/ubuntu-image-repos/BOSSNumpyEngine/build/libBOSSNumpyEngine.so");
 }
 
 static void release_boss_engines() {
@@ -274,7 +274,11 @@ auto& tpch_queries() {
         "foo"_("CUSTOMER"_)
     );
 
-    return queries;
+    if (false) {
+      return queries;
+    }
+
+// we skip order by
 
 // select
 //   l_returnflag,
@@ -314,13 +318,19 @@ auto& tpch_queries() {
             string_list(), string_list(), string_list(), 
             string_list("l_extendedprice", "z"), string_list("*", "*"), string_list("x", "y"), string_list("z", "w"),
             string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "z", "w"),
-          )
+            string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "z", "w")
+          ),
           string_list("l_returnflag", "l_linestatus"),
           string_list("sum", "sum", "sum", "sum", "avg", "avg", "avg", "count"),
           string_list("l_quantity", "l_extendedprice", "z", "w", "l_quantity", "l_extendedprice", "l_discount", "l_quantity"),
           string_list("sum_qty", "sum_base_price", "sum_disc_price", "sum_charge", "avg_qty", "avg_price", "avg_disc", "count_order")
         )
     );
+
+// we skip order by
+// we substitute:
+// BUILDING -> 0
+// 1995-03-15 -> 9204
 
 // select
 //   l_orderkey,
@@ -382,30 +392,10 @@ auto& tpch_queries() {
       )
     );
 
-    // queries.try_emplace(
-    //   "q3-tpch-old",
-    //   "aggregate"_(
-    //       "project"_(
-    //           "equi_join"_(
-    //               "project"_(
-    //                   "equi_join"_(
-    //                       "project"_("CUSTOMER"_,
-    //                                   string_list("c_custkey", "c_mktsegment")),
-    //                       "project"_("ORDERS"_,
-    //                                   string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-    //                       string_list("c_custkey"),
-    //                       string_list("o_custkey")),
-    //                   string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-    //               "project"_(
-    //                   "LINEITEM"_,
-    //                   string_list("l_orderkey", "l_discount", "l_extendedprice")),
-    //               string_list("o_orderkey"),
-    //               string_list("l_orderkey")),
-    //           string_list("l_extendedprice", "l_orderkey", "o_orderdate", "o_shippriority")),
-    //       string_list("l_orderkey", "o_orderdate", "o_shippriority"),
-    //       "sum"_,
-    //       "l_extendedprice"_)
-    // );
+// we substitute:
+// BUILDING -> 0
+// 1994-01-01 -> 8766
+// 1995-01-01 -> 9131
 
 // select
 //   sum(l_extendedprice*l_discount) as revenue
@@ -418,7 +408,6 @@ auto& tpch_queries() {
 //   and l_discount < 0.07
 //   and l_quantity < 24;
 
-  
     queries.try_emplace(
       "q6-tpch",
       "project"_(
@@ -438,6 +427,13 @@ auto& tpch_queries() {
         string_list("revenue"), string_list("revenue") 
       )
     );
+
+// we skip order by
+// we skip string pattern matching
+// we skip extracting year from date
+// we substitute:
+// BUILDING -> 0
+// 1995-03-15 -> 9204
 
 // select
 //   nation,
@@ -512,16 +508,21 @@ auto& tpch_queries() {
       )
     );
 
-  // select
-  //   sum(l_extendedprice) / 7.0 as avg_yearly
-  // from
-  //   lineitem,
-  //   part
-  // where
-  //   p_partkey = l_partkey
-  //   and l_quantity < 5.1
-  //   and p_brand = 0
-  //   and p_container = 0
+// we substitute:
+// a sub-query that evaluates to a scalar value -> 5.1
+// Brand#23 -> 0
+// MED BOX -> 0
+
+// select
+//   sum(l_extendedprice) / 7.0 as avg_yearly
+// from
+//   lineitem,
+//   part
+// where
+//   p_partkey = l_partkey
+//   and l_quantity < 5.1
+//   and p_brand = 0
+//   and p_container = 0
   
   queries.try_emplace(
     "q17-tpch",
@@ -897,12 +898,14 @@ void benchmark_loop_tpch(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
-      cout << shallowCopy(query_expr) << endl;
-      cout << endl;
-      cout << "res" << endl;
-      auto res = eval(shallowCopy(query_expr));
-      cout << res << endl;
-      cout << endl;
+      if (true) {
+        cout << shallowCopy(query_expr) << endl;
+        cout << endl;
+        cout << "res" << endl;
+        auto res = eval(shallowCopy(query_expr));
+        cout << res << endl;
+        cout << endl;
+      }
 
       if (false) {
         const chrono::seconds time_warmup = 3s;
