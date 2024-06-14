@@ -258,7 +258,7 @@ void initStorageEngine_TPCH() {
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
-        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_100MB/" + filename + ".tbl";
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_1000MB/" + filename + ".tbl";
     checkForErrors(evalStorage("Load"_(table, path)));
   }
 }
