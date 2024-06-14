@@ -997,7 +997,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               if (PyCallable_Check(py_operator)) {
                 // borrows references to args
                 // returns new reference
-                result = PyObject_CallFunction(py_operator, "OO", table_pydict, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+                result = PyObject_CallFunction(py_operator, "OOOOOOOO", table_pydict, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
                 if (result == NULL) {
                   PyErr_Print();
                   throw runtime_error("error");
@@ -1131,16 +1131,13 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               // head = project
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
-              auto key_col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
-              auto reduction_func_expr = get<Symbol>(*(top_it + 2));
-              auto reduction_col_name_expr = get<Symbol>(*(top_it + 3));
+              PyObject *arg1 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1)));
+              PyObject *arg2 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 2)));
+              PyObject *arg3 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 3)));
+              PyObject *arg4 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 4)));
+              PyObject *arg5 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 5)));
 
               PyObject *table_pydict = python_expression_to_pyobject(evaluate(move(expr)));
-              PyObject *key_col_names = single_span_list_to_pylist(move(key_col_names_expr));
-              string reduction_func_str = reduction_func_expr.getName();
-              string reduction_col_name_str = reduction_col_name_expr.getName();
-              PyObject *reduction_func = primitive_to_pyobject<string>(move(reduction_func_str));
-              PyObject *reduction_func_col_name = primitive_to_pyobject<string>(move(reduction_col_name_str));
 
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "aggregate");
               if (py_operator == NULL) {
@@ -1153,7 +1150,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 // borrows references to args
                 // returns new reference
                 result = PyObject_CallFunction(
-                  py_operator, "OOOO", table_pydict, key_col_names, reduction_func, reduction_func_col_name);
+                  py_operator, "OOOOOO", table_pydict, arg1, arg2, arg3, arg4, arg5);
                 if (result == NULL) {
                   PyErr_Print();
                   throw runtime_error("error");

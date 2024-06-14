@@ -165,7 +165,6 @@ def is_numeric(s):
     
     return False
 
-
 reduction_functions = {
     'sum': lambda x: np.sum(x),
     'prod': lambda x: np.prod(x),
