@@ -44,11 +44,11 @@ if __name__ == '__main__':
     # print(join_expected)
     # print()
 
-    # table_4 = {
-    #     'col1': np.array([0, 1, 0, 1, 0, 1, 0, 1]),
-    #     'col2': np.array([0, 0, 1, 1, 0, 0, 1, 1]),
-    #     'col3': np.array([1, 2, 3, 4, 1, 2, 3, 4]),
-    # }
+    table_4 = {
+        'col1': [np.array([0, 1, 0, 1, 0, 1, 0, 1])],
+        'col2': [np.array([0, 0, 1, 1, 0, 0, 1, 1])],
+        'col3': [np.array([1, 2, 3, 4, 1, 2, 3, 4])],
+    }
     # aggregate_res = aggregate(table_4, ['col1', 'col2'], 'sum', 'col3')
     # aggregate_expected = {'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1]), 'col3': np.array([2, 4, 6, 8])}
     # print('aggregate_res')
@@ -57,14 +57,17 @@ if __name__ == '__main__':
     # print(aggregate_expected)
     # print()
     
-    matrix = np.array([
-        [0, 1, 0, 1, 0, 1, 0, 1],
-        [0, 0, 1, 1, 0, 0, 1, 1],
-        [1, 2, 3, 4, 1, 2, 3, 4],
-    ])
-    col_names = ['col1', 'col2', 'col3']
+    # matrix = np.array([
+    #     [0, 1, 0, 1, 0, 1, 0, 1],
+    #     [0, 0, 1, 1, 0, 0, 1, 1],
+    #     [1, 2, 3, 4, 1, 2, 3, 4],
+    # ])
+    matrix = materialise_spans_into_matrix(table_4)
+    # col_names = ['col1', 'col2', 'col3']
     key_col_ixs = [0, 1]
-    aggregate_matrix_res = aggregate_matrix(matrix, col_names, key_col_ixs, 'sum', 2)
+    aggregate_matrix_res = aggregate_matrix(matrix, 
+    # col_names, 
+    key_col_ixs, 'sum', 2)
     aggregate_matrix_expected = np.array([
         [0, 1, 0, 1],
         [0, 0, 1, 1],
@@ -74,8 +77,8 @@ if __name__ == '__main__':
     # print(aggregate_col_names_res)
     print('aggregate_matrix_res')
     print(aggregate_matrix_res)
-    print('aggregate_matrix_col_names_expected')
-    print(col_names)
+    # print('aggregate_matrix_col_names_expected')
+    # print(col_names)
     print('aggregate_matrix_expected')
     print(aggregate_matrix_expected)
     print()

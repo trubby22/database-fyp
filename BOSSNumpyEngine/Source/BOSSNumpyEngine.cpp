@@ -871,6 +871,33 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             //   // return PythonExpressionSystem::ComplexExpression("python"_, {}, {}, {});
             // }
 
+            if (top_head == "table_spans_to_matrix"_) {
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto table = get<PythonExpressionSystem::ComplexExpression>(*top_it);
+
+              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "materialise_spans_into_matrix");
+              if (py_operator == NULL) {
+                PyErr_Print();
+                throw runtime_error("error");
+              }
+
+              PyObject* result;
+              if (PyCallable_Check(py_operator)) {
+                // borrows references to args
+                // returns new reference
+                result = PyObject_CallFunction(py_operator, "O", table);
+                if (result == NULL) {
+                  PyErr_Print();
+                  throw runtime_error("error");
+                }
+              } else {
+                PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
+                PyErr_Print();
+                throw runtime_error("py_operator is not a callable object");
+              }
+              return result;
+            }
+
             if (top_head == "DictionaryEncodedList"_) {
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto list = get<PythonExpressionSystem::ComplexExpression>(*top_it);
@@ -977,6 +1004,44 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 // returns new reference
                 result = PyObject_CallFunction(
                   py_operator, "OOOO", table_pydict_1, table_pydict_2, key_col_names_1, key_col_names_2);
+                if (result == NULL) {
+                  PyErr_Print();
+                  throw runtime_error("error");
+                }
+              } else {
+                PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
+                PyErr_Print();
+                throw runtime_error("py_operator is not a callable object");
+              }
+
+              return result;
+            }
+            
+            // def aggregate_matrix(cnp.int_t[:, :] matrix, list[int] key_col_ixs_in, str reduction_func, int reduction_col_ix)
+            if (top_head == "aggregate_matrix"_) {
+              // head = project
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              PyObject *matrix = get<PyObject *>(*top_it);
+              auto key_col_ixs_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
+              auto reduction_func_expr = get<Symbol>(*(top_it + 2));
+              auto reduction_col_ix = get<int>(*(top_it + 3));
+
+              PyObject *key_col_ixs = single_span_list_to_pylist(move(key_col_ixs_expr));
+              string reduction_func_str = reduction_func_expr.getName();
+              PyObject *reduction_func = primitive_to_pyobject<string>(move(reduction_func_str));
+
+              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "aggregate");
+              if (py_operator == NULL) {
+                PyErr_Print();
+                throw runtime_error("error");
+              }
+
+              PyObject* result;
+              if (PyCallable_Check(py_operator)) {
+                // borrows references to args
+                // returns new reference
+                result = PyObject_CallFunction(
+                  py_operator, "OOOi", matrix, key_col_ixs, reduction_func, reduction_col_ix);
                 if (result == NULL) {
                   PyErr_Print();
                   throw runtime_error("error");
@@ -1164,7 +1229,7 @@ import numpy as np
   )", Py_file_input, global_dict, local_dict);
 
   main_module = PyImport_AddModule("__main__");
-  rel_alg = PyImport_ImportModule("rel_alg");
+  rel_alg = PyImport_ImportModule("rel_alg_cython");
   if (rel_alg == NULL) {
     PyErr_Print();
     Py_Finalize();
