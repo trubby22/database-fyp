@@ -132,7 +132,7 @@ ComplexExpression string_list(const Args&... args) {
 
 void init_libraries() {
   librariesToTest.emplace_back("/mnt/ubuntu-image-repos/BOSSArrowStorageEngine/build/libBOSSArrowStorage.so");
-  librariesToTest.emplace_back("/mnt/ubuntu-image-repos/BOSSNumpyEngine/build/libBOSSNumpyEngine.so");
+  // librariesToTest.emplace_back("/mnt/ubuntu-image-repos/BOSSNumpyEngine/build/libBOSSNumpyEngine.so");
 }
 
 static void release_boss_engines() {
@@ -216,8 +216,11 @@ void init_storage_engine() {
 
 void initStorageEngine_TPCH() {
 
+
   auto evalStorage = getEvaluateStorageLambda();
   auto checkForErrors = getCheckForErrorsLambda();
+
+  checkForErrors(evalStorage("Set"_("LoadToMemoryMappedFiles"_, false)));
 
   checkForErrors(evalStorage("CreateTable"_(
       "LINEITEM"_, "l_orderkey"_, "l_partkey"_, "l_suppkey"_, "l_linenumber"_, "l_quantity"_,
@@ -255,7 +258,7 @@ void initStorageEngine_TPCH() {
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
-        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_10MB/" + filename + ".tbl";
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_0.1MB/" + filename + ".tbl";
     checkForErrors(evalStorage("Load"_(table, path)));
   }
 }
@@ -264,6 +267,8 @@ void initStorageEngine_TPCH() {
 
 auto& tpch_queries() {
   static map<string, ComplexExpression> queries;
+
+  
 
 // select
 //   l_orderkey,
@@ -299,53 +304,170 @@ auto& tpch_queries() {
 //   string dictionary
 // ]
 
-  if(queries.empty()) {
+// if(queries.empty()) {
+//     queries.try_emplace(
+//       "q3-tpch-join-only",
+//         "split_into_spans"_("materialise_into_columns"_("CUSTOMER"_))
+//     );
+
+  // if(queries.empty()) {
+  //   queries.try_emplace(
+  //     "q3-tpch-join-only",
+  //       "split_into_spans"_("project"_(
+  //           "equi_join"_(
+  //               "project"_(
+  //                   "equi_join"_(
+  //                       "project"_("materialise_into_columns"_("CUSTOMER"_),
+  //                                   string_list("c_custkey")),
+  //                       "project"_("materialise_into_columns"_("ORDERS"_),
+  //                                   string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
+  //                       string_list("c_custkey"),
+  //                       string_list("o_custkey")),
+  //                   string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
+  //               "project"_(
+  //                   "materialise_into_columns"_("LINEITEM"_),
+  //                   string_list("l_orderkey")),
+  //               string_list("o_orderkey"),
+  //               string_list("l_orderkey")),
+  //           string_list("l_orderkey", "o_orderdate", "o_shippriority")))
+  //   );
+
+    if(queries.empty()) {
     queries.try_emplace(
       "q3-tpch-join-only",
-        "project"_(
-            "equi_join"_(
-                "project"_(
-                    "equi_join"_(
-                        "project"_("CUSTOMER"_,
-                                    string_list("c_custkey")),
-                        "project"_("ORDERS"_,
-                                    string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-                        string_list("c_custkey"),
-                        string_list("o_custkey")),
-                    string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-                "project"_(
-                    "LINEITEM"_,
-                    string_list("l_orderkey")),
-                string_list("o_orderkey"),
-                string_list("l_orderkey")),
-            string_list("l_orderkey", "o_orderdate", "o_shippriority"))
+        "foo"_("LINEITEM"_)
     );
 
-    // queries.try_emplace(
-    //   "q3-tpch",
-    //   "aggregate"_(
-    //       "project"_(
-    //           "equi_join"_(
-    //               "project"_(
-    //                   "equi_join"_(
-    //                       "project"_("CUSTOMER"_,
-    //                                   string_list("c_custkey", "c_mktsegment")),
-    //                       "project"_("ORDERS"_,
-    //                                   string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-    //                       string_list("c_custkey"),
-    //                       string_list("o_custkey")),
-    //                   string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-    //               "project"_(
-    //                   "LINEITEM"_,
-    //                   string_list("l_orderkey", "l_discount", "l_extendedprice")),
-    //               string_list("o_orderkey"),
-    //               string_list("l_orderkey")),
-    //           string_list("l_extendedprice", "l_orderkey", "o_orderdate", "o_shippriority")),
-    //       string_list("l_orderkey", "o_orderdate", "o_shippriority"),
-    //       "sum"_,
-    //       "l_extendedprice"_)
-    // );
+// select
+//   l_returnflag,
+//   l_linestatus,
+//   avg(l_quantity)
+// from
+//   lineitem
+// where
+//   l_shipdate <= 10558
+// group by
+//   l_returnflag,
+//   l_linestatus
+
+//     if(queries.empty()) {
+//     queries.try_emplace(
+//       "q1-tpch",
+//         "aggregate"_(
+//             "select"_(
+//               "LINEITEM"_,
+//               string_list("l_shipdate"),
+//               string_list("<="),
+//               int_list(10558)
+//             ),
+//           string_list("l_returnflag", "l_linestatus"),
+//           "avg",
+//           "l_quantity"
+//         )
+//     );
+
+//     if(queries.empty()) {
+//     queries.try_emplace(
+//       "q3-tpch-join-only",
+//         "project"_(
+//             "equi_join"_(
+//                 "project"_(
+//                     "equi_join"_(
+//                         "project"_("CUSTOMER"_,
+//                                     string_list("c_custkey")),
+//                         "project"_("ORDERS"_,
+//                                     string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
+//                         string_list("c_custkey"),
+//                         string_list("o_custkey")),
+//                     string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
+//                 "project"_(
+//                     "LINEITEM"_,
+//                     string_list("l_orderkey")),
+//                 string_list("o_orderkey"),
+//                 string_list("l_orderkey")),
+//             string_list("l_orderkey", "o_orderdate", "o_shippriority"))
+//     );
+
+    queries.try_emplace(
+      "q3-tpch",
+      "aggregate"_(
+          "project"_(
+              "equi_join"_(
+                  "project"_(
+                      "equi_join"_(
+                          "project"_("CUSTOMER"_,
+                                      string_list("c_custkey", "c_mktsegment")),
+                          "project"_("ORDERS"_,
+                                      string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
+                          string_list("c_custkey"),
+                          string_list("o_custkey")),
+                      string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
+                  "project"_(
+                      "LINEITEM"_,
+                      string_list("l_orderkey", "l_discount", "l_extendedprice")),
+                  string_list("o_orderkey"),
+                  string_list("l_orderkey")),
+              string_list("l_extendedprice", "l_orderkey", "o_orderdate", "o_shippriority")),
+          string_list("l_orderkey", "o_orderdate", "o_shippriority"),
+          "sum"_,
+          "l_extendedprice"_)
+    );
+
+// select
+//   l_extendedprice
+// from
+//   lineitem
+// where
+//   l_shipdate >= 8766
+//   and l_shipdate < 9131
+//   and l_discount > 0.05 
+//   and l_discount < 0.07
+//   and l_quantity < 24;
+
+  if(queries.empty()) {
+    queries.try_emplace(
+      "q6-tpch",
+        "project"_(
+          "select"_(
+            "LINEITEM"_,
+            string_list("l_shipdate", "l_shipdate", "l_discount", "l_discount", "l_quantity"),
+            string_list(">=", "<", ">", "<", "<"),
+            int_list(8766, 9131, 0.05, 0.07, 24)
+          ),
+          string_list("l_extendedprice")
+        )
+    );
   }
+
+select
+  nation,
+  o_year,
+  sum(amount) as sum_profit
+from (
+  select
+    n_name as nation,
+    extract(year from o_orderdate) as o_year,
+    l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
+  from
+    part,
+    supplier,
+    lineitem,
+    partsupp,
+    orders,
+    nation
+  where
+    s_suppkey = l_suppkey
+    and ps_suppkey = l_suppkey
+    and ps_partkey = l_partkey
+    and p_partkey = l_partkey
+    and o_orderkey = l_orderkey
+    and s_nationkey = n_nationkey
+    and p_name like '%[COLOR]%'
+  ) as profit
+group by
+  nation,
+  o_year
+
   return queries;
 }
 
@@ -698,45 +820,46 @@ void benchmark_loop_tpch(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
-      // auto res = eval(shallowCopy(query_expr));
-
-      // cout << shallowCopy(query_expr) << endl;
-      // cout << endl;
-      // cout << "res" << endl;
-      // cout << res << endl;
-      // cout << endl;
-
-      const chrono::seconds time_warmup = 3s;
-      const ull warmup_iters = 1;
-      chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
-      chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
-      chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
-      for (ull i = 0; i < warmup_iters || warmup_timestamp < warmup_end_time; i++) {
-        auto res = eval(shallowCopy(query_expr));
-        benchmark::DoNotOptimize(res);
-        warmup_timestamp = chrono::high_resolution_clock::now();
-      }
-
-      const chrono::seconds time_test = 10s;
-      const ull test_iters = 1;
-      chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
-      chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
-      chrono::high_resolution_clock::time_point test_timestamp = test_start;
-      ull completed_iters = 0;
-      for (completed_iters = 0; completed_iters < test_iters || test_timestamp < test_end_time; completed_iters++) {
-        auto res = eval(shallowCopy(query_expr));
-        benchmark::DoNotOptimize(res);
-        test_timestamp = chrono::high_resolution_clock::now();
-      }
-
-      chrono::high_resolution_clock::time_point test_end = chrono::high_resolution_clock::now();
-      chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(test_end - test_start);
-      chrono::nanoseconds avg_time = elapsed_time / completed_iters;
-
-      print_elapsed_time(avg_time);
+      cout << shallowCopy(query_expr) << endl;
       cout << endl;
-      cout << "end " << " " << query_name << endl;
+      cout << "res" << endl;
+      auto res = eval(shallowCopy(query_expr));
+      cout << res << endl;
       cout << endl;
+
+      if (false) {
+        const chrono::seconds time_warmup = 3s;
+        const ull warmup_iters = 1;
+        chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
+        chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
+        chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
+        for (ull i = 0; i < warmup_iters || warmup_timestamp < warmup_end_time; i++) {
+          auto res = eval(shallowCopy(query_expr));
+          benchmark::DoNotOptimize(res);
+          warmup_timestamp = chrono::high_resolution_clock::now();
+        }
+
+        const chrono::seconds time_test = 10s;
+        const ull test_iters = 1;
+        chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
+        chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
+        chrono::high_resolution_clock::time_point test_timestamp = test_start;
+        ull completed_iters = 0;
+        for (completed_iters = 0; completed_iters < test_iters || test_timestamp < test_end_time; completed_iters++) {
+          auto res = eval(shallowCopy(query_expr));
+          benchmark::DoNotOptimize(res);
+          test_timestamp = chrono::high_resolution_clock::now();
+        }
+
+        chrono::high_resolution_clock::time_point test_end = chrono::high_resolution_clock::now();
+        chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(test_end - test_start);
+        chrono::nanoseconds avg_time = elapsed_time / completed_iters;
+
+        print_elapsed_time(avg_time);
+        cout << endl;
+        cout << "end " << " " << query_name << endl;
+        cout << endl;
+      }
     }
 }
 
