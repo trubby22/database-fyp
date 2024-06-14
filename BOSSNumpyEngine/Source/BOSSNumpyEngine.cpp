@@ -871,32 +871,32 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             //   // return PythonExpressionSystem::ComplexExpression("python"_, {}, {}, {});
             // }
 
-            if (top_head == "table_spans_to_matrix"_) {
-              auto top_it = make_move_iterator(top_dynamics.begin());
-              auto table = get<PythonExpressionSystem::ComplexExpression>(*top_it);
+            // if (top_head == "table_spans_to_matrix"_) {
+            //   auto top_it = make_move_iterator(top_dynamics.begin());
+            //   auto table = get<PythonExpressionSystem::ComplexExpression>(*top_it);
 
-              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "materialise_spans_into_matrix");
-              if (py_operator == NULL) {
-                PyErr_Print();
-                throw runtime_error("error");
-              }
+            //   PyObject* py_operator = PyObject_GetAttrString(rel_alg, "materialise_spans_into_matrix");
+            //   if (py_operator == NULL) {
+            //     PyErr_Print();
+            //     throw runtime_error("error");
+            //   }
 
-              PyObject* result;
-              if (PyCallable_Check(py_operator)) {
-                // borrows references to args
-                // returns new reference
-                result = PyObject_CallFunction(py_operator, "O", table);
-                if (result == NULL) {
-                  PyErr_Print();
-                  throw runtime_error("error");
-                }
-              } else {
-                PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
-                PyErr_Print();
-                throw runtime_error("py_operator is not a callable object");
-              }
-              return result;
-            }
+            //   PyObject* result;
+            //   if (PyCallable_Check(py_operator)) {
+            //     // borrows references to args
+            //     // returns new reference
+            //     result = PyObject_CallFunction(py_operator, "O", table);
+            //     if (result == NULL) {
+            //       PyErr_Print();
+            //       throw runtime_error("error");
+            //     }
+            //   } else {
+            //     PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
+            //     PyErr_Print();
+            //     throw runtime_error("py_operator is not a callable object");
+            //   }
+            //   return result;
+            // }
 
             if (top_head == "DictionaryEncodedList"_) {
               auto top_it = make_move_iterator(top_dynamics.begin());
