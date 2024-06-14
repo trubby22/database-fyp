@@ -421,7 +421,7 @@ auto& tpch_queries() {
             "LINEITEM"_,
             string_list("l_shipdate", "l_shipdate", "l_discount", "l_discount", "l_quantity"),
             string_list(">=", "<", ">", "<", "<"),
-            int_list(8766, 9131, 0.05, 0.07, 24)
+            double_list(8766, 9131, 0.05, 0.07, 24)
           ),
           string_list(), string_list(), string_list(),
           string_list("l_extendedprice"), string_list("*"), string_list("l_discount"), string_list("x"),
@@ -906,15 +906,22 @@ void benchmark_loop(
 
 void benchmark_loop_tpch(
   map<string, ComplexExpression> &query_names_exprs) {
+  auto evalStorage = getEvaluateStorageLambda();
   auto eval = getEvaluateLambda();
   cout << endl;
 
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
+      if (false && query_name != "q6-tpch") {
+        continue;
+      }
+
       if (true) {
         cout << shallowCopy(query_expr) << endl;
         cout << endl;
+        // cout << evalStorage(shallowCopy(query_expr)) << endl;
+        // cout << endl;
         cout << "res" << endl;
         auto res = eval(shallowCopy(query_expr));
         cout << res << endl;
