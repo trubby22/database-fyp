@@ -258,7 +258,7 @@ void initStorageEngine_TPCH() {
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
-        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_1MB/" + filename + ".tbl";
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_100MB/" + filename + ".tbl";
     checkForErrors(evalStorage("Load"_(table, path)));
   }
 }
@@ -913,22 +913,22 @@ void benchmark_loop_tpch(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
-      if (false && query_name != "q6-tpch") {
+      if (false && query_name != "q9-tpch") {
         continue;
       }
 
-      if (true) {
+      if (false) {
         cout << shallowCopy(query_expr) << endl;
         cout << endl;
         // cout << evalStorage(shallowCopy(query_expr)) << endl;
         // cout << endl;
-        cout << "res" << endl;
         auto res = eval(shallowCopy(query_expr));
-        cout << res << endl;
-        cout << endl;
+        // cout << "res" << endl;
+        // cout << res << endl;
+        // cout << endl;
       }
 
-      if (false) {
+      if (true) {
         const chrono::seconds time_warmup = 3s;
         const ull warmup_iters = 1;
         chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
