@@ -1,7 +1,7 @@
 import sys
 sys.path.append("/mnt/ubuntu-image-repos/BOSSNumpyEngine/rel_alg_cython")
 import numpy as np
-from rel_alg_cython import *
+from rel_alg_cython_typed import *
 
 # unit tests
 if __name__ == '__main__':
@@ -10,7 +10,9 @@ if __name__ == '__main__':
         'col2': np.array([0.8, 3.14, 2.42]),
         'col3': np.array([0, 0, 1]),
     }
+    table_1 = materialise_into_columns(table_1)
     project_res = project(table_1, ['col2', 'col3'])
+    project_res = split_into_spans(project_res, 10)
     project_expected = {'col2': np.array([0.8 , 3.14, 2.42]), 'col3': np.array([0, 0, 1])}
     print('project_res')
     print(project_res)

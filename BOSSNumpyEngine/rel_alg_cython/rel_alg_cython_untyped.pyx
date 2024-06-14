@@ -1,26 +1,39 @@
 import numpy as np
+import cython
 import math
-from numba import jit, njit, types
-from numba.typed import Dict
 
 def say_hello_to(name):
     print(f"Hello {name}!")
 
-# def project(table: dict[str, np.ndarray], col_names: list[str]) -> dict[str, np.ndarray]
+def project(
+    table, 
+    unary_col_names_input, unary_ops, unary_col_names_output, 
+    binary_col_names_input_1, binary_col_names_input_2, binary_ops, binary_col_names_output,
+    final_col_names, final_col_renames
+    ):
+    table = materialise_into_columns(table)
 
-def project(table, col_names):
-    d = Dict.empty(
-        key_type=types.int64,
-        value_type=types.float64[:],
-    )
-    # d = Dict()
-    for k, v in table.items():
-        d[int(hash(k))] = v
-    return project_helper(d, col_names)
+    for i in range(len(unary_ops)):
+        col_name = unary_col_names_input[i]
+        op = unary_ops[i]
+        res_name = unary_col_names_output[i]
+        npy_arr = table[col_name]
+        res = reduction_functions[op](npy_arr)
+        table[res_name] = np.array([res])
+    
+    for i in range(len(binary_ops)):
+        col_name_1 = binary_col_names_input_1[i]
+        col_name_2 = binary_col_names_input_2[i]
+        op = binary_ops[i]
+        res_name = binary_col_names_output[i]
+        npy_arr_1 = table[col_name_1] if not is_numeric(col_name_1) else col_name_1
+        npy_arr_2 = table[col_name_2] if not is_numeric(col_name_2) else col_name_2
+        res = arithmetic_binary_op[op](npy_arr_1, npy_arr_2)
+        table[res_name] = res
 
-@njit
-def project_helper(table, col_names):
-    return {col_name : table[col_name] for col_name in col_names}
+    return {final_col_renames[i]: table[final_col_names[i]] for i in range(len(final_col_names))}
+
+    # return {col_name : table[col_name] for col_name in col_names}
 
 # works on materialised columns
 def select(table, key_col_names, boolean_ops, vals):
@@ -120,7 +133,7 @@ def aggregate(table, key_col_names, reduction_func, reduction_col_name):
     table_reduced = {reduction_col_name: np.array(reduced_col)}
     table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
     res = table_key | table_reduced
-    # print(res)
+    print(res)
     return res
 
 def materialise_into_columns(table):
@@ -131,6 +144,22 @@ def split_into_spans(table, span_size):
     num_splits = math.ceil(len(table[col_names[0]]) / span_size)
     splits = np.array([(i + 1) * span_size for i in range(num_splits)])
     return {col_name: [x for x in np.split(table[col_name], splits) if len(x) > 0] for col_name in col_names}
+
+def is_numeric(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        pass
+    
+    try:
+        float(s)
+        return True
+    except ValueError:
+        pass
+    
+    return False
+
 
 reduction_functions = {
     'sum': lambda x: np.sum(x),
@@ -148,6 +177,13 @@ boolean_op = {
     '<=': lambda x, y: x <= y,
     '>': lambda x, y: x > y,
     '>=': lambda x, y: x >= y,
+}
+
+arithmetic_binary_op = {
+    '+': lambda x, y: x + y,
+    '-': lambda x, y: x - y,
+    '*': lambda x, y: x * y,
+    '/': lambda x, y: x / y,
 }
 
 # unit tests

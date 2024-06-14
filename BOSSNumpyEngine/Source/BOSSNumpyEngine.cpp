@@ -898,6 +898,72 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             //   return result;
             // }
 
+            if (top_head == "split_into_spans"_) {
+              // head = project
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
+
+              auto evaluated_expr = evaluate(move(expr));
+              // cout << evaluated_expr << endl;
+              PyObject *table_pydict = python_expression_to_pyobject(move(evaluated_expr));
+
+              int span_size = (1 << 20) / 4;
+
+              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "split_into_spans");
+              if (py_operator == NULL) {
+                PyErr_Print();
+                throw runtime_error("error");
+              }
+
+              PyObject* result;
+              if (PyCallable_Check(py_operator)) {
+                // borrows references to args
+                // returns new reference
+                result = PyObject_CallFunction(py_operator, "Oi", table_pydict, span_size);
+                if (result == NULL) {
+                  PyErr_Print();
+                  throw runtime_error("error");
+                }
+              } else {
+                PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
+                PyErr_Print();
+                throw runtime_error("py_operator is not a callable object");
+              }
+              return result;
+            }
+
+            if (top_head == "materialise_into_columns"_) {
+              // head = project
+              auto top_it = make_move_iterator(top_dynamics.begin());
+              auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
+
+              auto evaluated_expr = evaluate(move(expr));
+              // cout << evaluated_expr << endl;
+              PyObject *table_pydict = python_expression_to_pyobject(move(evaluated_expr));
+
+              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "materialise_into_columns");
+              if (py_operator == NULL) {
+                PyErr_Print();
+                throw runtime_error("error");
+              }
+
+              PyObject* result;
+              if (PyCallable_Check(py_operator)) {
+                // borrows references to args
+                // returns new reference
+                result = PyObject_CallFunction(py_operator, "O", table_pydict);
+                if (result == NULL) {
+                  PyErr_Print();
+                  throw runtime_error("error");
+                }
+              } else {
+                PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
+                PyErr_Print();
+                throw runtime_error("py_operator is not a callable object");
+              }
+              return result;
+            }
+
             if (top_head == "DictionaryEncodedList"_) {
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto list = get<PythonExpressionSystem::ComplexExpression>(*top_it);
@@ -909,12 +975,17 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               // head = project
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
-              auto col_names_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
+              PyObject *arg1 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1)));
+              PyObject *arg2 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 2)));
+              PyObject *arg3 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 3)));
+              PyObject *arg4 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 4)));
+              PyObject *arg5 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 5)));
+              PyObject *arg6 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 6)));
+              PyObject *arg7 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 7)));
 
               auto evaluated_expr = evaluate(move(expr));
               // cout << evaluated_expr << endl;
               PyObject *table_pydict = python_expression_to_pyobject(move(evaluated_expr));
-              PyObject *col_names = single_span_list_to_pylist(move(col_names_expr));
 
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project");
               if (py_operator == NULL) {
@@ -926,7 +997,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               if (PyCallable_Check(py_operator)) {
                 // borrows references to args
                 // returns new reference
-                result = PyObject_CallFunction(py_operator, "OO", table_pydict, col_names);
+                result = PyObject_CallFunction(py_operator, "OO", table_pydict, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
                 if (result == NULL) {
                   PyErr_Print();
                   throw runtime_error("error");
@@ -1229,7 +1300,7 @@ import numpy as np
   )", Py_file_input, global_dict, local_dict);
 
   main_module = PyImport_AddModule("__main__");
-  rel_alg = PyImport_ImportModule("rel_alg_cython");
+  rel_alg = PyImport_ImportModule("rel_alg_cython_typed");
   if (rel_alg == NULL) {
     PyErr_Print();
     Py_Finalize();

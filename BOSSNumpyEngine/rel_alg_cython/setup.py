@@ -4,10 +4,15 @@ import numpy as np
 
 extensions = [
     Extension(
-        name="rel_alg_cython",
-        sources=["rel_alg.pyx"],
+        name="rel_alg_cython_typed",
+        sources=["rel_alg_cython_typed.pyx"],
         include_dirs=[np.get_include()]  # This is the key line
-    )
+    ),
+    Extension(
+        name="rel_alg_cython_untyped",
+        sources=["rel_alg_cython_untyped.pyx"],
+        include_dirs=[np.get_include()]  # This is the key line
+    ),
 ]
 
 setup(
