@@ -269,73 +269,12 @@ auto& tpch_queries() {
   static map<string, ComplexExpression> queries;
   if(queries.empty()) {
 
-// select
-//   l_orderkey,
-//   sum(l_extendedprice),
-//   o_orderdate,
-//   o_shippriority
-// from
-//   customer,
-//   orders,
-//   lineitem
-// where
-//   c_custkey = o_custkey
-//   and l_orderkey = o_orderkey
-// group by
-//   l_orderkey,
-//   o_orderdate,
-//   o_shippriority
-
-// select
-//   l_orderkey,
-//   o_orderdate,
-//   o_shippriority
-// from
-//   customer,
-//   orders,
-//   lineitem
-// where
-//   c_custkey = o_custkey
-//   and l_orderkey = o_orderkey
-
-// DictionaryEncodedList[
-//   List<int> start_ixs,
-//   string dictionary
-// ]
-
-// 
-//     queries.try_emplace(
-//       "q3-tpch-join-only",
-//         "split_into_spans"_("materialise_into_columns"_("CUSTOMER"_))
-//     );
-
-  // 
-  //   queries.try_emplace(
-  //     "q3-tpch-join-only",
-  //       "split_into_spans"_("project"_(
-  //           "equi_join"_(
-  //               "project"_(
-  //                   "equi_join"_(
-  //                       "project"_("materialise_into_columns"_("CUSTOMER"_),
-  //                                   string_list("c_custkey")),
-  //                       "project"_("materialise_into_columns"_("ORDERS"_),
-  //                                   string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-  //                       string_list("c_custkey"),
-  //                       string_list("o_custkey")),
-  //                   string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-  //               "project"_(
-  //                   "materialise_into_columns"_("LINEITEM"_),
-  //                   string_list("l_orderkey")),
-  //               string_list("o_orderkey"),
-  //               string_list("l_orderkey")),
-  //           string_list("l_orderkey", "o_orderdate", "o_shippriority")))
-  //   );
-
-    
     queries.try_emplace(
-      "q3-tpch-join-only",
-        "foo"_("LINEITEM"_)
+      "test-arrow-storage",
+        "foo"_("CUSTOMER"_)
     );
+
+    return queries;
 
 // select
 //   l_returnflag,
@@ -349,71 +288,126 @@ auto& tpch_queries() {
 //   l_returnflag,
 //   l_linestatus
 
-//     
-//     queries.try_emplace(
-//       "q1-tpch",
-//         "aggregate"_(
-//             "select"_(
-//               "LINEITEM"_,
-//               string_list("l_shipdate"),
-//               string_list("<="),
-//               int_list(10558)
-//             ),
-//           string_list("l_returnflag", "l_linestatus"),
-//           "avg",
-//           "l_quantity"
-//         )
-//     );
+select
+  l_returnflag,
+  l_linestatus,
+  sum(l_quantity) as sum_qty,
+  sum(l_extendedprice) as sum_base_price,
+  sum(l_extendedprice*(1-l_discount)) as sum_disc_price,
+  sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
+  avg(l_quantity) as avg_qty,
+  avg(l_extendedprice) as avg_price,
+  avg(l_discount) as avg_disc,
+  count(*) as count_order
+from
+  item
+where
+  l_shipdate <= 10558
+group by
+  l_returnflag,
+  l_linestatus
+ 
+    queries.try_emplace(
+      "q1-tpch",
+        "aggregate"_(
+            "select"_(
+              "LINEITEM"_,
+              string_list("l_shipdate"),
+              string_list("<="),
+              int_list(10558)
+            ),
+          string_list("l_returnflag", "l_linestatus"),
+          "avg",
+          "l_quantity"
+        )
+    );
 
-//     
-//     queries.try_emplace(
-//       "q3-tpch-join-only",
-//         "project"_(
-//             "equi_join"_(
-//                 "project"_(
-//                     "equi_join"_(
-//                         "project"_("CUSTOMER"_,
-//                                     string_list("c_custkey")),
-//                         "project"_("ORDERS"_,
-//                                     string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-//                         string_list("c_custkey"),
-//                         string_list("o_custkey")),
-//                     string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-//                 "project"_(
-//                     "LINEITEM"_,
-//                     string_list("l_orderkey")),
-//                 string_list("o_orderkey"),
-//                 string_list("l_orderkey")),
-//             string_list("l_orderkey", "o_orderdate", "o_shippriority"))
-//     );
+// select
+//   l_orderkey,
+//   sum(l_extendedprice*(1-l_discount)) as revenue,
+//   o_orderdate,
+//   o_shippriority
+// from
+//   customer,
+//   orders,
+//   lineitem
+// where
+//   and c_custkey = o_custkey
+//   and l_orderkey = o_orderkey
+//   and c_mktsegment = 0
+//   and o_orderdate < 9204
+//   and l_shipdate > 9204
+// group by
+//   l_orderkey,
+//   o_orderdate,
+//   o_shippriority
+// order by
+//   revenue desc,
+//   o_orderdate;
 
     queries.try_emplace(
       "q3-tpch",
       "aggregate"_(
+        "project"_(
           "project"_(
+            "select"_(
               "equi_join"_(
-                  "project"_(
-                      "equi_join"_(
-                          "project"_("CUSTOMER"_,
-                                      string_list("c_custkey", "c_mktsegment")),
-                          "project"_("ORDERS"_,
-                                      string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-                          string_list("c_custkey"),
-                          string_list("o_custkey")),
-                      string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
-                  "project"_(
-                      "LINEITEM"_,
-                      string_list("l_orderkey", "l_discount", "l_extendedprice")),
-                  string_list("o_orderkey"),
-                  string_list("l_orderkey")),
-              string_list("l_extendedprice", "l_orderkey", "o_orderdate", "o_shippriority")),
-          string_list("l_orderkey", "o_orderdate", "o_shippriority"),
-          "sum"_,
-          "l_extendedprice"_)
+                "equi_join"_(
+                  "CUSTOMER"_,
+                  "ORDERS"_,
+                  string_list("c_custkey"),
+                  string_list("o_custkey")
+                ),
+                "LINEITEM"_,
+                string_list("o_orderkey"),
+                string_list("l_orderkey")
+              ),
+              string_list("o_orderdate", "l_shipdate", "c_mktsegent"),
+              string_list("<", ">", "=="),
+              int_list(9204, 9204, 0)
+            ),
+            string_list(), string_list(), string_list(), 
+            int_list(1), string_list("-"), string_list("l_discount"), string_list("x"),
+            string_list("l_orderkey", "l_extendedprice", "x", "o_orderdate", "o_shippriority"),
+            string_list("l_orderkey", "l_extendedprice", "x", "o_orderdate", "o_shippriority")
+          ),
+          string_list(), string_list(), string_list(),
+          string_list("l_extendedprice"), string_list("*"), string_list("x"), string_list("y"),
+          string_list("l_orderkey", "y", "o_orderdate", "o_shippriority")
+        ),
+        string_list("l_orderkey", "o_orderkey", "o_shippriority"),
+        "sum"_,
+        "y"_
+      )
     );
 
+    // queries.try_emplace(
+    //   "q3-tpch-old",
+    //   "aggregate"_(
+    //       "project"_(
+    //           "equi_join"_(
+    //               "project"_(
+    //                   "equi_join"_(
+    //                       "project"_("CUSTOMER"_,
+    //                                   string_list("c_custkey", "c_mktsegment")),
+    //                       "project"_("ORDERS"_,
+    //                                   string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
+    //                       string_list("c_custkey"),
+    //                       string_list("o_custkey")),
+    //                   string_list("o_orderkey", "o_orderdate", "o_custkey", "o_shippriority")),
+    //               "project"_(
+    //                   "LINEITEM"_,
+    //                   string_list("l_orderkey", "l_discount", "l_extendedprice")),
+    //               string_list("o_orderkey"),
+    //               string_list("l_orderkey")),
+    //           string_list("l_extendedprice", "l_orderkey", "o_orderdate", "o_shippriority")),
+    //       string_list("l_orderkey", "o_orderdate", "o_shippriority"),
+    //       "sum"_,
+    //       "l_extendedprice"_)
+    // );
+
 // select
-//   l_extendedprice
+//   sum(l_extendedprice*l_discount) as revenue
 // from
 //   lineitem
 // where
@@ -426,6 +420,7 @@ auto& tpch_queries() {
   
     queries.try_emplace(
       "q6-tpch",
+      "project"_(
         "project"_(
           "select"_(
             "LINEITEM"_,
@@ -433,8 +428,14 @@ auto& tpch_queries() {
             string_list(">=", "<", ">", "<", "<"),
             int_list(8766, 9131, 0.05, 0.07, 24)
           ),
-          string_list("l_extendedprice")
-        )
+          string_list(), string_list(), string_list(),
+          string_list("l_extendedprice"), string_list("*"), string_list("l_discount"), string_list("x"),
+          string_list("x"), string_list("x")
+        ),
+        string_list("sum"), string_list("x"), string_list("revenue"),
+        string_list(), string_list(), string_list(), string_list(), 
+        string_list("revenue"), string_list("revenue") 
+      )
     );
 
 // select
@@ -464,7 +465,6 @@ auto& tpch_queries() {
 // group by
 //   nation,
 //   o_year
-
   
     queries.try_emplace(
       "q9-tpch",
@@ -498,8 +498,8 @@ auto& tpch_queries() {
           ),
           string_list(), string_list(), string_list(),
           string_list("1", "l_extendedprice", "ps_supplycost", "y"),
-          string_list("l_discount", "x", "l_quantity", "z"), 
           string_list("-", "*", "*", "-"), 
+          string_list("l_discount", "x", "l_quantity", "z"), 
           string_list("x", "y", "z", "amount"),
           string_list("n_name", "o_orderdate", "amount"),
           string_list("nation", "o_orderdate", "amount")
@@ -510,43 +510,36 @@ auto& tpch_queries() {
       )
     );
 
-  select
-    sum(l_extendedprice) / 7.0 as avg_yearly
-  from
-    lineitem,
-    part
-  where
-    p_partkey = l_partkey
-    and p_brand = '[BRAND]'
-    and p_container = '[CONTAINER]'
-    and l_quantity < 5.1
+  // select
+  //   sum(l_extendedprice) / 7.0 as avg_yearly
+  // from
+  //   lineitem,
+  //   part
+  // where
+  //   p_partkey = l_partkey
+  //   and l_quantity < 5.1
+  //   and p_brand = 0
+  //   and p_container = 0
   
   queries.try_emplace(
     "q17-tpch",
     "project"_(
       "select"_(
-        "select"_(
-          "equi_join"_(
-            "LINEITEM"_,
-            "PART"_,
-            string_list("l_partkey"),
-            string_list("p_partkey")
-          ),
-          string_list("p_brand", "p_container"),
-          string_list("==", "=="),
-          string_list("Brand#23", "MED BOX")
+        "equi_join"_(
+          "LINEITEM"_,
+          "PART"_,
+          string_list("l_partkey"),
+          string_list("p_partkey")
         ),
-        string_list("l_quantity"),
-        string_list("<"),
-        double_list(5.1)
+        string_list("l_quantity", "p_brand", "p_container"),
+        string_list("<", "==", "=="),
+        double_list(5.1, 0, 0)
       ),
-      string_list("l_extendedprice"), string_list("sum"), string_list("x"),
-      string_list("x"), double_list(7.0), string_list("/"), string_list("avg_yearly"),
+      string_list("sum"), string_list("l_extendedprice"), string_list("x"),
+      string_list("x"), string_list("/"), double_list(7.0), string_list("avg_yearly"),
       string_list("avg_yearly"), string_list("avg_yearly")
     )
   );
-
-
 
   }
   return queries;
@@ -564,6 +557,7 @@ import copy
 auto& rand_queries() {
   static map<string, ComplexExpression> queries;
   
+    if(queries.empty()) {
     queries.try_emplace(
       "_1_data_in", 
       "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_))
@@ -672,7 +666,7 @@ res_table_python = {'table': None, 'matrix': res_wrapper}
 
 auto& bixi_queries() {
   static map<string, ComplexExpression> queries;
-  
+  if(queries.empty()) {
     queries.try_emplace(
       "_1_data_in",
       "Python"_(
