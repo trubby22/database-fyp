@@ -7,8 +7,8 @@ def say_hello_to(name):
 
 def project(
     table, 
-    unary_col_names_input, unary_ops, unary_col_names_output, 
-    binary_col_names_input_1, binary_col_names_input_2, binary_ops, binary_col_names_output,
+    unary_ops, unary_col_names_input, unary_col_names_output, 
+    binary_col_names_input_1, binary_ops, binary_col_names_input_2, binary_col_names_output,
     final_col_names, final_col_renames
     ):
     table = materialise_into_columns(table)
@@ -98,7 +98,7 @@ def equi_join(table_1, table_2, key_col_names_1, key_col_names_2):
     return table_1_joined | table_2_joined
 
 # accepts and returns tables /w materialised columns
-def aggregate(table, key_col_names, reduction_func, reduction_col_name):
+def aggregate(table, key_col_names, reduction_funcs, input_reduction_col_names, output_reduction_col_names):
     table = materialise_into_columns(table)
 
     col_names = list(table.keys())
@@ -129,8 +129,13 @@ def aggregate(table, key_col_names, reduction_func, reduction_col_name):
         col_name: [x for x in np.split(table_sorted[col_name], splits) if len(x) > 0] 
         for col_name in col_names
     }
-    reduced_col = [reduction_functions[reduction_func](x) for x in table_split_up[reduction_col_name]]
-    table_reduced = {reduction_col_name: np.array(reduced_col)}
+    table_reduced = {}
+    for i in range(len(reduction_funcs)):
+        reduction_func = reduction_funcs[i]
+        input_reduction_col_name = input_reduction_col_names[i]
+        output_reduction_col_name = output_reduction_col_names[i]
+        reduced_col = [reduction_functions[reduction_func](x) for x in table_split_up[input_reduction_col_name]]
+        table_reduced[output_reduction_col_name] = np.array(reduced_col)
     table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
     res = table_key | table_reduced
     print(res)

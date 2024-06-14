@@ -27,8 +27,8 @@ if __name__ == '__main__':
     }
     project_res = project(
         table_1,
-        ['col1'], ['prod'], ['col1_prod'],
-        ['col2'], ['col3'], ['+'], ['col2_plus_col3'],
+        ['prod'], ['col1'], ['col1_prod'],
+        ['col2'], ['+'], ['col3'], ['col2_plus_col3'],
         ['col1_prod', 'col2_plus_col3'],
         ['col1_prod', 'col2_plus_col3'],
     )
@@ -69,7 +69,7 @@ if __name__ == '__main__':
         'col2': [np.array([0, 0, 1, 1, 0, 0, 1, 1])],
         'col3': [np.array([1, 2, 3, 4, 1, 2, 3, 4])],
     }
-    aggregate_res = aggregate(table_4, ['col1', 'col2'], 'sum', 'col3')
+    aggregate_res = aggregate(table_4, ['col1', 'col2'], ['sum', 'count'], ['col3', 'col3'], ['sum_col3', 'count_col3'])
     aggregate_expected = {'col1': np.array([0, 1, 0, 1]), 'col2': np.array([0, 0, 1, 1]), 'col3': np.array([2, 4, 6, 8])}
     print('aggregate_res')
     print(aggregate_res)
