@@ -848,8 +848,8 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             //   cout << expression << endl;
             // }
 
-            cout << expression << endl;
-            cout << endl;
+            // cout << expression << endl;
+            // cout << endl;
 
             // top-level
             auto [top_head, top_statics, top_dynamics, top_spans] =
@@ -1000,7 +1000,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               if (PyCallable_Check(py_operator)) {
                 // borrows references to args
                 // returns new reference
-                result = PyObject_CallFunctionObjArgs(py_operator, table_pydict, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+                result = PyObject_CallFunction(py_operator, "OOOOOOOOOO", table_pydict, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
                 if (result == NULL) {
                   PyErr_Print();
                   throw runtime_error("error");
@@ -1034,8 +1034,8 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               if (PyCallable_Check(py_operator)) {
                 // borrows references to args
                 // returns new reference
-                result = PyObject_CallFunctionObjArgs(
-                  py_operator, table_pydict, arg1, arg2, arg3);
+                result = PyObject_CallFunction(
+                  py_operator, "OOOO", table_pydict, arg1, arg2, arg3);
                 if (result == NULL) {
                   PyErr_Print();
                   throw runtime_error("error");
@@ -1055,8 +1055,8 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               auto top_it = make_move_iterator(top_dynamics.begin());
               auto expr_1 = get<PythonExpressionSystem::ComplexExpression>(*top_it);
               auto expr_2 = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
-              PyObject *arg1 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1)));
-              PyObject *arg2 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 2)));
+              PyObject *arg1 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 2)));
+              PyObject *arg2 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 3)));
 
               PyObject *table_pydict_1 = python_expression_to_pyobject(evaluate(move(expr_1)));
               PyObject *table_pydict_2 = python_expression_to_pyobject(evaluate(move(expr_2)));
@@ -1071,8 +1071,8 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               if (PyCallable_Check(py_operator)) {
                 // borrows references to args
                 // returns new reference
-                result = PyObject_CallFunctionObjArgs(
-                  py_operator, table_pydict_1, table_pydict_2, arg1, arg2);
+                result = PyObject_CallFunction(
+                  py_operator, "OOOO", table_pydict_1, table_pydict_2, arg1, arg2);
                 if (result == NULL) {
                   PyErr_Print();
                   throw runtime_error("error");
@@ -1108,8 +1108,8 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               if (PyCallable_Check(py_operator)) {
                 // borrows references to args
                 // returns new reference
-                result = PyObject_CallFunctionObjArgs(
-                  py_operator, table_pydict, arg1, arg2, arg3, arg4);
+                result = PyObject_CallFunction(
+                  py_operator, "OOOOO",table_pydict, arg1, arg2, arg3, arg4);
                 if (result == NULL) {
                   PyErr_Print();
                   throw runtime_error("error");
@@ -1289,12 +1289,12 @@ void Engine::init_python_and_numpy() {
   local_dict = PyDict_New();
   PyRun_String(R"(
 import sys
-sys.path.append("/mnt/ubuntu-image-repos/BOSSNumpyEngine/rel_alg_cython")
+sys.path.append("/mnt/ubuntu-image-repos/BOSSNumpyEngine/rel_alg_cython_untyped")
 import numpy as np
   )", Py_file_input, global_dict, local_dict);
 
   main_module = PyImport_AddModule("__main__");
-  rel_alg = PyImport_ImportModule("rel_alg_cython_typed");
+  rel_alg = PyImport_ImportModule("rel_alg_cython_untyped");
   if (rel_alg == NULL) {
     PyErr_Print();
     Py_Finalize();
