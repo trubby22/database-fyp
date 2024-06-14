@@ -267,8 +267,7 @@ void initStorageEngine_TPCH() {
 
 auto& tpch_queries() {
   static map<string, ComplexExpression> queries;
-
-  
+  if(queries.empty()) {
 
 // select
 //   l_orderkey,
@@ -304,13 +303,13 @@ auto& tpch_queries() {
 //   string dictionary
 // ]
 
-// if(queries.empty()) {
+// 
 //     queries.try_emplace(
 //       "q3-tpch-join-only",
 //         "split_into_spans"_("materialise_into_columns"_("CUSTOMER"_))
 //     );
 
-  // if(queries.empty()) {
+  // 
   //   queries.try_emplace(
   //     "q3-tpch-join-only",
   //       "split_into_spans"_("project"_(
@@ -332,7 +331,7 @@ auto& tpch_queries() {
   //           string_list("l_orderkey", "o_orderdate", "o_shippriority")))
   //   );
 
-    if(queries.empty()) {
+    
     queries.try_emplace(
       "q3-tpch-join-only",
         "foo"_("LINEITEM"_)
@@ -350,7 +349,7 @@ auto& tpch_queries() {
 //   l_returnflag,
 //   l_linestatus
 
-//     if(queries.empty()) {
+//     
 //     queries.try_emplace(
 //       "q1-tpch",
 //         "aggregate"_(
@@ -366,7 +365,7 @@ auto& tpch_queries() {
 //         )
 //     );
 
-//     if(queries.empty()) {
+//     
 //     queries.try_emplace(
 //       "q3-tpch-join-only",
 //         "project"_(
@@ -424,7 +423,7 @@ auto& tpch_queries() {
 //   and l_discount < 0.07
 //   and l_quantity < 24;
 
-  if(queries.empty()) {
+  
     queries.try_emplace(
       "q6-tpch",
         "project"_(
@@ -437,37 +436,36 @@ auto& tpch_queries() {
           string_list("l_extendedprice")
         )
     );
-  }
 
-select
-  nation,
-  o_orderdate,
-  sum(amount) as sum_profit
-from (
-  select
-    n_name as nation,
-    o_orderdate,
-    l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
-  from
-    part,
-    supplier,
-    lineitem,
-    partsupp,
-    orders,
-    nation
-  where
-    s_suppkey = l_suppkey
-    and ps_suppkey = l_suppkey
-    and ps_partkey = l_partkey
-    and p_partkey = l_partkey
-    and o_orderkey = l_orderkey
-    and s_nationkey = n_nationkey
-  )
-group by
-  nation,
-  o_year
+// select
+//   nation,
+//   o_orderdate,
+//   sum(amount) as sum_profit
+// from (
+//   select
+//     n_name as nation,
+//     o_orderdate,
+//     l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
+//   from
+//     part,
+//     supplier,
+//     lineitem,
+//     partsupp,
+//     orders,
+//     nation
+//   where
+//     s_suppkey = l_suppkey
+//     and ps_suppkey = l_suppkey
+//     and ps_partkey = l_partkey
+//     and p_partkey = l_partkey
+//     and o_orderkey = l_orderkey
+//     and s_nationkey = n_nationkey
+//   )
+// group by
+//   nation,
+//   o_year
 
-  if(queries.empty()) {
+  
     queries.try_emplace(
       "q9-tpch",
       "aggregate"_(
@@ -511,10 +509,46 @@ group by
         "sum_profit"_
       )
     );
-  }
 
+  select
+    sum(l_extendedprice) / 7.0 as avg_yearly
+  from
+    lineitem,
+    part
+  where
+    p_partkey = l_partkey
+    and p_brand = '[BRAND]'
+    and p_container = '[CONTAINER]'
+    and l_quantity < 5.1
   
+  queries.try_emplace(
+    "q17-tpch",
+    "project"_(
+      "select"_(
+        "select"_(
+          "equi_join"_(
+            "LINEITEM"_,
+            "PART"_,
+            string_list("l_partkey"),
+            string_list("p_partkey")
+          ),
+          string_list("p_brand", "p_container"),
+          string_list("==", "=="),
+          string_list("Brand#23", "MED BOX")
+        ),
+        string_list("l_quantity"),
+        string_list("<"),
+        double_list(5.1)
+      ),
+      string_list("l_extendedprice"), string_list("sum"), string_list("x"),
+      string_list("x"), double_list(7.0), string_list("/"), string_list("avg_yearly"),
+      string_list("avg_yearly"), string_list("avg_yearly")
+    )
+  );
 
+
+
+  }
   return queries;
 }
 
@@ -529,7 +563,7 @@ import copy
 
 auto& rand_queries() {
   static map<string, ComplexExpression> queries;
-  if(queries.empty()) {
+  
     queries.try_emplace(
       "_1_data_in", 
       "Python"_(""_, "Where"_("rand_table_python"_, "rand_table_boss"_))
@@ -638,7 +672,7 @@ res_table_python = {'table': None, 'matrix': res_wrapper}
 
 auto& bixi_queries() {
   static map<string, ComplexExpression> queries;
-  if(queries.empty()) {
+  
     queries.try_emplace(
       "_1_data_in",
       "Python"_(
