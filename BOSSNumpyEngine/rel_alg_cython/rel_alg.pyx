@@ -136,7 +136,8 @@ def equi_join(table_spans table_1_in, table_spans table_2_in, list[string] key_c
 #     return res
 
 # accepts and returns tables /w materialised columns
-def aggregate_matrix(cnp.int_t[:, :] matrix, col_names, key_col_ixs_in, str reduction_func, int reduction_col_ix):
+def aggregate_matrix(cnp.int_t[:, :] matrix, list[str] col_names_in, list[int] key_col_ixs_in, str reduction_func, int reduction_col_ix):
+    cdef cnp.ndarray col_names = np.array(col_names_in)
     cdef cnp.int_t[:] key_col_ixs = np.array(key_col_ixs_in)
     cdef cnp.int_t[:, :] key_cols = matrix.base[key_col_ixs, :]
     cdef cnp.int_t[:] sort_ixs = np.lexsort(key_cols)

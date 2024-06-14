@@ -62,8 +62,8 @@ if __name__ == '__main__':
         [0, 0, 1, 1, 0, 0, 1, 1],
         [1, 2, 3, 4, 1, 2, 3, 4],
     ])
-    col_names = np.array(['col1', 'col2', 'col3'])
-    key_col_ixs = np.array([0, 1])
+    col_names = ['col1', 'col2', 'col3']
+    key_col_ixs = [0, 1]
     aggregate_matrix_res = aggregate_matrix(matrix, col_names, key_col_ixs, 'sum', 2)
     aggregate_matrix_expected = np.array([
         [0, 1, 0, 1],
