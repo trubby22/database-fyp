@@ -15,6 +15,7 @@
 #include <fstream>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 
 #pragma endregion includes
 
@@ -258,7 +259,7 @@ void initStorageEngine_TPCH() {
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
-        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_100MB/" + filename + ".tbl";
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_1000MB/" + filename + ".tbl";
     checkForErrors(evalStorage("Load"_(table, path)));
   }
 }
@@ -277,6 +278,9 @@ auto& tpch_queries() {
       );
       return queries;
     }
+
+// ========================== Macro-benchmarks ==========================
+
 
 // we skip order by
 // 1998-12-01 - 90 days = 1998-09-01 -> 10470
@@ -356,9 +360,6 @@ auto& tpch_queries() {
 //   l_orderkey,
 //   o_orderdate,
 //   o_shippriority
-// order by
-//   revenue desc,
-//   o_orderdate;
 
     queries.try_emplace(
       "q3-tpch",
@@ -554,6 +555,105 @@ auto& tpch_queries() {
       string_list("avg_yearly"), string_list("avg_yearly")
     )
   );
+
+// ========================== Micro-benchmarks ==========================
+
+// based on Q6
+
+// select
+//   sum(l_extendedprice*l_discount) as revenue
+// from
+//   lineitem
+
+    queries.try_emplace(
+      "project",
+      "project"_(
+        "project"_(
+          "LINEITEM"_,
+          string_list(), string_list(), string_list(),
+          string_list("l_extendedprice"), string_list("*"), string_list("l_discount"), string_list("x"),
+          string_list("x"), string_list("x")
+        ),
+        string_list("sum"), string_list("x"), string_list("revenue"),
+        string_list(), string_list(), string_list(), string_list(), 
+        string_list("revenue"), string_list("revenue") 
+      )
+    );
+
+// based on Q6
+
+// we substitute:
+// 1994-01-01 -> 8766
+// 1995-01-01 -> 9131
+
+// select
+//   *
+// from
+//   lineitem
+// where
+//   l_shipdate >= '1994-01-01' -- 8766
+//   and l_shipdate < '1995-01-01' -- 9131
+//   and l_discount > 0.05 
+//   and l_discount < 0.07
+//   and l_quantity < 24
+
+    queries.try_emplace(
+      "select",
+      "select"_(
+        "LINEITEM"_,
+        string_list("l_shipdate", "l_shipdate", "l_discount", "l_discount", "l_quantity"),
+        string_list(">=", "<", ">", "<", "<"),
+        double_list(8766, 9131, 0.05, 0.07, 24)
+      )
+    );
+
+// based on Q3
+
+// select
+//   *
+// from
+//   orders,
+//   lineitem
+// where
+//   l_orderkey = o_orderkey
+
+    queries.try_emplace(
+      "equi_join",
+      "equi_join"_(
+        "ORDERS"_,
+        "LINEITEM"_,
+        string_list("o_orderkey"),
+        string_list("l_orderkey")
+      )
+    );
+
+// based on Q1
+
+// select
+//   l_returnflag,
+//   l_linestatus,
+//   sum(l_quantity) as sum_qty,
+//   sum(l_extendedprice) as sum_base_price,
+//   avg(l_quantity) as avg_qty,
+//   avg(l_extendedprice) as avg_price,
+//   avg(l_discount) as avg_disc,
+//   count(*) as count_order
+// from
+//   lineitem
+// group by
+//   l_returnflag,
+//   l_linestatus
+
+    queries.try_emplace(
+      "aggregate",
+      "aggregate"_(
+        "LINEITEM"_,
+        string_list("l_returnflag", "l_linestatus"),
+        string_list("sum", "sum", "avg", "avg", "avg", "count"),
+        string_list("l_quantity", "l_extendedprice", "l_quantity", "l_extendedprice", "l_discount", "l_quantity"),
+        string_list("sum_qty", "sum_base_price", "avg_qty", "avg_price", "avg_disc", "count_order")
+      )
+    );
 
   }
   return queries;
@@ -906,15 +1006,20 @@ void benchmark_loop_tpch(
   auto evalStorage = getEvaluateStorageLambda();
   auto eval = getEvaluateLambda();
   cout << endl;
+  std::unordered_set<std::string> micro_queries = {"project", "select", "equi_join", "aggregate"};
 
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
-      if (true && query_name != "q1-tpch") {
+      if (false && (query_name != "q9-tpch")) {
         continue;
       }
 
-      if (false && query_name == "q3-tpch" || query_name == "q9-tpch") {
+      if (false && (query_name == "q3-tpch" || query_name == "q9-tpch")) {
+        continue;
+      }
+
+      if (true && (micro_queries.find(query_name) == micro_queries.end())) {
         continue;
       }
  
@@ -924,9 +1029,9 @@ void benchmark_loop_tpch(
         // cout << evalStorage(shallowCopy(query_expr)) << endl;
         // cout << endl;
         auto res = eval(shallowCopy(query_expr));
-        cout << "res" << endl;
-        cout << res << endl;
-        cout << endl;
+        // cout << "res" << endl;
+        // cout << res << endl;
+        // cout << endl;
       }
 
       if (true) {
