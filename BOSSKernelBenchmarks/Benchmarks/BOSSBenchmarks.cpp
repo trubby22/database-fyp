@@ -211,7 +211,7 @@ void init_storage_engine() {
   auto eval = getEvaluateLambda();
 
   unload_all_tables();
-  checkForErrors(eval("Set"_("LoadToMemoryMappedFiles"_, false)));
+  checkForErrors(eval("Set"_("LoadToMemoryMappedFiles"_, true)));
 }
 
 void initStorageEngine_TPCH() {
@@ -220,7 +220,7 @@ void initStorageEngine_TPCH() {
   auto evalStorage = getEvaluateStorageLambda();
   auto checkForErrors = getCheckForErrorsLambda();
 
-  checkForErrors(evalStorage("Set"_("LoadToMemoryMappedFiles"_, false)));
+  checkForErrors(evalStorage("Set"_("LoadToMemoryMappedFiles"_, true)));
 
   checkForErrors(evalStorage("CreateTable"_(
       "LINEITEM"_, "l_orderkey"_, "l_partkey"_, "l_suppkey"_, "l_linenumber"_, "l_quantity"_,
@@ -258,7 +258,7 @@ void initStorageEngine_TPCH() {
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
-        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_1000MB/" + filename + ".tbl";
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_100MB/" + filename + ".tbl";
     checkForErrors(evalStorage("Load"_(table, path)));
   }
 }
@@ -279,6 +279,7 @@ auto& tpch_queries() {
     }
 
 // we skip order by
+// 1998-12-01 - 90 days = 1998-09-01 -> 10470
 
 // select
 //   l_returnflag,
@@ -292,9 +293,9 @@ auto& tpch_queries() {
 //   avg(l_discount) as avg_disc,
 //   count(*) as count_order
 // from
-//   item
+//   lineitem
 // where
-//   l_shipdate <= 10558
+//   l_shipdate <= '1998-09-01'
 // group by
 //   l_returnflag,
 //   l_linestatus
@@ -308,7 +309,7 @@ auto& tpch_queries() {
                 "LINEITEM"_,
                 string_list("l_shipdate"),
                 string_list("<="),
-                int_list(10558)
+                int_list(10470)
               ),
               string_list(), string_list(), string_list(), 
               int_list(1, 1), string_list("-", "+"), string_list("l_discount", "l_tax"), string_list("x", "y"),
@@ -348,9 +349,9 @@ auto& tpch_queries() {
 // where
 //   and c_custkey = o_custkey
 //   and l_orderkey = o_orderkey
-//   and c_mktsegment = 0
-//   and o_orderdate < 9204
-//   and l_shipdate > 9204
+//   and c_mktsegment = 'BUILDING' -- 0
+//   and o_orderdate < '1995-03-15' -- 9204
+//   and l_shipdate > '1995-03-15' -- 9204
 // group by
 //   l_orderkey,
 //   o_orderdate,
@@ -398,7 +399,6 @@ auto& tpch_queries() {
     );
 
 // we substitute:
-// BUILDING -> 0
 // 1994-01-01 -> 8766
 // 1995-01-01 -> 9131
 
@@ -407,8 +407,8 @@ auto& tpch_queries() {
 // from
 //   lineitem
 // where
-//   l_shipdate >= 8766
-//   and l_shipdate < 9131
+//   l_shipdate >= '1994-01-01' -- 8766
+//   and l_shipdate < '1995-01-01' -- 9131
 //   and l_discount > 0.05 
 //   and l_discount < 0.07
 //   and l_quantity < 24;
@@ -436,9 +436,6 @@ auto& tpch_queries() {
 // we skip order by
 // we skip string pattern matching
 // we skip extracting year from date
-// we substitute:
-// BUILDING -> 0
-// 1995-03-15 -> 9204
 
 // select
 //   nation,
@@ -535,8 +532,8 @@ auto& tpch_queries() {
 // where
 //   p_partkey = l_partkey
 //   and l_quantity < 5.1
-//   and p_brand = 0
-//   and p_container = 0
+//   and p_brand = 'Brand#23' -- 0
+//   and p_container = 'MED BOX' -- 0
   
   queries.try_emplace(
     "q17-tpch",
@@ -913,19 +910,23 @@ void benchmark_loop_tpch(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
-      if (false && query_name != "q9-tpch") {
+      if (true && query_name != "q1-tpch") {
         continue;
       }
 
+      if (false && query_name == "q3-tpch" || query_name == "q9-tpch") {
+        continue;
+      }
+ 
       if (false) {
         cout << shallowCopy(query_expr) << endl;
         cout << endl;
         // cout << evalStorage(shallowCopy(query_expr)) << endl;
         // cout << endl;
         auto res = eval(shallowCopy(query_expr));
-        // cout << "res" << endl;
-        // cout << res << endl;
-        // cout << endl;
+        cout << "res" << endl;
+        cout << res << endl;
+        cout << endl;
       }
 
       if (true) {
