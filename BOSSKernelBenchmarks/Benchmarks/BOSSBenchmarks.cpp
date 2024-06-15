@@ -52,25 +52,25 @@ std::vector<std::string> librariesToTest = {};
 std::string storageLibrary = {};
 
 map<string, string> rand_names_paths = {
-  {"_1_64b", "/root/Documents/4-year/fyp-70011/data/csv/_64b.csv"},
-  {"_2_1mb", "/root/Documents/4-year/fyp-70011/data/csv/_1mb.csv"},
-  {"_3_10mb", "/root/Documents/4-year/fyp-70011/data/csv/_10mb.csv"},
-  {"_4_100mb", "/root/Documents/4-year/fyp-70011/data/csv/_100mb.csv"},
-  {"_5_1gb", "/root/Documents/4-year/fyp-70011/data/csv/_1gb.csv"},
-  {"_6_2gb", "/root/Documents/4-year/fyp-70011/data/csv/_2gb.csv"},
+  // {"_1_64b", "/mnt/data/csv/_64b.csv"},
+  // {"_2_1mb", "/mnt/data/csv/_1mb.csv"},
+  // {"_3_10mb", "/mnt/data/csv/_10mb.csv"},
+  // {"_4_100mb", "/mnt/data/csv/_100mb.csv"},
+  // {"_5_1gb", "/mnt/data/csv/_1gb.csv"},
+  {"_6_2gb", "/mnt/data/csv/_2gb.csv"},
 };
 
 unordered_map<string, string> rand_names = {
-  {"_1_64b", "64 b"},
-  {"_2_1mb", "1 mb"},
-  {"_3_10mb", "10 mb"},
-  {"_4_100mb", "100 mb"},
-  {"_5_1gb", "1 gb"},
+  // {"_1_64b", "64 b"},
+  // {"_2_1mb", "1 mb"},
+  // {"_3_10mb", "10 mb"},
+  // {"_4_100mb", "100 mb"},
+  // {"_5_1gb", "1 gb"},
   {"_6_2gb", "2 gb"},
 };
 
 map<string, string> bixi_names_paths = {
-  {"bixi", "/root/Documents/4-year/fyp-70011/data/csv/bixi.csv"}
+  {"bixi", "/mnt/data/csv/bixi.csv"}
 };
 
 unordered_map<string, string> bixi_names = {
@@ -701,10 +701,10 @@ for k in table.keys():
   table_cpy[k] = [np.concatenate(spans)]
 
 # print('table_cpy', table_cpy, sep='\n')
-res_table_python = {'table': table_cpy, 'matrix': None}
-          )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-          "get_python_var"_("rand_table_python"_),
-          "get_python_var"_("res_table_python"_)
+# res_table_python = {'table': table_cpy, 'matrix': None}
+          )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+          // "get_python_var"_("rand_table_python"_),
+          // "get_python_var"_("res_table_python"_)
         )
     );
     queries.try_emplace(
@@ -720,11 +720,11 @@ for k in table.keys():
 m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 # print('m', m, sep='\n')
 
-m_wrapper = {'data': m, 'col_names': list(table.keys())}
-res_table_python = {'table': None, 'matrix': m_wrapper}
-        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-        "get_python_var"_("rand_table_python"_),
-        "get_python_var"_("res_table_python"_)
+# m_wrapper = {'data': m, 'col_names': list(table.keys())}
+# res_table_python = {'table': None, 'matrix': m_wrapper}
+        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+        // "get_python_var"_("rand_table_python"_),
+        // "get_python_var"_("res_table_python"_)
       )
     );
     queries.try_emplace(
@@ -746,11 +746,11 @@ res = w.T @ m
 #print('res.shape', res.shape)
 #print('res', res, sep='\n')
 
-res_wrapper = {'data': res, 'col_names': ['aggregate_value']}
-res_table_python = {'table': None, 'matrix': res_wrapper}
-        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-        "get_python_var"_("rand_table_python"_),
-        "get_python_var"_("res_table_python"_)
+# res_wrapper = {'data': res, 'col_names': ['aggregate_value']}
+# res_table_python = {'table': None, 'matrix': res_wrapper}
+        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+        // "get_python_var"_("rand_table_python"_),
+        // "get_python_var"_("res_table_python"_)
       )
     );
     queries.try_emplace(
@@ -767,11 +767,11 @@ m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 res = m @ m.T
 # print('res', res, sep='\n')
 
-res_wrapper = {'data': res, 'col_names': list(table.keys())}
-res_table_python = {'table': None, 'matrix': res_wrapper}
-        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
-        "get_python_var"_("rand_table_python"_),
-        "get_python_var"_("res_table_python"_)
+# res_wrapper = {'data': res, 'col_names': list(table.keys())}
+# res_table_python = {'table': None, 'matrix': res_wrapper}
+        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+        // "get_python_var"_("rand_table_python"_),
+        // "get_python_var"_("res_table_python"_)
       )
     );
   }
@@ -944,49 +944,52 @@ void benchmark_loop(
         cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
 
         eval_numpy("reset_python_dict"_);
-
-        const chrono::seconds time_warmup = 3s;
-        const ull warmup_iters = 1;
-        chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
-        chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
-        chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
-        for (ull i = 0; i < warmup_iters || warmup_timestamp < warmup_end_time; i++) {
+  
+        if (true) {
+          // cout << shallowCopy(query_expr) << endl;
+          // cout << endl;
+          // cout << evalStorage(shallowCopy(query_expr)) << endl;
+          // cout << endl;
           auto res = eval(shallowCopy(query_expr));
-          benchmark::DoNotOptimize(res);
-          warmup_timestamp = chrono::high_resolution_clock::now();
+          // cout << "res" << endl;
+          // cout << res << endl;
+          // cout << endl;
         }
 
-        const chrono::seconds time_test = 10s;
-        const ull test_iters = 3;
-        chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
-        chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
-        chrono::high_resolution_clock::time_point test_timestamp = test_start;
-        ull completed_iters = 0;
-        for (completed_iters = 0; completed_iters < test_iters || test_timestamp < test_end_time; completed_iters++) {
-          auto res = eval(shallowCopy(query_expr));
-          benchmark::DoNotOptimize(res);
-          test_timestamp = chrono::high_resolution_clock::now();
-  #ifdef DEBUG
-          cout << "res" << endl;
-          cout << res << endl;
+        if (false) {
+          const chrono::seconds time_warmup = 3s;
+          const ull warmup_iters = 1;
+          chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
+          chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
+          chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
+          for (ull i = 0; i < warmup_iters || warmup_timestamp < warmup_end_time; i++) {
+            auto res = eval(shallowCopy(query_expr));
+            benchmark::DoNotOptimize(res);
+            warmup_timestamp = chrono::high_resolution_clock::now();
+          }
+
+          const chrono::seconds time_test = 10s;
+          const ull test_iters = 1;
+          chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
+          chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
+          chrono::high_resolution_clock::time_point test_timestamp = test_start;
+          ull completed_iters = 0;
+          for (completed_iters = 0; completed_iters < test_iters || test_timestamp < test_end_time; completed_iters++) {
+            auto res = eval(shallowCopy(query_expr));
+            benchmark::DoNotOptimize(res);
+            test_timestamp = chrono::high_resolution_clock::now();
+          }
+
+          chrono::high_resolution_clock::time_point test_end = chrono::high_resolution_clock::now();
+          chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(test_end - test_start);
+          chrono::nanoseconds avg_time = elapsed_time / completed_iters;
+
+          print_elapsed_time(avg_time);
           cout << endl;
-  #endif
+          cout << "end " << " " << query_name << endl;
+          cout << endl;
+          csv << "," << avg_time.count();
         }
-
-        chrono::high_resolution_clock::time_point test_end = chrono::high_resolution_clock::now();
-        chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(test_end - test_start);
-        chrono::nanoseconds avg_time = elapsed_time / completed_iters;
-
-  #ifdef DEBUG
-        cout << query_expr << endl;
-  #endif
-        print_elapsed_time(avg_time);
-        cout << endl;
-        cout << "end " << table_name << " " << query_name << endl;
-        cout << endl;
-
-        csv << "," << avg_time.count();
-
       }
 
     }
@@ -1087,15 +1090,15 @@ void init_and_run_benchmarks() {
     rand_queries()
   );
 
-  csv.str("");
-  csv << "table name,boss data in,boss predict duration from distance" << endl;
-  benchmark_loop(
-    move(csv),
-    bixi_results_path,
-    bixi_names_paths,
-    bixi_names,
-    bixi_queries()
-  );
+  // csv.str("");
+  // csv << "table name,boss data in,boss predict duration from distance" << endl;
+  // benchmark_loop(
+  //   move(csv),
+  //   bixi_results_path,
+  //   bixi_names_paths,
+  //   bixi_names,
+  //   bixi_queries()
+  // );
 
   unload_all_tables();
   release_boss_engines();
@@ -1113,8 +1116,8 @@ void tpch_bench() {
 
 int main() {
   try {
-    // init_and_run_benchmarks();
-    tpch_bench();
+    init_and_run_benchmarks();
+    // tpch_bench();
   } catch(std::exception& e) {
     std::cerr << "caught exception in main: " << e.what() << std::endl;
     boss::evaluate("ResetEngines"_());

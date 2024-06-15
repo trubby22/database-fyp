@@ -1,0 +1,3 @@
+singularity exec --writable --fakeroot --net --network-args "portmap=2222:22/tcp" ubuntu /usr/sbin/sshd -D
+
+singularity shell -e -H /home --pwd /home --no-home -- no-mount $PWD -B /data/ $USER/m2/:/home/.m2,$HOME/.ssh/ authorized_keys:/home/.ssh/authorized_keys,$HOME/.ssh/id_rsa:/home/.ssh/id_rsa /data/ ubuntu
