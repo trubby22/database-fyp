@@ -9,8 +9,8 @@ num_warmup = 0
 num_main = 1
 vendors = [
   'pandas',
-  'duckdb',
-  'sqlite',
+  # 'duckdb',
+  # 'sqlite',
 ]
 
 vendor_input_paths = {
@@ -62,13 +62,21 @@ def predict_duration_from_distance(vendor, table_name):
   go(df)
 
 bixi_queries = {
-  "data in": data_in,
+  # "data in": data_in,
   "predict duration from distance": predict_duration_from_distance,
 }
 
 def load_pandas(table_name):
   path_prefix = vendor_input_paths['pandas']
-  return pd.read_csv(f'{path_prefix}{table_name}.csv')
+  res = pd.read_csv(f'{path_prefix}{table_name}.csv')
+  memory_usage_bytes = res.memory_usage(deep=True).sum()
+
+  # Step 2: Convert the memory usage to megabytes
+  memory_usage_mb = memory_usage_bytes / (1024 ** 2)
+
+  print(f"DataFrame size: {memory_usage_mb:.2f} MB")
+
+  return res
 
 def load_duckdb(table_name):
   with duckdb.connect(vendor_input_paths['duckdb']) as con:
@@ -143,5 +151,5 @@ def bench_loop(table_names, queries, results_path):
 
   timings.to_csv(results_path, index=False)
 
-bench_loop(rand_names, rand_queries, rand_results_path)
+# bench_loop(rand_names, rand_queries, rand_results_path)
 bench_loop(bixi_names, bixi_queries, bixi_results_path)
