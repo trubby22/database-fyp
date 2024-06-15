@@ -39,6 +39,7 @@ def project(
         table[res_name] = res
 
     res = {final_col_renames[i]: table[final_col_names[i]] for i in range(len(final_col_names))}
+    maybe_log_one('res')
     maybe_log_one(res)
     maybe_log_one('project end')
     maybe_log_one()
@@ -58,6 +59,7 @@ def select(table, key_col_names, boolean_ops, vals):
         npy_arr = table[col_name]
         bools &= boolean_op[op](npy_arr, val)
     res = {col_name: table[col_name][ : len(bools)][bools] for col_name in col_names}
+    maybe_log_one('res')
     maybe_log_one(res)
     maybe_log_one('select end')
     maybe_log_one()
@@ -111,6 +113,7 @@ def equi_join(table_1, table_2, key_col_names_1, key_col_names_2):
     table_1_joined = {col_name: table_1_sorted[col_name][res_ix_1_npy] for col_name in col_names_1}
     table_2_joined = {col_name: table_2_sorted[col_name][res_ix_2_npy] for col_name in col_names_2}
     res = table_1_joined | table_2_joined
+    maybe_log_one('res')
     maybe_log_one(res)
     maybe_log_one('equi_join end')
     maybe_log_one()
@@ -158,6 +161,7 @@ def aggregate(table, key_col_names, reduction_funcs, input_reduction_col_names, 
         table_reduced[output_reduction_col_name] = np.array(reduced_col)
     table_key = {col_name: np.array([x[0] for x in table_split_up[col_name]]) for col_name in key_col_names}
     res = table_key | table_reduced
+    maybe_log_one('res')
     maybe_log_one(res)
     maybe_log_one('aggregate end')
     maybe_log_one()
@@ -187,7 +191,7 @@ def is_numeric(s):
     
     return False
 
-def maybe_log_one(x=None):
+def maybe_log_one(x=''):
     if False:
         print(x)
 
