@@ -9,7 +9,7 @@ import math
 cnp.import_array()
 
 def say_hello_to(name):
-    maybe_log_one(f"Hello {name}!")
+    print(f"Hello {name}!")
 
 def project(
     table, 

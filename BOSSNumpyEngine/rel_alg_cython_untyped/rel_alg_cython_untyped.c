@@ -2147,6 +2147,9 @@ static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb, PyObject 
 static PyObject* __Pyx_PyUnicode_Join(PyObject* value_tuple, Py_ssize_t value_count, Py_ssize_t result_ulength,
                                       Py_UCS4 max_char);
 
+/* PyObjectCallOneArg.proto */
+static CYTHON_INLINE PyObject* __Pyx_PyObject_CallOneArg(PyObject *func, PyObject *arg);
+
 /* GetItemInt.proto */
 #define __Pyx_GetItemInt(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
     (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
@@ -2168,9 +2171,6 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize
 static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j);
 static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i,
                                                      int is_list, int wraparound, int boundscheck);
-
-/* PyObjectCallOneArg.proto */
-static CYTHON_INLINE PyObject* __Pyx_PyObject_CallOneArg(PyObject *func, PyObject *arg);
 
 /* ObjectGetItem.proto */
 #if CYTHON_USE_TYPE_SLOTS
@@ -7752,7 +7752,7 @@ static CYTHON_INLINE NPY_DATETIMEUNIT __pyx_f_5numpy_get_datetime64_unit(PyObjec
  * cnp.import_array()
  * 
  * def say_hello_to(name):             # <<<<<<<<<<<<<<
- *     maybe_log_one(f"Hello {name}!")
+ *     print(f"Hello {name}!")
  * 
  */
 
@@ -7856,12 +7856,9 @@ static PyObject *__pyx_pf_22rel_alg_cython_untyped_say_hello_to(CYTHON_UNUSED Py
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  Py_ssize_t __pyx_t_4;
-  Py_UCS4 __pyx_t_5;
-  PyObject *__pyx_t_6 = NULL;
-  int __pyx_t_7;
+  Py_ssize_t __pyx_t_2;
+  Py_UCS4 __pyx_t_3;
+  PyObject *__pyx_t_4 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -7870,64 +7867,42 @@ static PyObject *__pyx_pf_22rel_alg_cython_untyped_say_hello_to(CYTHON_UNUSED Py
   /* "rel_alg_cython_untyped.pyx":12
  * 
  * def say_hello_to(name):
- *     maybe_log_one(f"Hello {name}!")             # <<<<<<<<<<<<<<
+ *     print(f"Hello {name}!")             # <<<<<<<<<<<<<<
  * 
  * def project(
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_maybe_log_one); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 12, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = PyTuple_New(3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 12, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = 0;
-  __pyx_t_5 = 127;
+  __pyx_t_1 = PyTuple_New(3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = 0;
+  __pyx_t_3 = 127;
   __Pyx_INCREF(__pyx_kp_u_Hello);
-  __pyx_t_4 += 6;
+  __pyx_t_2 += 6;
   __Pyx_GIVEREF(__pyx_kp_u_Hello);
-  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_kp_u_Hello);
-  __pyx_t_6 = __Pyx_PyObject_FormatSimple(__pyx_v_name, __pyx_empty_unicode); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 12, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_6);
-  __pyx_t_5 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_6) > __pyx_t_5) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_6) : __pyx_t_5;
-  __pyx_t_4 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_6);
-  __Pyx_GIVEREF(__pyx_t_6);
-  PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_t_6);
-  __pyx_t_6 = 0;
+  PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_kp_u_Hello);
+  __pyx_t_4 = __Pyx_PyObject_FormatSimple(__pyx_v_name, __pyx_empty_unicode); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 12, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_3 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_4) > __pyx_t_3) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_4) : __pyx_t_3;
+  __pyx_t_2 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_4);
+  __Pyx_GIVEREF(__pyx_t_4);
+  PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_t_4);
+  __pyx_t_4 = 0;
   __Pyx_INCREF(__pyx_kp_u__3);
-  __pyx_t_4 += 1;
+  __pyx_t_2 += 1;
   __Pyx_GIVEREF(__pyx_kp_u__3);
-  PyTuple_SET_ITEM(__pyx_t_3, 2, __pyx_kp_u__3);
-  __pyx_t_6 = __Pyx_PyUnicode_Join(__pyx_t_3, 3, __pyx_t_4, __pyx_t_5); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 12, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_6);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = NULL;
-  __pyx_t_7 = 0;
-  #if CYTHON_UNPACK_METHODS
-  if (unlikely(PyMethod_Check(__pyx_t_2))) {
-    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_2);
-    if (likely(__pyx_t_3)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-      __Pyx_INCREF(__pyx_t_3);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_2, function);
-      __pyx_t_7 = 1;
-    }
-  }
-  #endif
-  {
-    PyObject *__pyx_callargs[2] = {__pyx_t_3, __pyx_t_6};
-    __pyx_t_1 = __Pyx_PyObject_FastCall(__pyx_t_2, __pyx_callargs+1-__pyx_t_7, 1+__pyx_t_7);
-    __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_1);
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  }
+  PyTuple_SET_ITEM(__pyx_t_1, 2, __pyx_kp_u__3);
+  __pyx_t_4 = __Pyx_PyUnicode_Join(__pyx_t_1, 3, __pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 12, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_print, __pyx_t_4); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "rel_alg_cython_untyped.pyx":11
  * cnp.import_array()
  * 
  * def say_hello_to(name):             # <<<<<<<<<<<<<<
- *     maybe_log_one(f"Hello {name}!")
+ *     print(f"Hello {name}!")
  * 
  */
 
@@ -7936,9 +7911,7 @@ static PyObject *__pyx_pf_22rel_alg_cython_untyped_say_hello_to(CYTHON_UNUSED Py
   goto __pyx_L0;
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_6);
+  __Pyx_XDECREF(__pyx_t_4);
   __Pyx_AddTraceback("rel_alg_cython_untyped.say_hello_to", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
@@ -7948,7 +7921,7 @@ static PyObject *__pyx_pf_22rel_alg_cython_untyped_say_hello_to(CYTHON_UNUSED Py
 }
 
 /* "rel_alg_cython_untyped.pyx":14
- *     maybe_log_one(f"Hello {name}!")
+ *     print(f"Hello {name}!")
  * 
  * def project(             # <<<<<<<<<<<<<<
  *     table,
@@ -8797,7 +8770,7 @@ static PyObject *__pyx_pf_22rel_alg_cython_untyped_2project(CYTHON_UNUSED PyObje
   goto __pyx_L0;
 
   /* "rel_alg_cython_untyped.pyx":14
- *     maybe_log_one(f"Hello {name}!")
+ *     print(f"Hello {name}!")
  * 
  * def project(             # <<<<<<<<<<<<<<
  *     table,
@@ -13954,7 +13927,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * cnp.import_array()
  * 
  * def say_hello_to(name):             # <<<<<<<<<<<<<<
- *     maybe_log_one(f"Hello {name}!")
+ *     print(f"Hello {name}!")
  * 
  */
   __pyx_tuple__6 = PyTuple_Pack(1, __pyx_n_s_name); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(0, 11, __pyx_L1_error)
@@ -13963,7 +13936,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_codeobj__7 = (PyObject*)__Pyx_PyCode_New(1, 0, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__6, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_rel_alg_cython_untyped_pyx, __pyx_n_s_say_hello_to, 11, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__7)) __PYX_ERR(0, 11, __pyx_L1_error)
 
   /* "rel_alg_cython_untyped.pyx":14
- *     maybe_log_one(f"Hello {name}!")
+ *     print(f"Hello {name}!")
  * 
  * def project(             # <<<<<<<<<<<<<<
  *     table,
@@ -14609,7 +14582,7 @@ if (!__Pyx_RefNanny) {
  * cnp.import_array()
  * 
  * def say_hello_to(name):             # <<<<<<<<<<<<<<
- *     maybe_log_one(f"Hello {name}!")
+ *     print(f"Hello {name}!")
  * 
  */
   __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_22rel_alg_cython_untyped_1say_hello_to, 0, __pyx_n_s_say_hello_to, NULL, __pyx_n_s_rel_alg_cython_untyped, __pyx_d, ((PyObject *)__pyx_codeobj__7)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 11, __pyx_L1_error)
@@ -14618,7 +14591,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "rel_alg_cython_untyped.pyx":14
- *     maybe_log_one(f"Hello {name}!")
+ *     print(f"Hello {name}!")
  * 
  * def project(             # <<<<<<<<<<<<<<
  *     table,
@@ -17982,6 +17955,12 @@ bad:
 #endif
 }
 
+/* PyObjectCallOneArg */
+static CYTHON_INLINE PyObject* __Pyx_PyObject_CallOneArg(PyObject *func, PyObject *arg) {
+    PyObject *args[2] = {NULL, arg};
+    return __Pyx_PyObject_FastCall(func, args+1, 1 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET);
+}
+
 /* GetItemInt */
 static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j) {
     PyObject *r;
@@ -18075,12 +18054,6 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, 
     }
 #endif
     return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
-}
-
-/* PyObjectCallOneArg */
-static CYTHON_INLINE PyObject* __Pyx_PyObject_CallOneArg(PyObject *func, PyObject *arg) {
-    PyObject *args[2] = {NULL, arg};
-    return __Pyx_PyObject_FastCall(func, args+1, 1 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET);
 }
 
 /* ObjectGetItem */

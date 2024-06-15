@@ -1291,10 +1291,6 @@ void Engine::init_python_and_numpy() {
 import numpy as np
 import sys
 sys.path.append("/mnt/ubuntu-image-repos/BOSSNumpyEngine/rel_alg_cython_untyped")
-#if 'rel_alg_cython_untyped' in sys.modules:
-#  del sys.modules['rel_alg_cython_untyped']
-#rel_alg_cython_untyped = importlib.import_module('rel_alg_cython_untyped')
-#importlib.reload(rel_alg_cython_untyped)
   )", Py_file_input, global_dict, local_dict);
 
   main_module = PyImport_AddModule("__main__");
