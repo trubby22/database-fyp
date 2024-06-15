@@ -1,3 +1,16 @@
 singularity exec --writable --fakeroot --net --network-args "portmap=2222:22/tcp" ubuntu /usr/sbin/sshd -D
 
 singularity shell -e -H /home --pwd /home --no-home -- no-mount $PWD -B /data/ $USER/m2/:/home/.m2,$HOME/.ssh/ authorized_keys:/home/.ssh/authorized_keys,$HOME/.ssh/id_rsa:/home/.ssh/id_rsa /data/ ubuntu
+
+/vol/linux/apps/singularity/bin/singularity shell -e -H /home --pwd /home --no-home --no-mount $PWD -B $HOME/Projects/covidhotspotfinder:/home/covidhotspotfinder,/data/$USER/m2/:/home/.m2,/data/$USER/cmake-downloads:/home/.cmake-downloads,$HOME/.ssh/authorized_keys:/home/.ssh/authorized_keys,$HOME/.ssh/id_rsa:/home/.ssh/id_rsa /data/$USER/spe-image_main.sif
+
+singularity shell /data/$USER/spe-image_main.sif
+
+singularity pull -F docker://ghcr.io/little-big-h/spe-image:main
+
+/usr/sbin/sshd -p 2222 -o UsePAM=no -h /home/.ssh/id_rsa
+
+singularity shell --fakeroot -e -H /home --pwd /home --no-home --no-mount $PWD -B $HOME/.ssh/authorized_keys:/home/.ssh/authorized_keys,$HOME/.ssh/id_rsa:/home/.ssh/id_rsa --bind /data/psb120:/mnt vtune.sif
+
+singularity shell --fakeroot --writable --bind /data/psb120:/mnt,$HOME/.ssh/authorized_keys:/home/.ssh/authorized_keys,$HOME/.ssh/id_rsa:/home/.ssh/id_rsa vtune.sif
+

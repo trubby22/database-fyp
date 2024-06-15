@@ -50,6 +50,8 @@ const string bixi_results_path = "/root/Documents/4-year/fyp-70011/experiment-re
 
 std::vector<std::string> librariesToTest = {};
 std::string storageLibrary = {};
+string query_to_run = {};
+string input_size_mb = {};
 
 map<string, string> rand_names_paths = {
   // {"_1_64b", "/mnt/data/csv/_64b.csv"},
@@ -259,7 +261,7 @@ void initStorageEngine_TPCH() {
 
   for(auto const& [filename, table] : filenamesAndTables) {
     std::string path =
-        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_1000MB/" + filename + ".tbl";
+        "/mnt/ubuntu-image-repos/BOSSKernelBenchmarks/data/tpch_" + input_size_mb + "MB/" + filename + ".tbl";
     checkForErrors(evalStorage("Load"_(table, path)));
   }
 }
@@ -351,7 +353,7 @@ auto& tpch_queries() {
 //   orders,
 //   lineitem
 // where
-//   and c_custkey = o_custkey
+//   c_custkey = o_custkey
 //   and l_orderkey = o_orderkey
 //   and c_mktsegment = 'BUILDING' -- 0
 //   and o_orderdate < '1995-03-15' -- 9204
@@ -412,7 +414,7 @@ auto& tpch_queries() {
 //   and l_shipdate < '1995-01-01' -- 9131
 //   and l_discount > 0.05 
 //   and l_discount < 0.07
-//   and l_quantity < 24;
+//   and l_quantity < 24
 
     queries.try_emplace(
       "q6-tpch",
@@ -1014,7 +1016,7 @@ void benchmark_loop_tpch(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
-      if (false && (query_name != "q9-tpch")) {
+      if (true && (query_name != query_to_run)) {
         continue;
       }
 
@@ -1022,7 +1024,7 @@ void benchmark_loop_tpch(
         continue;
       }
 
-      if (true && (micro_queries.find(query_name) == micro_queries.end())) {
+      if (false && (micro_queries.find(query_name) == micro_queries.end())) {
         continue;
       }
  
@@ -1114,10 +1116,24 @@ void tpch_bench() {
   benchmark_loop_tpch(tpch_queries());
 }
 
-int main() {
+int main(int argc, char** argv) {
+  for(int i = 0; i < argc; ++i) {
+    if(std::string("--size") == argv[i]) {
+      if(++i < argc) {
+        input_size_mb = argv[i];
+      }
+    } else if(std::string("--query") == argv[i]) {
+      if(++i < argc) {
+        query_to_run = argv[i];
+      }
+    }
+  }
+  if (input_size_mb == "" || query_to_run == "") {
+    throw runtime_error("provide --size and --query");
+  }
   try {
-    init_and_run_benchmarks();
-    // tpch_bench();
+    // init_and_run_benchmarks();
+    tpch_bench();
   } catch(std::exception& e) {
     std::cerr << "caught exception in main: " << e.what() << std::endl;
     boss::evaluate("ResetEngines"_());
