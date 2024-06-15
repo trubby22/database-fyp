@@ -72,7 +72,7 @@ def load_pandas(table_name):
 
 def load_duckdb(table_name):
   with duckdb.connect(vendor_input_paths['duckdb']) as con:
-    df = con.execute(f"SELECT * FROM {table_name}").fetchdf()
+    df = con.execute(f"EXPLAIN ANALYZE SELECT * FROM {table_name}").fetchdf()
     return df
 
 def load_sqlite(table_name):
