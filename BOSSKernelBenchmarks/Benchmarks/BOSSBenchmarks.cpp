@@ -54,12 +54,12 @@ string query_to_run = {};
 string input_size_mb = {};
 
 map<string, string> rand_names_paths = {
-  {"_1_64b", "/mnt/data/csv/_64b.csv"},
-  {"_2_1mb", "/mnt/data/csv/_1mb.csv"},
-  {"_3_10mb", "/mnt/data/csv/_10mb.csv"},
+  // {"_1_64b", "/mnt/data/csv/_64b.csv"},
+  // {"_2_1mb", "/mnt/data/csv/_1mb.csv"},
+  // {"_3_10mb", "/mnt/data/csv/_10mb.csv"},
   {"_4_100mb", "/mnt/data/csv/_100mb.csv"},
-  {"_5_1gb", "/mnt/data/csv/_1gb.csv"},
-  {"_6_2gb", "/mnt/data/csv/_2gb.csv"},
+  // {"_5_1gb", "/mnt/data/csv/_1gb.csv"},
+  // {"_6_2gb", "/mnt/data/csv/_2gb.csv"},
 };
 
 unordered_map<string, string> rand_names = {
@@ -562,10 +562,10 @@ auto& tpch_queries() {
 
 // based on Q6
 
-select
-  sum(l_extendedprice*l_discount) as revenue
-from
-  lineitem
+// select
+//   sum(l_extendedprice*l_discount) as revenue
+// from
+//   lineitem
 
     queries.try_emplace(
       "project",
@@ -704,7 +704,7 @@ for k in table.keys():
 
 # print('table_cpy', table_cpy, sep='\n')
 res_table_python = {'table': table_cpy, 'matrix': None}
-          )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+          )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
           "get_python_var"_("rand_table_python"_),
           "get_python_var"_("res_table_python"_)
         )
@@ -724,7 +724,7 @@ m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 
 m_wrapper = {'data': m, 'col_names': list(table.keys())}
 res_table_python = {'table': None, 'matrix': m_wrapper}
-        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
         "get_python_var"_("rand_table_python"_),
         "get_python_var"_("res_table_python"_)
       )
@@ -750,7 +750,7 @@ res = w.T @ m
 
 res_wrapper = {'data': res, 'col_names': ['aggregate_value']}
 res_table_python = {'table': None, 'matrix': res_wrapper}
-        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
         "get_python_var"_("rand_table_python"_),
         "get_python_var"_("res_table_python"_)
       )
@@ -771,7 +771,7 @@ res = m @ m.T
 
 res_wrapper = {'data': res, 'col_names': list(table.keys())}
 res_table_python = {'table': None, 'matrix': res_wrapper}
-        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
+        )"_, "Where"_("rand_table_python"_, "rand_table_boss"_)),
         "get_python_var"_("rand_table_python"_),
         "get_python_var"_("res_table_python"_)
       )
@@ -958,7 +958,7 @@ void benchmark_loop(
           // cout << endl;
         }
 
-        if (false) {
+        if (true) {
           const chrono::seconds time_warmup = 3s;
           const ull warmup_iters = 1;
           chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
@@ -1039,7 +1039,7 @@ void benchmark_loop_tpch(
         // cout << endl;
       }
 
-      if (false) {
+      if (true) {
         const chrono::seconds time_warmup = 3s;
         const ull warmup_iters = 1;
         chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
