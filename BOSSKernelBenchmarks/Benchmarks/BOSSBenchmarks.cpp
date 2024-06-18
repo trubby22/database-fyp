@@ -286,7 +286,7 @@ auto& tpch_queries() {
 // ========================== Macro-benchmarks ==========================
 
 
-if(false) {
+if(true) {
   // we skip order by
   // 1998-12-01 - 90 days = 1998-09-01 -> 10470
 
@@ -560,127 +560,130 @@ if(false) {
 
 // ========================== Micro-benchmarks ==========================
 
-if(true) {
+if(false) {
 
   //   sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
 
-    queries.try_emplace(
-        "modified_project",
-          "project"_(
-            "LINEITEM"_,
-            string_list(), string_list(), string_list(),
+    if (false) {
+      queries.try_emplace(
+          "modified_project",
+            "project"_(
+              "LINEITEM"_,
+              string_list(), string_list(), string_list(),
 
-            string_list(
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice", 
-              "l_extendedprice"
-            ), 
-            string_list(
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+",
-              "+"
-            ), 
-            double_list(
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0,
-              1.0
-            ), 
+              string_list(
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice", 
+                "l_extendedprice"
+              ), 
+              string_list(
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+"
+              ), 
+              double_list(
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ), 
 
-            string_list(
-              "x_1",
-              "x_2",
-              "x_3",
-              "x_4",
-              "x_5",
-              "x_6",
-              "x_7",
-              "x_8",
-              "x_9",
-              "x_10",
-              "x_11",
-              "x_12",
-              "x_13",
-              "x_14",
-              "x_15",
-              "x_16"
-            ),
-            string_list(
-              "x_1",
-              "x_2",
-              "x_3",
-              "x_4",
-              "x_5",
-              "x_6",
-              "x_7",
-              "x_8",
-              "x_9",
-              "x_10",
-              "x_11",
-              "x_12",
-              "x_13",
-              "x_14",
-              "x_15",
-              "x_16"
-            ),
-            string_list(
-              "x_1",
-              "x_2",
-              "x_3",
-              "x_4",
-              "x_5",
-              "x_6",
-              "x_7",
-              "x_8",
-              "x_9",
-              "x_10",
-              "x_11",
-              "x_12",
-              "x_13",
-              "x_14",
-              "x_15",
-              "x_16"
+              string_list(
+                "x_1",
+                "x_2",
+                "x_3",
+                "x_4",
+                "x_5",
+                "x_6",
+                "x_7",
+                "x_8",
+                "x_9",
+                "x_10",
+                "x_11",
+                "x_12",
+                "x_13",
+                "x_14",
+                "x_15",
+                "x_16"
+              ),
+              string_list(
+                "x_1",
+                "x_2",
+                "x_3",
+                "x_4",
+                "x_5",
+                "x_6",
+                "x_7",
+                "x_8",
+                "x_9",
+                "x_10",
+                "x_11",
+                "x_12",
+                "x_13",
+                "x_14",
+                "x_15",
+                "x_16"
+              ),
+              string_list(
+                "x_1",
+                "x_2",
+                "x_3",
+                "x_4",
+                "x_5",
+                "x_6",
+                "x_7",
+                "x_8",
+                "x_9",
+                "x_10",
+                "x_11",
+                "x_12",
+                "x_13",
+                "x_14",
+                "x_15",
+                "x_16"
+              )
             )
-          )
-      );
+        );
+    }
+
 
   // based on Q6
 
@@ -1141,11 +1144,11 @@ void benchmark_loop_tpch(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
-      if (true && (query_name != query_to_run)) {
+      if (false && (query_name != query_to_run)) {
         continue;
       }
 
-      if (true && (query_name == "q3-tpch" || query_name == "q9-tpch")) {
+      if (false && (query_name == "q3-tpch" || query_name == "q9-tpch")) {
         continue;
       }
 
@@ -1153,18 +1156,18 @@ void benchmark_loop_tpch(
         continue;
       }
  
-      if (false) {
-        // cout << shallowCopy(query_expr) << endl;
-        // cout << endl;
+      if (true) {
+        cout << shallowCopy(query_expr) << endl;
+        cout << endl;
         // cout << evalStorage(shallowCopy(query_expr)) << endl;
         // cout << endl;
         auto res = eval(shallowCopy(query_expr));
-        // cout << "res" << endl;
-        // cout << res << endl;
-        // cout << endl;
+        cout << "res" << endl;
+        cout << res << endl;
+        cout << endl;
       }
 
-      if (true) {
+      if (false) {
         const chrono::seconds time_warmup = 1s * warmup_duration_s;
         const ull warmup_iters = 1;
         chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
