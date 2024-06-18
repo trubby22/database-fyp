@@ -252,34 +252,49 @@ int Engine::sizeof_dtype(PyArrayObject *npy_arr) {
 
 #pragma region python_to_boss
 
-template <typename T> Span<T> Engine::numpy_arr_to_span_helper(PyObject *py_npy_arr) {
+template <typename T> Span<T> Engine::numpy_arr_to_span_helper(PyObject *py_npy_arr, bool hacky) {
   auto npy_arr = reinterpret_cast<PyArrayObject *>(py_npy_arr);
   T *data = static_cast<T *>(PyArray_DATA(npy_arr));
   auto length = PyArray_SIZE(npy_arr);
-  auto span = boss::Span<T>(data, length, [
-    // npy_arr
-    ]() {
-    // cout << "deleting span" << endl;
-    // Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
-  });
-  return span;
+  if (hacky) {
+    auto span = boss::Span<T>(data, length, [
+      // npy_arr
+      this
+      ]() {
+      // cout << "deleting span" << endl;
+      for (PyObject *intermediate_val : intermediate_vals) {
+        Py_DECREF(intermediate_val);
+      }
+      intermediate_vals = {};
+      // Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
+    });
+    return span;
+  } else {
+    auto span = boss::Span<T>(data, length, [
+      // npy_arr
+      ]() {
+      // cout << "deleting span" << endl;
+      // Py_DECREF(reinterpret_cast<PyObject *>(npy_arr));
+    });
+    return span;
+  }
 }
 
-PythonExpressionSystem::ExpressionSpanArgument Engine::numpy_arr_to_span(PyObject *npy_arr) {
+PythonExpressionSystem::ExpressionSpanArgument Engine::numpy_arr_to_span(PyObject *npy_arr, bool hacky) {
   int typenum = PyArray_TYPE(npy_arr);
 
   switch (typenum) {
   case NPY_INT32:
-    return numpy_arr_to_span_helper<int32_t>(npy_arr);
+    return numpy_arr_to_span_helper<int32_t>(npy_arr, hacky);
     break;
   case NPY_INT64:
-    return numpy_arr_to_span_helper<int64_t>(npy_arr);
+    return numpy_arr_to_span_helper<int64_t>(npy_arr, hacky);
     break;
   case NPY_FLOAT:
-    return numpy_arr_to_span_helper<float_t>(npy_arr);
+    return numpy_arr_to_span_helper<float_t>(npy_arr, hacky);
     break;
   case NPY_DOUBLE:
-    return numpy_arr_to_span_helper<double_t>(npy_arr);
+    return numpy_arr_to_span_helper<double_t>(npy_arr, hacky);
     break;
   default:
     throw runtime_error("shouldn't happen");
@@ -352,10 +367,10 @@ PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_spans_spans
   }
 }
 
-PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_column_spans(PyObject *npy_arr) {
+PythonExpressionSystem::ExpressionSpanArguments Engine::numpy_arr_to_column_spans(PyObject *npy_arr, bool hacky) {
   PythonExpressionSystem::ExpressionSpanArguments result;
   result.reserve(1);
-  auto span_arg = numpy_arr_to_span(npy_arr);
+  auto span_arg = numpy_arr_to_span(npy_arr, hacky);
   result.emplace_back(move(span_arg));
   return result;
 }
@@ -617,6 +632,7 @@ Engine::pydict_column_to_table_column(PyObject *table_dict) {
 
   PyObject *col_name, *npy_arr;
   Py_ssize_t pos = 0;
+  bool first = true;
   while (PyDict_Next(table_dict, &pos, &col_name, &npy_arr)) {
     // Py_INCREF(col_name);
     // Py_INCREF(npy_arr);
@@ -624,7 +640,7 @@ Engine::pydict_column_to_table_column(PyObject *table_dict) {
     // Py_DECREF(col_name);
     Symbol col_head(move(col_name_str));
 
-    auto col_list_spans = numpy_arr_to_column_spans(npy_arr);
+    auto col_list_spans = numpy_arr_to_column_spans(npy_arr, first);
     // Py_DECREF(npy_arr);
     auto boss_list =
         PythonExpressionSystem::ComplexExpression("List"_, {}, {}, move(col_list_spans));
@@ -639,6 +655,7 @@ Engine::pydict_column_to_table_column(PyObject *table_dict) {
     // head = <col_name>
 
     res_dynamics.emplace_back(move(boss_column));
+    first = false;
   }
   // Py_DECREF(table_dict);
 
@@ -1010,6 +1027,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
+              intermediate_vals.emplace_back(result);
               return result;
             }
 
@@ -1045,7 +1063,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-
+              intermediate_vals.emplace_back(result);
               return result;
             }
 
@@ -1082,7 +1100,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-
+              intermediate_vals.emplace_back(result);
               return result;
             }
 
@@ -1119,7 +1137,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-
+              intermediate_vals.emplace_back(result);
               return result;
             }
 

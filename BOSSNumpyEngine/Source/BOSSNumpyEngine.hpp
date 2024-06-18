@@ -74,6 +74,7 @@ private:
   PyObject *rel_alg;
   PyObject *main_module;
   // PyGILState_STATE gstate;
+  vector<PyObject *> intermediate_vals;
 
   ull span_size_bytes;
 
@@ -87,7 +88,7 @@ private:
   PythonExpressionSystem::ComplexExpression npy_matrix_to_table(PyArrayObject *npy_matrix,
                                                 PyObject *col_names);
                                             
-  PythonExpressionSystem::ExpressionSpanArgument numpy_arr_to_span(PyObject *npy_arr);
+  PythonExpressionSystem::ExpressionSpanArgument numpy_arr_to_span(PyObject *npy_arr, bool hacky=false);
   PyObject *span_to_numpy_arr(PythonExpressionSystem::ExpressionSpanArgument &&arg);
   PythonExpressionSystem::ExpressionSpanArguments py_list_to_spans(PyObject *list);
   PyObject *spans_to_py_list(PythonExpressionSystem::ExpressionSpanArguments &&args);
@@ -107,7 +108,7 @@ private:
   PyObject *single_span_list_to_pylist(PythonExpressionSystem::ComplexExpression &&list);
   template <typename T>
   PyObject *primitive_to_pyobject(T &&arg);
-  template <typename T> Span<T> numpy_arr_to_span_helper(PyObject *py_npy_arr);
+  template <typename T> Span<T> numpy_arr_to_span_helper(PyObject *py_npy_arr, bool hacky=false);
   int sizeof_dtype(PyArrayObject *npy_arr);
   template <typename T> NPY_TYPES cpp_type_to_numpy();
   PythonExpressionSystem::ExpressionSpanArguments print_span_args(PythonExpressionSystem::ExpressionSpanArguments &&args);
@@ -118,7 +119,7 @@ private:
   string PyObject_to_string(PyObject *obj);
   template <typename T>
   Span<T> *transfer_ownership(Span<T> &&span);
-  PythonExpressionSystem::ExpressionSpanArguments numpy_arr_to_column_spans(PyObject *npy_arr);
+  PythonExpressionSystem::ExpressionSpanArguments numpy_arr_to_column_spans(PyObject *npy_arr, bool hacky=false);
   template <typename T>
 PythonExpressionSystem::ExpressionSpanArguments numpy_arr_to_spans_spans_helper(PyArrayObject *npy_arr);
 PythonExpressionSystem::ExpressionSpanArguments numpy_arr_to_spans_spans(PyArrayObject *npy_arr);
