@@ -274,7 +274,6 @@ auto& tpch_queries() {
   static map<string, ComplexExpression> queries;
   if(queries.empty()) {
 
-
     if (false) {
       queries.try_emplace(
         "memcheck",
@@ -560,7 +559,7 @@ if(true) {
 
 // ========================== Micro-benchmarks ==========================
 
-if(false) {
+if(true) {
 
   //   sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
 
@@ -1070,13 +1069,13 @@ void benchmark_loop(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
 
-      if (true && (query_name != query_to_run)) {
+      if (false && (query_name != query_to_run)) {
         continue;
       }
 
       eval_numpy("reset_python_dict"_);
 
-      if (true) {
+      if (false) {
         // cout << shallowCopy(query_expr) << endl;
         // cout << endl;
         // cout << evalStorage(shallowCopy(query_expr)) << endl;
@@ -1156,7 +1155,7 @@ void benchmark_loop_tpch(
         continue;
       }
  
-      if (true) {
+      if (false) {
         cout << shallowCopy(query_expr) << endl;
         cout << endl;
         // cout << evalStorage(shallowCopy(query_expr)) << endl;
@@ -1167,7 +1166,7 @@ void benchmark_loop_tpch(
         cout << endl;
       }
 
-      if (false) {
+      if (true) {
         const chrono::seconds time_warmup = 1s * warmup_duration_s;
         const ull warmup_iters = 1;
         chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
@@ -1268,7 +1267,7 @@ int main(int argc, char** argv) {
     throw runtime_error("provide --size and --query and --duration");
   }
   try {
-    // init_and_run_benchmarks();
+    init_and_run_benchmarks();
     tpch_bench();
   } catch(std::exception& e) {
     std::cerr << "caught exception in main: " << e.what() << std::endl;
