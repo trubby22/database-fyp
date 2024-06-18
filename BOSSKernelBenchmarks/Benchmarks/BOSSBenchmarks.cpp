@@ -54,20 +54,20 @@ string query_to_run = {};
 string input_size_mb = {};
 
 map<string, string> rand_names_paths = {
-  // {"_1_64b", "/mnt/data/csv/_64b.csv"},
-  // {"_2_1mb", "/mnt/data/csv/_1mb.csv"},
-  // {"_3_10mb", "/mnt/data/csv/_10mb.csv"},
-  // {"_4_100mb", "/mnt/data/csv/_100mb.csv"},
-  // {"_5_1gb", "/mnt/data/csv/_1gb.csv"},
+  {"_1_64b", "/mnt/data/csv/_64b.csv"},
+  {"_2_1mb", "/mnt/data/csv/_1mb.csv"},
+  {"_3_10mb", "/mnt/data/csv/_10mb.csv"},
+  {"_4_100mb", "/mnt/data/csv/_100mb.csv"},
+  {"_5_1gb", "/mnt/data/csv/_1gb.csv"},
   {"_6_2gb", "/mnt/data/csv/_2gb.csv"},
 };
 
 unordered_map<string, string> rand_names = {
-  // {"_1_64b", "64 b"},
-  // {"_2_1mb", "1 mb"},
-  // {"_3_10mb", "10 mb"},
-  // {"_4_100mb", "100 mb"},
-  // {"_5_1gb", "1 gb"},
+  {"_1_64b", "64 b"},
+  {"_2_1mb", "1 mb"},
+  {"_3_10mb", "10 mb"},
+  {"_4_100mb", "100 mb"},
+  {"_5_1gb", "1 gb"},
   {"_6_2gb", "2 gb"},
 };
 
@@ -631,20 +631,20 @@ from
 
 // based on Q1
 
-select
-  l_returnflag,
-  l_linestatus,
-  sum(l_quantity) as sum_qty,
-  sum(l_extendedprice) as sum_base_price,
-  avg(l_quantity) as avg_qty,
-  avg(l_extendedprice) as avg_price,
-  avg(l_discount) as avg_disc,
-  count(*) as count_order
-from
-  lineitem
-group by
-  l_returnflag,
-  l_linestatus
+// select
+//   l_returnflag,
+//   l_linestatus,
+//   sum(l_quantity) as sum_qty,
+//   sum(l_extendedprice) as sum_base_price,
+//   avg(l_quantity) as avg_qty,
+//   avg(l_extendedprice) as avg_price,
+//   avg(l_discount) as avg_disc,
+//   count(*) as count_order
+// from
+//   lineitem
+// group by
+//   l_returnflag,
+//   l_linestatus
 
     queries.try_emplace(
       "aggregate",
@@ -703,10 +703,10 @@ for k in table.keys():
   table_cpy[k] = [np.concatenate(spans)]
 
 # print('table_cpy', table_cpy, sep='\n')
-# res_table_python = {'table': table_cpy, 'matrix': None}
+res_table_python = {'table': table_cpy, 'matrix': None}
           )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
-          // "get_python_var"_("rand_table_python"_),
-          // "get_python_var"_("res_table_python"_)
+          "get_python_var"_("rand_table_python"_),
+          "get_python_var"_("res_table_python"_)
         )
     );
     queries.try_emplace(
@@ -722,11 +722,11 @@ for k in table.keys():
 m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 # print('m', m, sep='\n')
 
-# m_wrapper = {'data': m, 'col_names': list(table.keys())}
-# res_table_python = {'table': None, 'matrix': m_wrapper}
+m_wrapper = {'data': m, 'col_names': list(table.keys())}
+res_table_python = {'table': None, 'matrix': m_wrapper}
         )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
-        // "get_python_var"_("rand_table_python"_),
-        // "get_python_var"_("res_table_python"_)
+        "get_python_var"_("rand_table_python"_),
+        "get_python_var"_("res_table_python"_)
       )
     );
     queries.try_emplace(
@@ -748,11 +748,11 @@ res = w.T @ m
 #print('res.shape', res.shape)
 #print('res', res, sep='\n')
 
-# res_wrapper = {'data': res, 'col_names': ['aggregate_value']}
-# res_table_python = {'table': None, 'matrix': res_wrapper}
+res_wrapper = {'data': res, 'col_names': ['aggregate_value']}
+res_table_python = {'table': None, 'matrix': res_wrapper}
         )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
-        // "get_python_var"_("rand_table_python"_),
-        // "get_python_var"_("res_table_python"_)
+        "get_python_var"_("rand_table_python"_),
+        "get_python_var"_("res_table_python"_)
       )
     );
     queries.try_emplace(
@@ -769,11 +769,11 @@ m = np.stack(list(table_cpy.values()), axis=0) # matrix row = table column
 res = m @ m.T
 # print('res', res, sep='\n')
 
-# res_wrapper = {'data': res, 'col_names': list(table.keys())}
-# res_table_python = {'table': None, 'matrix': res_wrapper}
+res_wrapper = {'data': res, 'col_names': list(table.keys())}
+res_table_python = {'table': None, 'matrix': res_wrapper}
         )"_, "Where"_("rand_table_python"_, "rand_table_boss"_))
-        // "get_python_var"_("rand_table_python"_),
-        // "get_python_var"_("res_table_python"_)
+        "get_python_var"_("rand_table_python"_),
+        "get_python_var"_("res_table_python"_)
       )
     );
   }
@@ -1016,7 +1016,7 @@ void benchmark_loop_tpch(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
-      if (true && (query_name != query_to_run)) {
+      if (false && (query_name != query_to_run)) {
         continue;
       }
 
@@ -1028,9 +1028,9 @@ void benchmark_loop_tpch(
         continue;
       }
  
-      if (false) {
-        cout << shallowCopy(query_expr) << endl;
-        cout << endl;
+      if (true) {
+        // cout << shallowCopy(query_expr) << endl;
+        // cout << endl;
         // cout << evalStorage(shallowCopy(query_expr)) << endl;
         // cout << endl;
         auto res = eval(shallowCopy(query_expr));
@@ -1039,7 +1039,7 @@ void benchmark_loop_tpch(
         // cout << endl;
       }
 
-      if (true) {
+      if (false) {
         const chrono::seconds time_warmup = 3s;
         const ull warmup_iters = 1;
         chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
@@ -1092,15 +1092,15 @@ void init_and_run_benchmarks() {
     rand_queries()
   );
 
-  // csv.str("");
-  // csv << "table name,boss data in,boss predict duration from distance" << endl;
-  // benchmark_loop(
-  //   move(csv),
-  //   bixi_results_path,
-  //   bixi_names_paths,
-  //   bixi_names,
-  //   bixi_queries()
-  // );
+  csv.str("");
+  csv << "table name,boss data in,boss predict duration from distance" << endl;
+  benchmark_loop(
+    move(csv),
+    bixi_results_path,
+    bixi_names_paths,
+    bixi_names,
+    bixi_queries()
+  );
 
   unload_all_tables();
   release_boss_engines();
@@ -1132,7 +1132,7 @@ int main(int argc, char** argv) {
     throw runtime_error("provide --size and --query");
   }
   try {
-    // init_and_run_benchmarks();
+    init_and_run_benchmarks();
     tpch_bench();
   } catch(std::exception& e) {
     std::cerr << "caught exception in main: " << e.what() << std::endl;
