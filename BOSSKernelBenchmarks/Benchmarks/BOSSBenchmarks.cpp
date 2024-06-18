@@ -52,6 +52,8 @@ std::vector<std::string> librariesToTest = {};
 std::string storageLibrary = {};
 string query_to_run = {};
 string input_size_mb = {};
+int test_duration_s = 0;
+int warmup_duration_s = 0;
 
 map<string, string> rand_names_paths = {
   // {"_1_64b", "/mnt/data/csv/_64b.csv"},
@@ -275,7 +277,7 @@ auto& tpch_queries() {
 
     if (false) {
       queries.try_emplace(
-        "test-arrow-storage",
+        "memcheck",
           "foo"_("LINEITEM"_)
       );
       return queries;
@@ -284,378 +286,499 @@ auto& tpch_queries() {
 // ========================== Macro-benchmarks ==========================
 
 
-// we skip order by
-// 1998-12-01 - 90 days = 1998-09-01 -> 10470
+if(false) {
+  // we skip order by
+  // 1998-12-01 - 90 days = 1998-09-01 -> 10470
 
-// select
-//   l_returnflag,
-//   l_linestatus,
-//   sum(l_quantity) as sum_qty,
-//   sum(l_extendedprice) as sum_base_price,
-//   sum(l_extendedprice*(1-l_discount)) as sum_disc_price,
-//   sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
-//   avg(l_quantity) as avg_qty,
-//   avg(l_extendedprice) as avg_price,
-//   avg(l_discount) as avg_disc,
-//   count(*) as count_order
-// from
-//   lineitem
-// where
-//   l_shipdate <= '1998-09-01'
-// group by
-//   l_returnflag,
-//   l_linestatus
- 
-    queries.try_emplace(
-      "q1-tpch",
+  // select
+  //   l_returnflag,
+  //   l_linestatus,
+  //   sum(l_quantity) as sum_qty,
+  //   sum(l_extendedprice) as sum_base_price,
+  //   sum(l_extendedprice*(1-l_discount)) as sum_disc_price,
+  //   sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
+  //   avg(l_quantity) as avg_qty,
+  //   avg(l_extendedprice) as avg_price,
+  //   avg(l_discount) as avg_disc,
+  //   count(*) as count_order
+  // from
+  //   lineitem
+  // where
+  //   l_shipdate <= '1998-09-01'
+  // group by
+  //   l_returnflag,
+  //   l_linestatus
+  
+      queries.try_emplace(
+        "q1-tpch",
+          "aggregate"_(
+            "project"_(
+              "project"_(
+                "select"_(
+                  "LINEITEM"_,
+                  string_list("l_shipdate"),
+                  string_list("<="),
+                  int_list(10470)
+                ),
+                string_list(), string_list(), string_list(), 
+                int_list(1, 1), string_list("-", "+"), string_list("l_discount", "l_tax"), string_list("x", "y"),
+                string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "x", "y"),
+                string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "x", "y")
+              ),
+              string_list(), string_list(), string_list(), 
+              string_list("l_extendedprice", "z"), string_list("*", "*"), string_list("x", "y"), string_list("z", "w"),
+              string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "z", "w"),
+              string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "z", "w")
+            ),
+            string_list("l_returnflag", "l_linestatus"),
+            string_list("sum", "sum", "sum", "sum", "avg", "avg", "avg", "count"),
+            string_list("l_quantity", "l_extendedprice", "z", "w", "l_quantity", "l_extendedprice", "l_discount", "l_quantity"),
+            string_list("sum_qty", "sum_base_price", "sum_disc_price", "sum_charge", "avg_qty", "avg_price", "avg_disc", "count_order")
+          )
+      );
+
+  // we skip order by
+  // we substitute:
+  // BUILDING -> 0
+  // 1995-03-15 -> 9204
+
+  // select
+  //   l_orderkey,
+  //   sum(l_extendedprice*(1-l_discount)) as revenue,
+  //   o_orderdate,
+  //   o_shippriority
+  // from
+  //   customer,
+  //   orders,
+  //   lineitem
+  // where
+  //   c_custkey = o_custkey
+  //   and l_orderkey = o_orderkey
+  //   and c_mktsegment = 'BUILDING' -- 0
+  //   and o_orderdate < '1995-03-15' -- 9204
+  //   and l_shipdate > '1995-03-15' -- 9204
+  // group by
+  //   l_orderkey,
+  //   o_orderdate,
+  //   o_shippriority
+
+      queries.try_emplace(
+        "q3-tpch",
         "aggregate"_(
           "project"_(
             "project"_(
               "select"_(
-                "LINEITEM"_,
-                string_list("l_shipdate"),
-                string_list("<="),
-                int_list(10470)
+                "equi_join"_(
+                  "equi_join"_(
+                    "CUSTOMER"_,
+                    "ORDERS"_,
+                    string_list("c_custkey"),
+                    string_list("o_custkey")
+                  ),
+                  "LINEITEM"_,
+                  string_list("o_orderkey"),
+                  string_list("l_orderkey")
+                ),
+                string_list("o_orderdate", "l_shipdate", "c_mktsegment"),
+                string_list("<", ">", "=="),
+                int_list(9204, 9204, 0)
               ),
               string_list(), string_list(), string_list(), 
-              int_list(1, 1), string_list("-", "+"), string_list("l_discount", "l_tax"), string_list("x", "y"),
-              string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "x", "y"),
-              string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "x", "y")
+              int_list(1), string_list("-"), string_list("l_discount"), string_list("x"),
+              string_list("l_orderkey", "l_extendedprice", "x", "o_orderdate", "o_shippriority", "o_orderkey"),
+              string_list("l_orderkey", "l_extendedprice", "x", "o_orderdate", "o_shippriority", "o_orderkey")
             ),
-            string_list(), string_list(), string_list(), 
-            string_list("l_extendedprice", "z"), string_list("*", "*"), string_list("x", "y"), string_list("z", "w"),
-            string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "z", "w"),
-            string_list("l_returnflag", "l_linestatus", "l_quantity", "l_extendedprice", "l_discount", "z", "w")
+            string_list(), string_list(), string_list(),
+            string_list("l_extendedprice"), string_list("*"), string_list("x"), string_list("y"),
+            string_list("l_orderkey", "y", "o_orderdate", "o_shippriority", "o_orderkey"),
+            string_list("l_orderkey", "y", "o_orderdate", "o_shippriority", "o_orderkey")
           ),
-          string_list("l_returnflag", "l_linestatus"),
-          string_list("sum", "sum", "sum", "sum", "avg", "avg", "avg", "count"),
-          string_list("l_quantity", "l_extendedprice", "z", "w", "l_quantity", "l_extendedprice", "l_discount", "l_quantity"),
-          string_list("sum_qty", "sum_base_price", "sum_disc_price", "sum_charge", "avg_qty", "avg_price", "avg_disc", "count_order")
+          string_list("l_orderkey", "o_orderkey", "o_shippriority"),
+          string_list("sum"),
+          string_list("y"),
+          string_list("revenue")
         )
-    );
+      );
 
-    if (false) {
-      return queries;
-    }
+  // we substitute:
+  // 1994-01-01 -> 8766
+  // 1995-01-01 -> 9131
 
-// we skip order by
-// we substitute:
-// BUILDING -> 0
-// 1995-03-15 -> 9204
+  // select
+  //   sum(l_extendedprice*l_discount) as revenue
+  // from
+  //   lineitem
+  // where
+  //   l_shipdate >= '1994-01-01' -- 8766
+  //   and l_shipdate < '1995-01-01' -- 9131
+  //   and l_discount > 0.05 
+  //   and l_discount < 0.07
+  //   and l_quantity < 24
 
-// select
-//   l_orderkey,
-//   sum(l_extendedprice*(1-l_discount)) as revenue,
-//   o_orderdate,
-//   o_shippriority
-// from
-//   customer,
-//   orders,
-//   lineitem
-// where
-//   c_custkey = o_custkey
-//   and l_orderkey = o_orderkey
-//   and c_mktsegment = 'BUILDING' -- 0
-//   and o_orderdate < '1995-03-15' -- 9204
-//   and l_shipdate > '1995-03-15' -- 9204
-// group by
-//   l_orderkey,
-//   o_orderdate,
-//   o_shippriority
-
-    queries.try_emplace(
-      "q3-tpch",
-      "aggregate"_(
+      queries.try_emplace(
+        "q6-tpch",
         "project"_(
           "project"_(
             "select"_(
-              "equi_join"_(
-                "equi_join"_(
-                  "CUSTOMER"_,
-                  "ORDERS"_,
-                  string_list("c_custkey"),
-                  string_list("o_custkey")
-                ),
-                "LINEITEM"_,
-                string_list("o_orderkey"),
-                string_list("l_orderkey")
-              ),
-              string_list("o_orderdate", "l_shipdate", "c_mktsegment"),
-              string_list("<", ">", "=="),
-              int_list(9204, 9204, 0)
+              "LINEITEM"_,
+              string_list("l_shipdate", "l_shipdate", "l_discount", "l_discount", "l_quantity"),
+              string_list(">=", "<", ">", "<", "<"),
+              double_list(8766, 9131, 0.05, 0.07, 24)
             ),
-            string_list(), string_list(), string_list(), 
-            int_list(1), string_list("-"), string_list("l_discount"), string_list("x"),
-            string_list("l_orderkey", "l_extendedprice", "x", "o_orderdate", "o_shippriority", "o_orderkey"),
-            string_list("l_orderkey", "l_extendedprice", "x", "o_orderdate", "o_shippriority", "o_orderkey")
+            string_list(), string_list(), string_list(),
+            string_list("l_extendedprice"), string_list("*"), string_list("l_discount"), string_list("x"),
+            string_list("x"), string_list("x")
           ),
-          string_list(), string_list(), string_list(),
-          string_list("l_extendedprice"), string_list("*"), string_list("x"), string_list("y"),
-          string_list("l_orderkey", "y", "o_orderdate", "o_shippriority", "o_orderkey"),
-          string_list("l_orderkey", "y", "o_orderdate", "o_shippriority", "o_orderkey")
-        ),
-        string_list("l_orderkey", "o_orderkey", "o_shippriority"),
-        string_list("sum"),
-        string_list("y"),
-        string_list("revenue")
-      )
-    );
+          string_list("sum"), string_list("x"), string_list("revenue"),
+          string_list(), string_list(), string_list(), string_list(), 
+          string_list("revenue"), string_list("revenue") 
+        )
+      );
 
-// we substitute:
-// 1994-01-01 -> 8766
-// 1995-01-01 -> 9131
+  // we skip order by
+  // we skip string pattern matching
+  // we skip extracting year from date
 
-// select
-//   sum(l_extendedprice*l_discount) as revenue
-// from
-//   lineitem
-// where
-//   l_shipdate >= '1994-01-01' -- 8766
-//   and l_shipdate < '1995-01-01' -- 9131
-//   and l_discount > 0.05 
-//   and l_discount < 0.07
-//   and l_quantity < 24
-
-    queries.try_emplace(
-      "q6-tpch",
-      "project"_(
-        "project"_(
-          "select"_(
-            "LINEITEM"_,
-            string_list("l_shipdate", "l_shipdate", "l_discount", "l_discount", "l_quantity"),
-            string_list(">=", "<", ">", "<", "<"),
-            double_list(8766, 9131, 0.05, 0.07, 24)
-          ),
-          string_list(), string_list(), string_list(),
-          string_list("l_extendedprice"), string_list("*"), string_list("l_discount"), string_list("x"),
-          string_list("x"), string_list("x")
-        ),
-        string_list("sum"), string_list("x"), string_list("revenue"),
-        string_list(), string_list(), string_list(), string_list(), 
-        string_list("revenue"), string_list("revenue") 
-      )
-    );
-
-// we skip order by
-// we skip string pattern matching
-// we skip extracting year from date
-
-// select
-//   nation,
-//   o_orderdate,
-//   sum(amount) as sum_profit
-// from (
-//   select
-//     n_name as nation,
-//     o_orderdate,
-//     l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
-//   from
-//     part,
-//     supplier,
-//     lineitem,
-//     partsupp,
-//     orders,
-//     nation
-//   where
-//     s_suppkey = l_suppkey
-//     and ps_suppkey = l_suppkey
-//     and ps_partkey = l_partkey
-//     and p_partkey = l_partkey
-//     and o_orderkey = l_orderkey
-//     and s_nationkey = n_nationkey
-//   )
-// group by
-//   nation,
-//   o_orderdate
-  
-    queries.try_emplace(
-      "q9-tpch",
-      "aggregate"_(
-        "project"_(
+  // select
+  //   nation,
+  //   o_orderdate,
+  //   sum(amount) as sum_profit
+  // from (
+  //   select
+  //     n_name as nation,
+  //     o_orderdate,
+  //     l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
+  //   from
+  //     part,
+  //     supplier,
+  //     lineitem,
+  //     partsupp,
+  //     orders,
+  //     nation
+  //   where
+  //     s_suppkey = l_suppkey
+  //     and ps_suppkey = l_suppkey
+  //     and ps_partkey = l_partkey
+  //     and p_partkey = l_partkey
+  //     and o_orderkey = l_orderkey
+  //     and s_nationkey = n_nationkey
+  //   )
+  // group by
+  //   nation,
+  //   o_orderdate
+    
+      queries.try_emplace(
+        "q9-tpch",
+        "aggregate"_(
           "project"_(
-            "equi_join"_(
+            "project"_(
               "equi_join"_(
                 "equi_join"_(
                   "equi_join"_(
                     "equi_join"_(
-                      "SUPPLIER"_,
-                      "LINEITEM"_,
-                      string_list("s_suppkey"),
-                      string_list("l_suppkey")
+                      "equi_join"_(
+                        "SUPPLIER"_,
+                        "LINEITEM"_,
+                        string_list("s_suppkey"),
+                        string_list("l_suppkey")
+                      ),
+                      "PARTSUPP"_,
+                      string_list("l_suppkey", "l_partkey"),
+                      string_list("ps_suppkey", "ps_partkey")
                     ),
-                    "PARTSUPP"_,
-                    string_list("l_suppkey", "l_partkey"),
-                    string_list("ps_suppkey", "ps_partkey")
+                    "PART"_,
+                    string_list("l_partkey"),
+                    string_list("p_partkey")
                   ),
-                  "PART"_,
-                  string_list("l_partkey"),
-                  string_list("p_partkey")
+                  "ORDERS"_,
+                  string_list("l_orderkey"),
+                  string_list("o_orderkey")
                 ),
-                "ORDERS"_,
-                string_list("l_orderkey"),
-                string_list("o_orderkey")
+                "NATION"_,
+                string_list("s_nationkey"),
+                string_list("n_nationkey")
               ),
-              "NATION"_,
-              string_list("s_nationkey"),
-              string_list("n_nationkey")
+              string_list(), string_list(), string_list(),
+              int_list(1),
+              string_list("-"),
+              string_list("l_discount"),
+              string_list("x"),
+              string_list("l_extendedprice", "ps_supplycost", "x", "l_quantity", "n_name", "o_orderdate"),
+              string_list("l_extendedprice", "ps_supplycost", "x", "l_quantity", "n_name", "o_orderdate")
             ),
             string_list(), string_list(), string_list(),
-            int_list(1),
-            string_list("-"),
-            string_list("l_discount"),
-            string_list("x"),
-            string_list("l_extendedprice", "ps_supplycost", "x", "l_quantity", "n_name", "o_orderdate"),
-            string_list("l_extendedprice", "ps_supplycost", "x", "l_quantity", "n_name", "o_orderdate")
+            string_list("l_extendedprice", "ps_supplycost", "y"),
+            string_list("*", "*", "-"), 
+            string_list("x", "l_quantity", "z"), 
+            string_list("y", "z", "amount"),
+            string_list("n_name", "o_orderdate", "amount"),
+            string_list("nation", "o_orderdate", "amount")
           ),
-          string_list(), string_list(), string_list(),
-          string_list("l_extendedprice", "ps_supplycost", "y"),
-          string_list("*", "*", "-"), 
-          string_list("x", "l_quantity", "z"), 
-          string_list("y", "z", "amount"),
-          string_list("n_name", "o_orderdate", "amount"),
-          string_list("nation", "o_orderdate", "amount")
+          string_list("nation", "o_orderdate"),
+          string_list("sum"),
+          string_list("amount"),
+          string_list("sum_profit")
+        )
+      );
+
+  // we substitute:
+  // a sub-query that evaluates to a scalar value -> 5.1
+  // Brand#23 -> 0
+  // MED BOX -> 0
+
+  // select
+  //   sum(l_extendedprice) / 7.0 as avg_yearly
+  // from
+  //   lineitem,
+  //   part
+  // where
+  //   p_partkey = l_partkey
+  //   and l_quantity < 5.1
+  //   and p_brand = 'Brand#23' -- 0
+  //   and p_container = 'MED BOX' -- 0
+    
+    queries.try_emplace(
+      "q17-tpch",
+      "project"_(
+        "select"_(
+          "equi_join"_(
+            "LINEITEM"_,
+            "PART"_,
+            string_list("l_partkey"),
+            string_list("p_partkey")
+          ),
+          string_list("l_quantity", "p_brand", "p_container"),
+          string_list("<", "==", "=="),
+          double_list(5.1, 0, 0)
         ),
-        string_list("nation", "o_orderdate"),
-        string_list("sum"),
-        string_list("amount"),
-        string_list("sum_profit")
+        string_list("sum"), string_list("l_extendedprice"), string_list("x"),
+        string_list("x"), string_list("/"), double_list(7.0), string_list("avg_yearly"),
+        string_list("avg_yearly"), string_list("avg_yearly")
       )
     );
-
-// we substitute:
-// a sub-query that evaluates to a scalar value -> 5.1
-// Brand#23 -> 0
-// MED BOX -> 0
-
-// select
-//   sum(l_extendedprice) / 7.0 as avg_yearly
-// from
-//   lineitem,
-//   part
-// where
-//   p_partkey = l_partkey
-//   and l_quantity < 5.1
-//   and p_brand = 'Brand#23' -- 0
-//   and p_container = 'MED BOX' -- 0
-  
-  queries.try_emplace(
-    "q17-tpch",
-    "project"_(
-      "select"_(
-        "equi_join"_(
-          "LINEITEM"_,
-          "PART"_,
-          string_list("l_partkey"),
-          string_list("p_partkey")
-        ),
-        string_list("l_quantity", "p_brand", "p_container"),
-        string_list("<", "==", "=="),
-        double_list(5.1, 0, 0)
-      ),
-      string_list("sum"), string_list("l_extendedprice"), string_list("x"),
-      string_list("x"), string_list("/"), double_list(7.0), string_list("avg_yearly"),
-      string_list("avg_yearly"), string_list("avg_yearly")
-    )
-  );
+  }
 
 // ========================== Micro-benchmarks ==========================
 
-// based on Q6
+if(true) {
 
-// select
-//   sum(l_extendedprice*l_discount) as revenue
-// from
-//   lineitem
+  //   sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
 
     queries.try_emplace(
-      "project",
-      "project"_(
+        "modified_project",
+          "project"_(
+            "LINEITEM"_,
+            string_list(), string_list(), string_list(),
+
+            string_list(
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice", 
+              "l_extendedprice"
+            ), 
+            string_list(
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+",
+              "+"
+            ), 
+            double_list(
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ), 
+
+            string_list(
+              "x_1",
+              "x_2",
+              "x_3",
+              "x_4",
+              "x_5",
+              "x_6",
+              "x_7",
+              "x_8",
+              "x_9",
+              "x_10",
+              "x_11",
+              "x_12",
+              "x_13",
+              "x_14",
+              "x_15",
+              "x_16"
+            ),
+            string_list(
+              "x_1",
+              "x_2",
+              "x_3",
+              "x_4",
+              "x_5",
+              "x_6",
+              "x_7",
+              "x_8",
+              "x_9",
+              "x_10",
+              "x_11",
+              "x_12",
+              "x_13",
+              "x_14",
+              "x_15",
+              "x_16"
+            ),
+            string_list(
+              "x_1",
+              "x_2",
+              "x_3",
+              "x_4",
+              "x_5",
+              "x_6",
+              "x_7",
+              "x_8",
+              "x_9",
+              "x_10",
+              "x_11",
+              "x_12",
+              "x_13",
+              "x_14",
+              "x_15",
+              "x_16"
+            )
+          )
+      );
+
+  // based on Q6
+
+  // select
+  //   sum(l_extendedprice*l_discount) as revenue
+  // from
+  //   lineitem
+
+      queries.try_emplace(
+        "project",
         "project"_(
+          "project"_(
+            "LINEITEM"_,
+            string_list(), string_list(), string_list(),
+            string_list("l_extendedprice"), string_list("*"), string_list("l_discount"), string_list("x"),
+            string_list("x"), string_list("x")
+          ),
+          string_list("sum"), string_list("x"), string_list("revenue"),
+          string_list(), string_list(), string_list(), string_list(), 
+          string_list("revenue"), string_list("revenue") 
+        )
+      );
+
+  // based on Q6
+
+  // we substitute:
+  // 1994-01-01 -> 8766
+  // 1995-01-01 -> 9131
+
+  // select
+  //   *
+  // from
+  //   lineitem
+  // where
+  //   l_shipdate >= '1994-01-01' -- 8766
+  //   and l_shipdate < '1995-01-01' -- 9131
+  //   and l_discount > 0.05 
+  //   and l_discount < 0.07
+  //   and l_quantity < 24
+
+      queries.try_emplace(
+        "select",
+        "select"_(
           "LINEITEM"_,
-          string_list(), string_list(), string_list(),
-          string_list("l_extendedprice"), string_list("*"), string_list("l_discount"), string_list("x"),
-          string_list("x"), string_list("x")
-        ),
-        string_list("sum"), string_list("x"), string_list("revenue"),
-        string_list(), string_list(), string_list(), string_list(), 
-        string_list("revenue"), string_list("revenue") 
-      )
-    );
+          string_list("l_shipdate", "l_shipdate", "l_discount", "l_discount", "l_quantity"),
+          string_list(">=", "<", ">", "<", "<"),
+          double_list(8766, 9131, 0.05, 0.07, 24)
+        )
+      );
 
-// based on Q6
+  // based on Q3
 
-// we substitute:
-// 1994-01-01 -> 8766
-// 1995-01-01 -> 9131
+  // select
+  //   *
+  // from
+  //   orders,
+  //   lineitem
+  // where
+  //   l_orderkey = o_orderkey
 
-// select
-//   *
-// from
-//   lineitem
-// where
-//   l_shipdate >= '1994-01-01' -- 8766
-//   and l_shipdate < '1995-01-01' -- 9131
-//   and l_discount > 0.05 
-//   and l_discount < 0.07
-//   and l_quantity < 24
+      queries.try_emplace(
+        "equi_join",
+        "equi_join"_(
+          "ORDERS"_,
+          "LINEITEM"_,
+          string_list("o_orderkey"),
+          string_list("l_orderkey")
+        )
+      );
 
-    queries.try_emplace(
-      "select",
-      "select"_(
-        "LINEITEM"_,
-        string_list("l_shipdate", "l_shipdate", "l_discount", "l_discount", "l_quantity"),
-        string_list(">=", "<", ">", "<", "<"),
-        double_list(8766, 9131, 0.05, 0.07, 24)
-      )
-    );
+  // based on Q1
 
-// based on Q3
+  // select
+  //   l_returnflag,
+  //   l_linestatus,
+  //   sum(l_quantity) as sum_qty,
+  //   sum(l_extendedprice) as sum_base_price,
+  //   avg(l_quantity) as avg_qty,
+  //   avg(l_extendedprice) as avg_price,
+  //   avg(l_discount) as avg_disc,
+  //   count(*) as count_order
+  // from
+  //   lineitem
+  // group by
+  //   l_returnflag,
+  //   l_linestatus
 
-// select
-//   *
-// from
-//   orders,
-//   lineitem
-// where
-//   l_orderkey = o_orderkey
-
-    queries.try_emplace(
-      "equi_join",
-      "equi_join"_(
-        "ORDERS"_,
-        "LINEITEM"_,
-        string_list("o_orderkey"),
-        string_list("l_orderkey")
-      )
-    );
-
-// based on Q1
-
-// select
-//   l_returnflag,
-//   l_linestatus,
-//   sum(l_quantity) as sum_qty,
-//   sum(l_extendedprice) as sum_base_price,
-//   avg(l_quantity) as avg_qty,
-//   avg(l_extendedprice) as avg_price,
-//   avg(l_discount) as avg_disc,
-//   count(*) as count_order
-// from
-//   lineitem
-// group by
-//   l_returnflag,
-//   l_linestatus
-
-    queries.try_emplace(
-      "aggregate",
-      "aggregate"_(
-        "LINEITEM"_,
-        string_list("l_returnflag", "l_linestatus"),
-        string_list("sum", "sum", "avg", "avg", "avg", "count"),
-        string_list("l_quantity", "l_extendedprice", "l_quantity", "l_extendedprice", "l_discount", "l_quantity"),
-        string_list("sum_qty", "sum_base_price", "avg_qty", "avg_price", "avg_disc", "count_order")
-      )
-    );
+      queries.try_emplace(
+        "aggregate",
+        "aggregate"_(
+          "LINEITEM"_,
+          string_list("l_returnflag", "l_linestatus"),
+          string_list("sum", "sum", "avg", "avg", "avg", "count"),
+          string_list("l_quantity", "l_extendedprice", "l_quantity", "l_extendedprice", "l_discount", "l_quantity"),
+          string_list("sum_qty", "sum_base_price", "avg_qty", "avg_price", "avg_disc", "count_order")
+        )
+      );
+    }
 
   }
   return queries;
@@ -942,58 +1065,60 @@ void benchmark_loop(
     csv << table_names[table_name];
 
     for (const auto& [query_name, query_expr] : query_names_exprs) {
-      for (int j = 0; j < 1; j++) {
-        cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
+      cout << "========== start " << table_name << " " << query_name << " ==========" << endl;
 
-        eval_numpy("reset_python_dict"_);
-  
-        if (true) {
-          // cout << shallowCopy(query_expr) << endl;
-          // cout << endl;
-          // cout << evalStorage(shallowCopy(query_expr)) << endl;
-          // cout << endl;
-          auto res = eval(shallowCopy(query_expr));
-          // cout << "res" << endl;
-          // cout << res << endl;
-          // cout << endl;
-        }
-
-        if (true) {
-          const chrono::seconds time_warmup = 3s;
-          const ull warmup_iters = 1;
-          chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
-          chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
-          chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
-          for (ull i = 0; i < warmup_iters || warmup_timestamp < warmup_end_time; i++) {
-            auto res = eval(shallowCopy(query_expr));
-            benchmark::DoNotOptimize(res);
-            warmup_timestamp = chrono::high_resolution_clock::now();
-          }
-
-          const chrono::seconds time_test = 10s;
-          const ull test_iters = 1;
-          chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
-          chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
-          chrono::high_resolution_clock::time_point test_timestamp = test_start;
-          ull completed_iters = 0;
-          for (completed_iters = 0; completed_iters < test_iters || test_timestamp < test_end_time; completed_iters++) {
-            auto res = eval(shallowCopy(query_expr));
-            benchmark::DoNotOptimize(res);
-            test_timestamp = chrono::high_resolution_clock::now();
-          }
-
-          chrono::high_resolution_clock::time_point test_end = chrono::high_resolution_clock::now();
-          chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(test_end - test_start);
-          chrono::nanoseconds avg_time = elapsed_time / completed_iters;
-
-          print_elapsed_time(avg_time);
-          cout << endl;
-          cout << "end " << " " << query_name << endl;
-          cout << endl;
-          csv << "," << avg_time.count();
-        }
+      if (true && (query_name != query_to_run)) {
+        continue;
       }
 
+      eval_numpy("reset_python_dict"_);
+
+      if (true) {
+        // cout << shallowCopy(query_expr) << endl;
+        // cout << endl;
+        // cout << evalStorage(shallowCopy(query_expr)) << endl;
+        // cout << endl;
+        auto res = eval(shallowCopy(query_expr));
+        // cout << "res" << endl;
+        // cout << res << endl;
+        // cout << endl;
+      }
+
+      if (true) {
+        const chrono::seconds time_warmup = 1s * warmup_duration_s;
+        const ull warmup_iters = 1;
+        chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
+        chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
+        chrono::high_resolution_clock::time_point warmup_timestamp = warmup_start;
+        for (ull i = 0; i < warmup_iters || warmup_timestamp < warmup_end_time; i++) {
+          auto res = eval(shallowCopy(query_expr));
+          benchmark::DoNotOptimize(res);
+          warmup_timestamp = chrono::high_resolution_clock::now();
+        }
+
+        const chrono::seconds time_test = 1s * test_duration_s;
+        const ull test_iters = 1;
+        chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
+        chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
+        chrono::high_resolution_clock::time_point test_timestamp = test_start;
+        ull completed_iters = 0;
+        for (completed_iters = 0; completed_iters < test_iters || test_timestamp < test_end_time; completed_iters++) {
+          auto res = eval(shallowCopy(query_expr));
+          benchmark::DoNotOptimize(res);
+          test_timestamp = chrono::high_resolution_clock::now();
+        }
+
+        chrono::high_resolution_clock::time_point test_end = chrono::high_resolution_clock::now();
+        chrono::nanoseconds elapsed_time = chrono::duration_cast<chrono::nanoseconds>(test_end - test_start);
+        chrono::nanoseconds avg_time = elapsed_time / completed_iters;
+
+        print_elapsed_time(avg_time);
+        cout << endl;
+        cout << "end " << " " << query_name << endl;
+        cout << endl;
+        csv << "," << avg_time.count();
+      }
+      eval_numpy("reset_python_dict"_);
     }
     csv << endl;
 
@@ -1016,11 +1141,11 @@ void benchmark_loop_tpch(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
-      if (false && (query_name != query_to_run)) {
+      if (true && (query_name != query_to_run)) {
         continue;
       }
 
-      if (false && (query_name == "q3-tpch" || query_name == "q9-tpch")) {
+      if (true && (query_name == "q3-tpch" || query_name == "q9-tpch")) {
         continue;
       }
 
@@ -1028,7 +1153,7 @@ void benchmark_loop_tpch(
         continue;
       }
  
-      if (true) {
+      if (false) {
         // cout << shallowCopy(query_expr) << endl;
         // cout << endl;
         // cout << evalStorage(shallowCopy(query_expr)) << endl;
@@ -1040,7 +1165,7 @@ void benchmark_loop_tpch(
       }
 
       if (true) {
-        const chrono::seconds time_warmup = 3s;
+        const chrono::seconds time_warmup = 1s * warmup_duration_s;
         const ull warmup_iters = 1;
         chrono::high_resolution_clock::time_point warmup_start = chrono::high_resolution_clock::now();
         chrono::high_resolution_clock::time_point warmup_end_time = warmup_start + time_warmup;
@@ -1051,7 +1176,7 @@ void benchmark_loop_tpch(
           warmup_timestamp = chrono::high_resolution_clock::now();
         }
 
-        const chrono::seconds time_test = 10s;
+        const chrono::seconds time_test = 1s * test_duration_s;
         const ull test_iters = 1;
         chrono::high_resolution_clock::time_point test_start = chrono::high_resolution_clock::now();
         chrono::high_resolution_clock::time_point test_end_time = test_start + time_test;
@@ -1126,13 +1251,21 @@ int main(int argc, char** argv) {
       if(++i < argc) {
         query_to_run = argv[i];
       }
+    } else if(std::string("--test-duration") == argv[i]) {
+      if(++i < argc) {
+        test_duration_s = atoi(argv[i]);
+      }
+    } else if(std::string("--warmup-duration") == argv[i]) {
+      if(++i < argc) {
+        warmup_duration_s = atoi(argv[i]);
+      }
     }
   }
-  if (input_size_mb == "" || query_to_run == "") {
-    throw runtime_error("provide --size and --query");
+  if (input_size_mb == "" || query_to_run == "" || test_duration_s == 0 || warmup_duration_s == 0) {
+    throw runtime_error("provide --size and --query and --duration");
   }
   try {
-    init_and_run_benchmarks();
+    // init_and_run_benchmarks();
     tpch_bench();
   } catch(std::exception& e) {
     std::cerr << "caught exception in main: " << e.what() << std::endl;
