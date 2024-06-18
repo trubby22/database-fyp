@@ -899,71 +899,71 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             //   return result;
             // }
 
-            if (top_head == "split_into_spans"_) {
-              // head = project
-              auto top_it = make_move_iterator(top_dynamics.begin());
-              auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
+            // if (top_head == "split_into_spans"_) {
+            //   // head = project
+            //   auto top_it = make_move_iterator(top_dynamics.begin());
+            //   auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
 
-              auto evaluated_expr = evaluate(move(expr));
-              // cout << evaluated_expr << endl;
-              PyObject *table_pydict = python_expression_to_pyobject(move(evaluated_expr));
+            //   auto evaluated_expr = evaluate(move(expr));
+            //   // cout << evaluated_expr << endl;
+            //   PyObject *table_pydict = python_expression_to_pyobject(move(evaluated_expr));
 
-              int span_size = (1 << 20) / 4;
+            //   int span_size = (1 << 20) / 4;
 
-              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "split_into_spans");
-              if (py_operator == NULL) {
-                PyErr_Print();
-                throw runtime_error("error");
-              }
+            //   PyObject* py_operator = PyObject_GetAttrString(rel_alg, "split_into_spans");
+            //   if (py_operator == NULL) {
+            //     PyErr_Print();
+            //     throw runtime_error("error");
+            //   }
 
-              PyObject* result;
-              if (PyCallable_Check(py_operator)) {
-                // borrows references to args
-                // returns new reference
-                result = PyObject_CallFunction(py_operator, "Oi", table_pydict, span_size);
-                if (result == NULL) {
-                  PyErr_Print();
-                  throw runtime_error("error");
-                }
-              } else {
-                PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
-                PyErr_Print();
-                throw runtime_error("py_operator is not a callable object");
-              }
-              return result;
-            }
+            //   PyObject* result;
+            //   if (PyCallable_Check(py_operator)) {
+            //     // borrows references to args
+            //     // returns new reference
+            //     result = PyObject_CallFunction(py_operator, "Oi", table_pydict, span_size);
+            //     if (result == NULL) {
+            //       PyErr_Print();
+            //       throw runtime_error("error");
+            //     }
+            //   } else {
+            //     PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
+            //     PyErr_Print();
+            //     throw runtime_error("py_operator is not a callable object");
+            //   }
+            //   return result;
+            // }
 
-            if (top_head == "materialise_into_columns"_) {
-              // head = project
-              auto top_it = make_move_iterator(top_dynamics.begin());
-              auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
+            // if (top_head == "materialise_into_columns"_) {
+            //   // head = project
+            //   auto top_it = make_move_iterator(top_dynamics.begin());
+            //   auto expr = get<PythonExpressionSystem::ComplexExpression>(*top_it);
 
-              auto evaluated_expr = evaluate(move(expr));
-              // cout << evaluated_expr << endl;
-              PyObject *table_pydict = python_expression_to_pyobject(move(evaluated_expr));
+            //   auto evaluated_expr = evaluate(move(expr));
+            //   // cout << evaluated_expr << endl;
+            //   PyObject *table_pydict = python_expression_to_pyobject(move(evaluated_expr));
 
-              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "materialise_into_columns");
-              if (py_operator == NULL) {
-                PyErr_Print();
-                throw runtime_error("error");
-              }
+            //   PyObject* py_operator = PyObject_GetAttrString(rel_alg, "materialise_into_columns");
+            //   if (py_operator == NULL) {
+            //     PyErr_Print();
+            //     throw runtime_error("error");
+            //   }
 
-              PyObject* result;
-              if (PyCallable_Check(py_operator)) {
-                // borrows references to args
-                // returns new reference
-                result = PyObject_CallFunction(py_operator, "O", table_pydict);
-                if (result == NULL) {
-                  PyErr_Print();
-                  throw runtime_error("error");
-                }
-              } else {
-                PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
-                PyErr_Print();
-                throw runtime_error("py_operator is not a callable object");
-              }
-              return result;
-            }
+            //   PyObject* result;
+            //   if (PyCallable_Check(py_operator)) {
+            //     // borrows references to args
+            //     // returns new reference
+            //     result = PyObject_CallFunction(py_operator, "O", table_pydict);
+            //     if (result == NULL) {
+            //       PyErr_Print();
+            //       throw runtime_error("error");
+            //     }
+            //   } else {
+            //     PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
+            //     PyErr_Print();
+            //     throw runtime_error("py_operator is not a callable object");
+            //   }
+            //   return result;
+            // }
 
             if (top_head == "DictionaryEncodedList"_) {
               auto top_it = make_move_iterator(top_dynamics.begin());
@@ -1124,42 +1124,42 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
             }
 
             // def aggregate_matrix(cnp.int_t[:, :] matrix, list[int] key_col_ixs_in, str reduction_func, int reduction_col_ix)
-            if (top_head == "aggregate_matrix"_) {
-              // head = project
-              auto top_it = make_move_iterator(top_dynamics.begin());
-              PyObject *matrix = get<PyObject *>(*top_it);
-              auto key_col_ixs_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
-              auto reduction_func_expr = get<Symbol>(*(top_it + 2));
-              auto reduction_col_ix = get<int>(*(top_it + 3));
+            // if (top_head == "aggregate_matrix"_) {
+            //   // head = project
+            //   auto top_it = make_move_iterator(top_dynamics.begin());
+            //   PyObject *matrix = get<PyObject *>(*top_it);
+            //   auto key_col_ixs_expr = get<PythonExpressionSystem::ComplexExpression>(*(top_it + 1));
+            //   auto reduction_func_expr = get<Symbol>(*(top_it + 2));
+            //   auto reduction_col_ix = get<int>(*(top_it + 3));
 
-              PyObject *key_col_ixs = single_span_list_to_pylist(move(key_col_ixs_expr));
-              string reduction_func_str = reduction_func_expr.getName();
-              PyObject *reduction_func = primitive_to_pyobject<string>(move(reduction_func_str));
+            //   PyObject *key_col_ixs = single_span_list_to_pylist(move(key_col_ixs_expr));
+            //   string reduction_func_str = reduction_func_expr.getName();
+            //   PyObject *reduction_func = primitive_to_pyobject<string>(move(reduction_func_str));
 
-              PyObject* py_operator = PyObject_GetAttrString(rel_alg, "aggregate");
-              if (py_operator == NULL) {
-                PyErr_Print();
-                throw runtime_error("error");
-              }
+            //   PyObject* py_operator = PyObject_GetAttrString(rel_alg, "aggregate");
+            //   if (py_operator == NULL) {
+            //     PyErr_Print();
+            //     throw runtime_error("error");
+            //   }
 
-              PyObject* result;
-              if (PyCallable_Check(py_operator)) {
-                // borrows references to args
-                // returns new reference
-                result = PyObject_CallFunction(
-                  py_operator, "OOOi", matrix, key_col_ixs, reduction_func, reduction_col_ix);
-                if (result == NULL) {
-                  PyErr_Print();
-                  throw runtime_error("error");
-                }
-              } else {
-                PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
-                PyErr_Print();
-                throw runtime_error("py_operator is not a callable object");
-              }
+            //   PyObject* result;
+            //   if (PyCallable_Check(py_operator)) {
+            //     // borrows references to args
+            //     // returns new reference
+            //     result = PyObject_CallFunction(
+            //       py_operator, "OOOi", matrix, key_col_ixs, reduction_func, reduction_col_ix);
+            //     if (result == NULL) {
+            //       PyErr_Print();
+            //       throw runtime_error("error");
+            //     }
+            //   } else {
+            //     PyErr_SetString(PyExc_TypeError, "py_operator is not a callable object");
+            //     PyErr_Print();
+            //     throw runtime_error("py_operator is not a callable object");
+            //   }
 
-              return result;
-            }
+            //   return result;
+            // }
 
             if (top_head == "python_globals"_) {
               auto top_it = make_move_iterator(top_dynamics.begin());
