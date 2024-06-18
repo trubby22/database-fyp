@@ -74,7 +74,7 @@ private:
   PyObject *rel_alg;
   PyObject *main_module;
   // PyGILState_STATE gstate;
-  vector<PyObject *> intermediate_vals;
+  unordered_set<PyObject *> intermediate_vals;
 
   ull span_size_bytes;
 

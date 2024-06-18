@@ -1007,6 +1007,17 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               // cout << evaluated_expr << endl;
               PyObject *table_pydict = python_expression_to_pyobject(move(evaluated_expr));
 
+              intermediate_vals.insert(table_pydict);
+              intermediate_vals.insert(arg1);
+              intermediate_vals.insert(arg2);
+              intermediate_vals.insert(arg3);
+              intermediate_vals.insert(arg4);
+              intermediate_vals.insert(arg5);
+              intermediate_vals.insert(arg6);
+              intermediate_vals.insert(arg7);
+              intermediate_vals.insert(arg8);
+              intermediate_vals.insert(arg9);
+
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "project");
               if (py_operator == NULL) {
                 PyErr_Print();
@@ -1027,7 +1038,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-              intermediate_vals.emplace_back(result);
+              intermediate_vals.insert(result);
               return result;
             }
 
@@ -1041,6 +1052,11 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               PyObject *arg3 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 3)));
 
               PyObject *table_pydict = python_expression_to_pyobject(evaluate(move(expr)));
+
+              intermediate_vals.insert(table_pydict);
+              intermediate_vals.insert(arg1);
+              intermediate_vals.insert(arg2);
+              intermediate_vals.insert(arg3);
 
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "select");
               if (py_operator == NULL) {
@@ -1063,7 +1079,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-              intermediate_vals.emplace_back(result);
+              intermediate_vals.insert(result);
               return result;
             }
 
@@ -1078,6 +1094,11 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
 
               PyObject *table_pydict_1 = python_expression_to_pyobject(evaluate(move(expr_1)));
               PyObject *table_pydict_2 = python_expression_to_pyobject(evaluate(move(expr_2)));
+
+              intermediate_vals.insert(table_pydict_1);
+              intermediate_vals.insert(table_pydict_2);
+              intermediate_vals.insert(arg1);
+              intermediate_vals.insert(arg2);
 
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "equi_join");
               if (py_operator == NULL) {
@@ -1100,7 +1121,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-              intermediate_vals.emplace_back(result);
+              intermediate_vals.insert(result);
               return result;
             }
 
@@ -1115,6 +1136,12 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
               PyObject *arg4 = single_span_list_to_pylist(get<PythonExpressionSystem::ComplexExpression>(*(top_it + 4)));
 
               PyObject *table_pydict = python_expression_to_pyobject(evaluate(move(expr)));
+
+              intermediate_vals.insert(table_pydict);
+              intermediate_vals.insert(arg1);
+              intermediate_vals.insert(arg2);
+              intermediate_vals.insert(arg3);
+              intermediate_vals.insert(arg4);
 
               PyObject* py_operator = PyObject_GetAttrString(rel_alg, "aggregate");
               if (py_operator == NULL) {
@@ -1137,7 +1164,7 @@ PythonExpressionSystem::Expression Engine::evaluate(PythonExpressionSystem::Expr
                 PyErr_Print();
                 throw runtime_error("py_operator is not a callable object");
               }
-              intermediate_vals.emplace_back(result);
+              intermediate_vals.insert(result);
               return result;
             }
 
