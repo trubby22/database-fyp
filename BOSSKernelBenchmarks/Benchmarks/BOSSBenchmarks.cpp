@@ -1143,7 +1143,7 @@ void benchmark_loop_tpch(
     for (const auto& [query_name, query_expr] : query_names_exprs) {
       cout << "========== start " << query_name << " ==========" << endl;
 
-      if (false && (query_name != query_to_run)) {
+      if (true && (query_name != query_to_run)) {
         continue;
       }
 
@@ -1264,10 +1264,10 @@ int main(int argc, char** argv) {
     }
   }
   if (input_size_mb == "" || query_to_run == "" || test_duration_s == 0 || warmup_duration_s == 0) {
-    throw runtime_error("provide --size and --query and --duration");
+    throw runtime_error("provide:\n--size,\n--query,\n--test-duration,\n--warmup-duration");
   }
   try {
-    init_and_run_benchmarks();
+    // init_and_run_benchmarks();
     tpch_bench();
   } catch(std::exception& e) {
     std::cerr << "caught exception in main: " << e.what() << std::endl;
