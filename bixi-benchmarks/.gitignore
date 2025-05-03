@@ -1,0 +1,11 @@
+*.db
+*.csv
+*.tbl
+*.png
+*.svg
+
+diagrams/
+bixi-data/
+__pycache__/
+.ipynb_checkpoints/
+experiment-results/

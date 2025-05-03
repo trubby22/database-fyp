@@ -1,0 +1,5 @@
+/vol/linux/apps/singularity/bin/singularity shell -e -H /home --pwd /home --no-home --no-mount $PWD -B $HOME/Projects/covidhotspotfinder:/home/covidhotspotfinder,/data/$USER/m2/:/home/.m2,/data/$USER/cmake-downloads:/home/.cmake-downloads,$HOME/.ssh/authorized_keys:/home/.ssh/authorized_keys,$HOME/.ssh/id_rsa:/home/.ssh/id_rsa /data/$USER/spe-image_main.sif
+
+singularity shell /data/$USER/spe-image_main.sif
+
+singularity pull -F docker://ghcr.io/little-big-h/spe-image:main
