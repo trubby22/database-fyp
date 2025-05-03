@@ -1,0 +1,25 @@
+tpch mem usage
+(all values in kb)
+q1:  380576
+q3:  528464
+q6:  260872
+q9:  1239680
+q17: 447552
+
+project:   265752
+select:    260872
+equi-join: 474304
+aggregate: 321264
+
+tpch runtime sf = 0.1
+(all values in ms)
+q1: 279
+q3: 78337
+q6: 28
+q9: 3109
+q17: 519
+
+project: 24
+select: 28
+equi-join: 462
+aggregate: 274

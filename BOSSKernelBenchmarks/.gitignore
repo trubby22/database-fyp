@@ -1,0 +1,15 @@
+.dir-locals.el
+.vscode
+.vs
+*.json
+.idea
+cmake*
+build/
+Debug/
+Release/
+MinSizeRel/
+RelWithDebInfo/
+data/tpch_*MB/
+results/
+**.tbl
+bixi-data/
